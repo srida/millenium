@@ -657,9 +657,9 @@ export const TYPES = Object.freeze({
     attribut: { quands: ['fin_combat'], champs: { rarity: {}, magie_id: {} } },
     magie: { quands: ['immediat'], champs: { rarity: {}, magie_id: {} } },
   },
-  board_slot_bonus: {
-    label: 'Slot de board supplémentaire',
-    court: 'Slot de board',
+  energy_bonus: {
+    label: "Énergie d'invocation en plus, pour le reste de la partie",
+    court: 'Énergie en plus',
     attribut: { quands: ['fin_combat'], champs: { value: { defaut: 1 }, max: {} } },
     magie: { quands: ['immediat'], champs: { value: { defaut: 1 } } },
   },
@@ -685,7 +685,7 @@ export const TYPES = Object.freeze({
     // fournissent pas de registre adverse), exactement l'« effet mort » que ce
     // fichier existe pour empêcher.
     terrain: { quands: ['debut_combat'], champs: { value: {}, target: {} } },
-    // ⚠️ `fin_combat` SEUL, comme `draw_bonus`/`board_slot_bonus`/
+    // ⚠️ `fin_combat` SEUL, comme `draw_bonus`/`energy_bonus`/
     // `damage_multiplier_bonus`/`shopping_bonus` : ce sont les ressources
     // JOUEUR, et seul `_applyEndForSide` (fin de combat) verse ce que le
     // moteur accumule — un déclencheur `debut_combat`/`a_l_invocation`/

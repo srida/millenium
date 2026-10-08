@@ -122,8 +122,8 @@
 		"id": "MAGIE_014",
 		"name": "Réaction en chaîne",
 		"effect": {
-			"type": "board_slot_bonus",
-			"value": 1
+			"type": "energy_bonus",
+			"value": 2
 		},
 		"rarity": 3
 	},

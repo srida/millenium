@@ -1,4 +1,5 @@
-// Barre HUD haute : PV joueur/ennemi (max 1000), indicateur de manche,
+// Barre HUD haute : PV joueur/ennemi (max 1000), indicateur de manche et,
+// dessous, l'énergie du tour (en préparation),
 // multiplicateurs de dégâts (affichés pendant le combat), identité des deux
 // camps (avatar + pseudo/nom de deck, résolus par l'écran appelant).
 import { useGameStore } from '../../stores/gameStore.js';
@@ -62,20 +63,7 @@ export default function Hud({ enemyAvatarSrc = null, enemyAvatarFallback = '?', 
             </span>
           )}
           <span className="flex flex-shrink-0 items-center gap-1.5">
-            {/* L'énergie occupe la place du multiplicateur : l'une ne sert qu'en
-                préparation, l'autre qu'en combat. Elle vivait dans la barre de
-                phase, où elle disputait sa place aux boutons. */}
-            {combatActive
-              ? <span className="text-[10px] font-bold text-player/80 tabular-nums">×{playerMultiplier.toFixed(1)}</span>
-              : (
-                <span
-                  role="status"
-                  aria-label={`Énergie : ${energyLeft} sur ${energyBudget}. Chaque unité posée occupe son tier.`}
-                  className={'text-[10px] font-bold tabular-nums ' + (energyLeft === 0 ? 'text-white/40' : 'text-gold')}
-                >
-                  <span aria-hidden>⚡</span>{energyLeft}<span className="font-normal text-white/50">/{energyBudget}</span>
-                </span>
-              )}
+            {combatActive && <span className="text-[10px] font-bold text-player/80 tabular-nums">×{playerMultiplier.toFixed(1)}</span>}
             <span className="font-bold text-player tabular-nums">{player.shown}</span>
           </span>
         </div>
@@ -87,6 +75,17 @@ export default function Hud({ enemyAvatarSrc = null, enemyAvatarFallback = '?', 
           <span className="text-sm font-bold tabular-nums">{round} / 5</span>
           <span className="text-[9px] tracking-widest text-white/50">MANCHE</span>
         </div>
+        {/* L'énergie, sous la manche : c'est le budget DU TOUR, et le centre du
+            HUD est ce que l'œil retrouve sans chercher. Préparation seulement. */}
+        {!combatActive && (
+          <span
+            role="status"
+            aria-label={`Énergie : ${energyLeft} sur ${energyBudget}. Chaque unité posée occupe son tier.`}
+            className={'mt-1 rounded-md border border-line bg-surface/80 px-2 py-0.5 text-xs font-bold tabular-nums ' + (energyLeft === 0 ? 'text-white/40' : 'text-gold')}
+          >
+            <span aria-hidden>⚡</span>{energyLeft}<span className="font-normal text-white/50">/{energyBudget}</span>
+          </span>
+        )}
       </div>
 
       <div className="min-w-0 flex-1">

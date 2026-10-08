@@ -30,10 +30,10 @@ function simulateGame(deckA, deckB, { attributeList, cardDb }) {
   for (;;) {
     aiA.drawHand(gameState.round);
     aiB.drawHand(gameState.round);
-    aiA.placeFromHand(board, gameState.player_board_slots, graveyardA, null, null, budgetForRound(gameState.round));
-    aiB.placeFromHand(board, gameState.enemy_board_slots, graveyardB, null, null, budgetForRound(gameState.round));
-    aiA.rearrangeUnits(board, gameState.player_board_slots);
-    aiB.rearrangeUnits(board, gameState.enemy_board_slots);
+    aiA.placeFromHand(board, graveyardA, null, null, budgetForRound(gameState.round));
+    aiB.placeFromHand(board, graveyardB, null, null, budgetForRound(gameState.round));
+    aiA.rearrangeUnits(board);
+    aiB.rearrangeUnits(board);
 
     const unitsA = board.getLivingUnitsOnSide('player');
     const unitsB = board.getLivingUnitsOnSide('enemy');

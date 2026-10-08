@@ -224,7 +224,7 @@ function exerce(attr: any, threshold: any) {
       pioches: resultat.draw_bonus,
       garanties: resultat.guaranteed_draws.map((d: any) =>
         [d.tier ?? '—', (d.attributes ?? []).join('|') || (d.attribute ?? '—'), (d.card_ids ?? []).join('|') || '—'].join(':')),
-      slots: resultat.board_slot_bonus,
+      slots: resultat.energy_bonus,
       multiplicateur: resultat.damage_multiplier_bonus,
       shopping: resultat.shopping_bonus,
       reanimes: resultat.revived.map((u: Unit) => u.card_id),

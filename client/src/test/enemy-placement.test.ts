@@ -74,7 +74,7 @@ describe('Placement de l\'IA (solo)', () => {
     // Deck ne contenant QUE la transformation : la main tirée est déterministe.
     const ai = new (EnemyAI as any)({ 1: ['E_EVO'] }, { getCard: (id: string) => byId.get(id) ?? null }, 'enemy');
     ai.drawHand(1);
-    ai.placeFromHand(board, 5, []);
+    ai.placeFromHand(board, []);
 
     const onBoard = board.getLivingUnitsOnSide('enemy');
     expect(onBoard.map((u: any) => u.card_id)).toEqual(['E_EVO']);
@@ -95,7 +95,7 @@ describe('Placement de l\'IA (solo)', () => {
     // Deux exemplaires de la même carte en main (tirage avec remise) : une
     // main de joueur ne le permettrait jamais, la main de l'IA si.
     ai.setHand([card, card]);
-    ai.placeFromHand(board, 5, []);
+    ai.placeFromHand(board, []);
 
     const onBoard = board.getLivingUnitsOnSide('enemy');
     expect(onBoard).toHaveLength(1);

@@ -33,7 +33,6 @@ import type { AiLabRound, AiTraceEvent, LabUnitInput } from './aiLabRun.js';
 
 type Card = any;
 
-const SLOT_CHOICES = [5, 6];
 const ROUNDS = [1, 2, 3, 4, 5];
 const ROWS = Array.from({ length: AI_ROW_MAX - AI_ROW_MIN + 1 }, (_, i) => AI_ROW_MIN + i);
 const COLS = Array.from({ length: AI_COLS }, (_, i) => i);
@@ -65,7 +64,6 @@ export default function AiLab() {
   const [deckId, setDeckId] = useState('');
   const [seed, setSeed] = useState('labo-1');
   const [round, setRound] = useState(1);
-  const [slots, setSlots] = useState(5);
   const [bonusAtk, setBonusAtk] = useState(0);
   const [bonusHp, setBonusHp] = useState(0);
 
@@ -146,7 +144,7 @@ export default function AiLab() {
   function materialiseDraw() {
     if (!deckId || result) return;
     const r = runAiPlacement({
-      deck, cardDb, round, slots: 99, survivors: [], graveyard: [],
+      deck, cardDb, round, survivors: [], graveyard: [],
       hand, draw: true, seed, enemyBonus: null,
     });
     setResult(null);
@@ -158,7 +156,7 @@ export default function AiLab() {
   function place() {
     if (!deckId) return;
     const r = runAiPlacement({
-      deck, cardDb, round, slots,
+      deck, cardDb, round,
       survivors, graveyard,
       hand, draw,
       seed,
@@ -345,13 +343,6 @@ export default function AiLab() {
                   onPointerDown={() => setRound(r)}>{r}</button>
               ))}
             </div>
-            <div className={`${label} mt-3`}>Slots de l'IA</div>
-            <div className="mt-1 flex gap-1">
-              {SLOT_CHOICES.map(s => (
-                <button key={s} className={s === slots ? btnOn : btn}
-                  onPointerDown={() => setSlots(s)}>{s}</button>
-              ))}
-            </div>
           </div>
 
           <div className={panel}>
@@ -451,7 +442,7 @@ export default function AiLab() {
                 Zone de l'IA — rangées {AI_ROW_MIN} à {AI_ROW_MAX}
               </span>
               <span className="text-[10px] text-white/35">
-                {result ? `${result.board_after.length}/${slots} après placement` : `${survivors.length} survivant(s)`}
+                {result ? `${result.board_after.length} unité(s) · ⚡${result.budget} après placement` : `${survivors.length} survivant(s)`}
               </span>
             </div>
             {/* Les rangées gardent leurs NUMÉROS RÉELS : la grille, la trace et
@@ -658,13 +649,6 @@ function Trace({ result, nameOf }: { result: AiLabRound | null; nameOf: (id: str
               </li>
             ))}
           </ul>
-          {rearrange.dropped.length > 0 && (
-            <div className="mt-1 rounded border border-amber-400/30 bg-amber-400/10 px-2 py-1 text-[11px] text-amber-200">
-              ⚠ {rearrange.dropped.length} unité(s) JETÉE(S) au-delà du cap :{' '}
-              {rearrange.dropped.map((u: any) => nameOf(u.card_id)).join(', ')} — retirées du
-              terrain sans mourir ni passer au cimetière.
-            </div>
-          )}
         </div>
       )}
 

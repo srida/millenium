@@ -64,7 +64,7 @@ describe('BoardInfo — le libellé d\'un effet', () => {
     expect(boardEffectLabel({ type: 'draw_bonus', value: 1 } as any)).toBe('+1 pioche');
     expect(boardEffectLabel({ type: 'guaranteed_draw' } as any)).toBe('Pioche garantie');
     expect(boardEffectLabel({ type: 'revive' } as any)).toBe('Réanimation');
-    expect(boardEffectLabel({ type: 'board_slot_bonus', value: 1 } as any)).toBe('+1 slot');
+    expect(boardEffectLabel({ type: 'energy_bonus', value: 1 } as any)).toBe('+1 énergie');
   });
 
   // ⚠️ Une pioche garantie d'ATTRIBUT DIT ce qu'elle promet, avec les mêmes mots

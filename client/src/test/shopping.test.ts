@@ -213,20 +213,12 @@ describe('Shopping — pertinence de l\'offre', () => {
     expect(offeredIds(session).sort()).toEqual(['G1', 'G3']);
   });
 
-  it('board_slot_bonus : disparaît une fois le cap partagé consommé', () => {
-    // C'est la seule magie du jeu qui s'applique sans erreur et ne donne RIEN :
-    // grantLimitedBoardSlotBonus rend 0 en silence passé le cap.
-    const { session } = makeSession({ magies: [magie({ type: 'board_slot_bonus', value: 1 }, { id: 'CHAIN' })] });
+  it('energy_bonus : toujours offerte, même après une première (cumulable, sans plafond)', () => {
+    const { session } = makeSession({ magies: [magie({ type: 'energy_bonus', value: 2 }, { id: 'CHAIN' })] });
     expect(offeredIds(session)).toEqual(['CHAIN']);
 
-    session.applyGlobalMagie(magie({ type: 'board_slot_bonus', value: 1 }) as any);
-    expect(session.getShoppingMagies()).toEqual([]);
-  });
-
-  it('board_slot_bonus : disparaît aussi quand c\'est l\'ATTRIBUT qui a pris le cap', () => {
-    const { session } = makeSession({ magies: [magie({ type: 'board_slot_bonus', value: 1 }, { id: 'CHAIN' })] });
-    session.gameState.grantLimitedBoardSlotBonus(1); // Yeux Bleus
-    expect(session.getShoppingMagies()).toEqual([]);
+    session.applyGlobalMagie(magie({ type: 'energy_bonus', value: 2 }) as any);
+    expect(offeredIds(session)).toEqual(['CHAIN']);
   });
 
   it('player_hp_bonus : absente à PV pleins, présente dès un point perdu', () => {
@@ -342,15 +334,17 @@ describe('Shopping — effets à cible', () => {
       id: 'FUS', summon_conditions: [{ materials: materials.length, requires: materials }] });
     const matCards = materials.map(id => makeCard({ id }));
     const { session } = makeSession({ cards: [fusionCard, ...matCards] });
-    // Board déjà rempli à 4 unités + la fusion = 5 (slots par défaut) ; après retrait
-    // de la fusion il reste 1 slot pour 6 matériaux → 1 placé, 5 au cimetière.
-    for (let c = 0; c < 4; c++) place(session, makeCard({ id: 'PLAIN' }), { col: c, row: 0 });
-    const fusion = place(session, fusionCard, { col: 4, row: 0 });
+    // Plus de plafond d'unités : seules les CASES débordent. 15 unités + la
+    // fusion ; après son retrait il reste 5 cases pour 6 matériaux → 5 placés,
+    // 1 au cimetière.
+    for (let r = 0; r < 3; r++)
+      for (let c = 0; c < 5; c++) place(session, makeCard({ id: 'PLAIN' }), { col: c, row: r });
+    const fusion = place(session, fusionCard, { col: 0, row: 3 });
 
     session.applyMagieOnUnit(magie({ type: 'defuse_fusion' }) as any, fusion);
 
-    expect(session.getPlayerUnits()).toHaveLength(5); // 4 anciens + 1 matériau
-    expect(session.graveyard).toHaveLength(5);
+    expect(session.getPlayerUnits()).toHaveLength(20); // 15 anciens + 5 matériaux
+    expect(session.graveyard).toHaveLength(1);
     expect(session.graveyard.every(u => u.is_neutralized)).toBe(true);
   });
 
@@ -430,10 +424,13 @@ describe('Shopping — carry-over des effets globaux (consommés au tour suivant
     expect(session.gameState.player_guaranteed_draws).toHaveLength(0);
   });
 
-  it('board_slot_bonus : slot permanent conservé', () => {
+  it('energy_bonus : +N au budget de chaque tour, pour toute la partie', () => {
     const { session } = makeSession();
-    session.applyGlobalMagie(magie({ type: 'board_slot_bonus', value: 1 }) as any);
-    expect(session.gameState.player_board_slots).toBe(6);
+    expect(session.energyBudget()).toBe(3);
+    session.applyGlobalMagie(magie({ type: 'energy_bonus', value: 2 }) as any);
+    expect(session.energyBudget()).toBe(5);
+    session.gameState.round = 3;
+    expect(session.energyBudget()).toBe(10);
   });
 
   // ── Les deux remises d'invocation ────────────────────────────────────────

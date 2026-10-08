@@ -6,7 +6,6 @@ import { bestKeywordCell } from './KeywordPlacement.js';
 import {
   materialLineageMatches, summonConditions, conditionMaterials, conditionRequires,
   conditionIsFree, summonCost, forcedCell, materialSlotsPaid, getUncoveredRequirements,
-  livingSlotUnits,
 } from './InvocationManager.js';
 
 const HAND_SIZE = 5;
@@ -161,7 +160,6 @@ export class EnemyAI {
    * Graveyard units (neutralized last round, already off-board) are consumed
    * in-place when used as material.
    * @param {Board} board
-   * @param {number} maxUnits
    * @param {Unit[]} graveyard - mutated: consumed units are spliced out
    * @param {?function(*): void} trace
    * @param {?function(*): boolean} hasMultiple  Le mot-clé **Multiple**
@@ -178,7 +176,7 @@ export class EnemyAI {
    *   (le joueur, lui, a la règle exacte — une tentative ici mute le plateau).
    * @returns {Unit[]} placed units
    */
-  placeFromHand(board, maxUnits = 5, graveyard = [], trace = null, hasMultiple = null, budget = Infinity) {
+  placeFromHand(board, graveyard = [], trace = null, hasMultiple = null, budget = Infinity) {
     let unplaced = [...this._hand];
     const placed = [];
     let energyLeft = budget - boardEnergy(board.getLivingUnitsOnSide(this._side));
@@ -200,7 +198,7 @@ export class EnemyAI {
         const cost = energyCost(card);
         const res = cost > energyLeft
           ? _refused('over_budget', { cost, left: energyLeft })
-          : _attempt(card, board, maxUnits, graveyard, this._side, hasMultiple?.(card) ?? false);
+          : _attempt(card, board, graveyard, this._side, hasMultiple?.(card) ?? false);
         trace?.(_attemptEvent(pass, card, res));
         if (res.unit) { placed.push(res.unit); energyLeft -= cost - boardEnergy(res.consumed?.board ?? []); }
         else remaining.push(card);
@@ -231,24 +229,25 @@ export class EnemyAI {
    *   - Low range (melee/tanks) → front rows (7–8, closest to neutral zone)
    *   - High range (ranged)     → back rows (9–10)
    *   Within each group, highest HP goes furthest forward.
-   * Enforces maxUnits cap (excess units are dropped).
    * Updates initial_position so units return here after combat.
-   * @param {Board} board
-   * @param {number} maxUnits
-   * @param {?function(*): void} trace
+   *
+   * ⚠️ Aucun plafond d'unités : c'est le budget d'énergie qui borne le camp.
+   * La grille historique (3 par rangée) ne tient pas un camp nombreux — une
+   * unité dont la case calculée est prise ou hors zone prend la première case
+   * libre de la zone, de l'avant vers l'arrière. Jusqu'à cinq unités, rien ne
+   * change.
    */
   /**
    * @param {any} board
-   * @param {number} [maxUnits]
    * @param {((evt: any) => void) | null} [trace]
    * @param {((u: Unit) => import('./KeywordPlacement.js').PlacementKeyword | null) | null} [keywordOf]
    *   Le mot-clé de placement d'une unité (cf. `KeywordPlacement`). Injecté —
    *   `EnemyAI` ne lit pas le catalogue d'attributs. Absent : placement historique.
    */
-  rearrangeUnits(board, maxUnits = 5, trace = null, keywordOf = null) {
+  rearrangeUnits(board, trace = null, keywordOf = null) {
     const units = board.getLivingUnitsOnSide(this._side);
     if (units.length === 0) {
-      trace?.({ kind: 'rearrange', before: [], after: [], dropped: [] });
+      trace?.({ kind: 'rearrange', before: [], after: [] });
       return;
     }
 
@@ -261,11 +260,7 @@ export class EnemyAI {
       return b.max_hp - a.max_hp;                        // higher HP → front within group
     });
 
-    const toPlace = sorted.slice(0, maxUnits);
-    // ⚠️ Les unités au-delà du cap sont retirées du board SANS mourir ni passer
-    // au cimetière — elles disparaissent, simplement. On les nomme ici, c'est
-    // la seule trace qu'il en reste.
-    const dropped = sorted.slice(maxUnits).map(u => _unitRow(u));
+    const toPlace = sorted;
 
     // Les porteurs d'un mot-clé de placement sont posés APRÈS les autres, sur
     // les cases restantes (`KeywordPlacement`). Sans porteur, rien ne change :
@@ -298,9 +293,12 @@ export class EnemyAI {
       ...assign(ranged, rangedFrontRow),
     ];
 
-    for (const { unit, pos } of placements) {
-      unit.initial_position = null; // reset so placeUnit assigns the new cell
-      board.placeUnit(unit, pos);
+    const inZone = (pos) => pos.row >= Math.min(frontRow, frontRow + rowStep * 3)
+      && pos.row <= Math.max(frontRow, frontRow + rowStep * 3);
+    for (const p of placements) {
+      if (!inZone(p.pos) || board.isOccupied(p.pos)) p.pos = _firstFreeCell(board, frontRow, rowStep);
+      p.unit.initial_position = null; // reset so placeUnit assigns the new cell
+      board.placeUnit(p.unit, p.pos);
     }
     if (keyed.length > 0) this._placeKeyed(board, keyed, keywordOf, frontRow, rowStep, placements);
 
@@ -308,7 +306,6 @@ export class EnemyAI {
       kind: 'rearrange',
       before,
       after: placements.map(({ unit }) => _unitRow(unit)),
-      dropped,
     });
   }
 
@@ -374,11 +371,11 @@ export class EnemyAI {
  * non-régression est que la suite entière passe sans une seule mise à jour de
  * snapshot (goldens de `sim.test.ts`, `bots.test.ts`, `tutorial.test.ts`).
  */
-function _attempt(card, board, maxUnits, graveyard, side = 'enemy', hasMultiple = false) {
+function _attempt(card, board, graveyard, side = 'enemy', hasMultiple = false) {
   const conditions = summonConditions(card);
 
   if (conditions.length <= 1) {
-    const res = _attemptWith(card, conditions[0] ?? null, board, maxUnits, graveyard, side, hasMultiple);
+    const res = _attemptWith(card, conditions[0] ?? null, board, graveyard, side, hasMultiple);
     return conditions.length === 1 && res.unit ? { ...res, condition_index: 0 } : res;
   }
 
@@ -392,7 +389,7 @@ function _attempt(card, board, maxUnits, graveyard, side = 'enemy', hasMultiple 
 
   const tried = [];
   for (const { condition, index } of sorted) {
-    const result = _attemptWith(card, condition, board, maxUnits, graveyard, side, hasMultiple);
+    const result = _attemptWith(card, condition, board, graveyard, side, hasMultiple);
     if (result.unit) return { ...result, condition_index: index };
     tried.push({ index, condition, reason: result.reason, detail: result.detail });
   }
@@ -413,15 +410,10 @@ function _attempt(card, board, maxUnits, graveyard, side = 'enemy', hasMultiple 
  * **Multiple**), symétrique de `InvocationManager._canSummonWith` côté joueur :
  * l'exemplaire déjà vivant n'est ni exigé ni consommé, il reste sur le terrain.
  */
-function _attemptWith(card, condition, board, maxUnits, graveyard, side, hasMultiple = false) {
-  // ⚠️ Un token ne pèse pas sur le plafond — exactement la règle du joueur
-  // (`InvocationManager.livingSlotUnits`).
-  const onBoard = livingSlotUnits(board, side).length;
-
+function _attemptWith(card, condition, board, graveyard, side, hasMultiple = false) {
   if (!condition || conditionIsFree(condition)) {
     if (!hasMultiple && board.getLivingUnitsOnSide(side).some(u => u.card_id === card.id))
       return _refused('duplicate_on_board');
-    if (onBoard >= maxUnits) return _refused('board_full', { on_board: onBoard, max_units: maxUnits });
     const cells = _freeCells(board, side);
     if (cells.length === 0) return _refused('no_free_cell');
     const unit = _makeUnit(card, side);
@@ -511,14 +503,11 @@ function _attemptWith(card, condition, board, maxUnits, graveyard, side, hasMult
       : _refused('not_enough_material', { needed, available: needed - stillNeeded });
   }
 
-  // 3. Les slots. ⚠️ Plus d'exception : une condition satisfaite depuis le seul
-  //    cimetière ne libère aucune case et compte donc comme une pose neuve —
-  //    exactement la règle du joueur (`InvocationManager.exceedsBoardSlots`).
-  if (onBoard - toConsumeBoard.length + 1 > maxUnits) {
-    return _refused('would_exceed_slots', {
-      on_board: onBoard, consumed_from_board: toConsumeBoard.length, max_units: maxUnits,
-    });
-  }
+  // 3. La case. ⚠️ Vérifiée AVANT de retirer quoi que ce soit : un refus après
+  //    coup aurait déjà mangé les matériaux. Un matériau encore posé (corps du
+  //    cimetière compris) libère la sienne en partant.
+  const freesCell = [...toConsumeBoard, ...toConsumeGrave].some(u => u.position && board.getUnit(u.position) === u);
+  if (!freesCell && _freeCells(board, side).length === 0) return _refused('no_free_cell');
 
   const consumedBoard = toConsumeBoard.map(_unitRef);
   const consumedGrave = toConsumeGrave.map(_unitRef);
@@ -697,6 +686,19 @@ function _attemptEvent(pass, card, res) {
  */
 function _summonPriority(card) {
   return summonCost(card);
+}
+
+/** La première case libre de la zone, de l'avant vers l'arrière, colonnes du
+ *  centre vers les bords — le repli de `rearrangeUnits` quand sa grille
+ *  historique déborde. */
+function _firstFreeCell(board, frontRow, rowStep) {
+  for (let d = 0; d < 4; d++) {
+    for (const col of COL_ORDER) {
+      const cell = { col, row: frontRow + rowStep * d };
+      if (!board.isOccupied(cell) && !board.isBlocked(cell)) return cell;
+    }
+  }
+  return null;
 }
 
 function _freeCells(board, side = 'enemy') {

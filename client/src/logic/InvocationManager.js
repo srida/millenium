@@ -100,36 +100,6 @@ export function forcedCell(condition, materials, board) {
 }
 
 /**
- * Les vivantes qui comptent pour le PLAFOND de board — un token en est exclu :
- * il n'a coûté aucun slot à naître (`summon_token` ne passe pas par
- * l'invocation), lui en compter un gênerait l'invocation suivante sans
- * qu'aucune carte n'y soit pour rien. ⚠️ SEUL endroit qui répond à « combien
- * d'unités pèsent sur le plafond » — `exceedsBoardSlots` et l'IA
- * (`EnemyAI._attemptWith`) le lisent tous les deux ici, pour ne pas se
- * contredire sur ce qu'un token vaut.
- */
-export function livingSlotUnits(board, side) {
-  return board.getLivingUnitsOnSide(side).filter(u => !u.is_token);
-}
-
-/**
- * Une invocation ne coûte un slot de board que pour ce qu'elle n'a pas libéré
- * elle-même : les matériaux pris SUR LE BOARD rendent leur case, ceux pris au
- * CIMETIÈRE n'en rendent aucune.
- *
- * ⚠️ La Transformation n'a plus de cas particulier : consommer un matériau du
- * board et reposer une unité donne `vivants − 1 + 1`, soit exactement zéro slot
- * consommé — la règle générale le dit déjà. Corollaire assumé : une condition
- * satisfaite depuis le seul cimetière est désormais refusée sur un board plein,
- * là où la Transformation y échappait par exception.
- */
-export function exceedsBoardSlots(card, selectedMaterials, board, graveyard, playerBoardSlots) {
-  const materialsOnBoard = selectedMaterials.filter(u => !graveyard.includes(u)).length;
-  const afterPlace = livingSlotUnits(board, 'player').length - materialsOnBoard + 1;
-  return afterPlace > playerBoardSlots;
-}
-
-/**
  * Peut-on poser `card` en `pos` ?
  *
  * Sans `conditionIndex`, une carte à plusieurs conditions rend l'état de CHACUNE

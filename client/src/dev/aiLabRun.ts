@@ -80,15 +80,13 @@ export type AiTraceEvent =
       consumed: { board: LabUnitRef[]; graveyard: LabUnitRef[] };
     }
   | { kind: 'pass_end'; pass: number; placed: number; unplaced: string[] }
-  | { kind: 'rearrange'; before: LabUnitRow[]; after: LabUnitRow[]; dropped: LabUnitRow[] };
+  | { kind: 'rearrange'; before: LabUnitRow[]; after: LabUnitRow[] };
 
 export interface AiLabInput {
   /** Deck confié à l'IA : { "1": ["CORE_001", …], … } — la forme de `sets.json`. */
   deck: Record<string, string[]>;
   cardDb: CardDbLike;
   round: number;
-  /** `enemy_board_slots` : 5, ou 6 avec certaines synergies. */
-  slots: number;
   /** Survivants du round précédent, déjà sur le board. */
   survivors: LabUnitInput[];
   /** Cimetière de l'IA — matériaux disponibles, consommés en place. */
@@ -129,7 +127,8 @@ export interface AiLabInput {
 
 export interface AiLabRound {
   round: number;
-  slots: number;
+  /** Le budget d'énergie du round (`budgetForRound`) — la seule borne du camp. */
+  budget: number;
   seed: string;
   enemy_bonus: { atk: number; hp: number } | null;
   /**
@@ -243,7 +242,7 @@ function rebuild(card: Card): Unit {
 }
 
 export function runAiPlacement(input: AiLabInput): AiLabRound {
-  const { deck, cardDb, round, slots, seed } = input;
+  const { deck, cardDb, round, seed } = input;
   const unknown: string[] = [];
   const resolve = (id: string): Card | null => {
     const card = cardDb.getCard(id);
@@ -303,8 +302,8 @@ export function runAiPlacement(input: AiLabInput): AiLabRound {
     input.draw ? (handCarried.length > 0 ? 'carry_draw' : 'draw') : 'manual';
   const handIn = ai.getHand().map(c => c.id);
 
-  ai.placeFromHand(board, slots, graveyard, trace, null, budgetForRound(round));
-  ai.rearrangeUnits(board, slots, trace);
+  ai.placeFromHand(board, graveyard, trace, null, budgetForRound(round));
+  ai.rearrangeUnits(board, trace);
 
   const after = board.getLivingUnitsOnSide('enemy');
   applyEnemyBonus(after, input.enemyBonus);
@@ -315,7 +314,7 @@ export function runAiPlacement(input: AiLabInput): AiLabRound {
 
   return canonicaliseUids({
     round,
-    slots,
+    budget: budgetForRound(round),
     seed,
     enemy_bonus: input.enemyBonus ?? null,
     hand_source: handSource,
@@ -372,12 +371,10 @@ export function handAfterEdit(
  * motif ajouté ici est à reporter là-bas.
  */
 export const REASON_LABELS: Record<string, string> = {
-  board_full: 'plus de place — le cap de slots est atteint',
   duplicate_on_board: 'un exemplaire de cette carte est déjà sur le terrain',
   no_free_cell: 'aucune case libre dans la zone',
   not_enough_material: 'pas assez de matériaux (terrain + cimetière)',
   duplicate_needs_extra_material: 'le doublon consommé ne suffit pas',
-  would_exceed_slots: 'dépasserait le nombre de slots — pas assez de place libérée',
   missing_material: 'matériau manquant',
   all_conditions_failed: 'aucune de ses conditions ne passe',
   over_budget: "pas assez d'énergie ce tour (une carte coûte son tier)",

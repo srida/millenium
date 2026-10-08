@@ -136,7 +136,7 @@ export interface Card {
 export type AttributeTiming = 'start_of_combat' | 'during_combat' | 'end_of_combat';
 
 export interface AttributeEffect {
-  type: string; // stat_bonus | stat_modifier | shield | effect_immunity | revive | draw_bonus | guaranteed_draw | board_slot_bonus | damage_multiplier_bonus | shopping_bonus | heal | player_hp_bonus | guaranteed_magie
+  type: string; // stat_bonus | stat_modifier | shield | effect_immunity | revive | draw_bonus | guaranteed_draw | energy_bonus | damage_multiplier_bonus | shopping_bonus | heal | player_hp_bonus | guaranteed_magie
   stat?: string;
   value?: number;
   /** stat_bonus : multiplie value par le nombre d'ennemis portant cet attribut. */
@@ -372,7 +372,7 @@ export interface EndOfCombatAttributeResult {
   revived?: Unit[];
   draw_bonus?: number;
   guaranteed_draws?: GuaranteedDraw[];
-  board_slot_bonus?: number;
+  energy_bonus?: number;
   damage_multiplier_bonus?: number;
   shopping_bonus?: number;
   /** Provenance des deux précédents, attribut par attribut (cf. DrawSourceEntry).
@@ -413,7 +413,7 @@ export interface EndOfCombatAttributeResult {
    * il n'existe structurellement pas pour l'IA. Le moteur accumule tout ce que
    * ses attributs donnent ; c'est le VERSEMENT qui choisit les destinations.
    */
-  enemy_board_slot_bonus?: number;
+  enemy_energy_bonus?: number;
   /** Pendant de `player_hp_bonus` — versé dans `enemy_hp`. En PvP, c'est ce qui
    *  accorde les deux clients sur les PV de fin de round. Pas de provenance :
    *  le récapitulatif n'annonce que le gain du joueur. */

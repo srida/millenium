@@ -41,7 +41,6 @@ const BARREN: MagieOfferContext = {
   handHasNamedRequirement: false,
   handMaterialCostAttributes: [],
   handNamedRequirementAttributes: [],
-  boardSlotBonusAvailable: false,
   playerHpBelowCap: false,
 };
 
@@ -65,7 +64,6 @@ const LUSH: MagieOfferContext = {
   handHasNamedRequirement: true,
   handMaterialCostAttributes: ['ARCH_086', 'ARCH_087', 'ARCH_088', 'ARCH_089'],
   handNamedRequirementAttributes: ['ARCH_086', 'ARCH_087', 'ARCH_088'],
-  boardSlotBonusAvailable: true,
   playerHpBelowCap: true,
 };
 
@@ -135,7 +133,6 @@ describe('isMagieRelevant — les deux branches de chaque famille', () => {
     ['revive', { type: 'revive', value: 50 }, 'graveyardCount', 1],
     ['hand_to_graveyard', { type: 'hand_to_graveyard' }, 'handCount', 1],
     ['guaranteed_draw', { type: 'guaranteed_draw', tier: 3 }, 'deckTiers', [3]],
-    ['board_slot_bonus', { type: 'board_slot_bonus', value: 1 }, 'boardSlotBonusAvailable', true],
     ['player_hp_bonus', { type: 'player_hp_bonus', value: 100 }, 'playerHpBelowCap', true],
     ['reduce_materials', { type: 'reduce_materials', value: 1 }, 'handHasMaterialCost', true],
     ['remove_requirements', { type: 'remove_requirements', value: 1 }, 'handHasNamedRequirement', true],
@@ -176,8 +173,10 @@ describe('isMagieRelevant — les deux branches de chaque famille', () => {
     })).toBe(true);
   });
 
-  it('draw_bonus est le SEUL effet qui ne dépend de rien', () => {
+  it('draw_bonus et energy_bonus sont les SEULS effets qui ne dépendent de rien', () => {
     expect(isMagieRelevant(magie({ type: 'draw_bonus', value: 1 }), BARREN)).toBe(true);
+    // L'énergie en plus vaut pour toute la partie, sans plafond : jamais un no-op.
+    expect(isMagieRelevant(magie({ type: 'energy_bonus', value: 2 }), BARREN)).toBe(true);
   });
 
   // ⚠️ `summon_token` ne lit AUCUN champ du contexte (comme `guaranteed_magie`) :

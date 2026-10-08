@@ -204,12 +204,11 @@ describe('Auto-joueur — il joue sous les règles du JOUEUR', () => {
 
     playPreparation(session);
     expect(session.hand.length).toBeGreaterThan(0);          // il en reste en main
-    expect(session.getPlayerUnits().length).toBeLessThan(     // et de la place
-      session.gameState.player_board_slots);
+    expect(session.energyLeft()).toBeGreaterThan(0);           // et de l'énergie
     expect(session.isPlayable(normal)).toBe(false);           // la règle, donc
   });
 
-  it('ne dépasse jamais le nombre de slots du board', () => {
+  it("ne dépasse jamais le budget d'énergie", () => {
     const rand = seededRandom('slots');
     const deck = buildDeck(cat.cards, rand);
     const cardsByTier: Record<number, Card[]> = {};
@@ -220,7 +219,7 @@ describe('Auto-joueur — il joue sous les règles du JOUEUR', () => {
     });
     session.startPreparation();
     playPreparation(session);
-    expect(session.getPlayerUnits().length).toBeLessThanOrEqual(session.gameState.player_board_slots);
+    expect(session.energyUsed()).toBeLessThanOrEqual(session.energyBudget());
   });
 });
 

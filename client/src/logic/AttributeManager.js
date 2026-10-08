@@ -391,13 +391,13 @@ export class AttributeManager {
    * Resolve end-of-combat effects.
    * @param {Unit[]} playerNeutralized - units neutralized this combat (player side)
    * @param {Unit[]} enemyNeutralized  - units neutralized this combat (enemy side)
-   * @returns {{ revived: Unit[], draw_bonus: number, guaranteed_draws: Object[], board_slot_bonus: number, draw_sources: Object[] }}
+   * @returns {{ revived: Unit[], draw_bonus: number, guaranteed_draws: Object[], energy_bonus: number, draw_sources: Object[] }}
    */
   applyEndOfCombat(playerNeutralized, enemyNeutralized) {
     // ⚠️ La RÉANIMATION vaut pour les DEUX camps ; la PIOCHE aussi (l'IA pioche
     // comme le joueur — cf. `EnemyAI.drawHand`). Les effets de ressource
     // restants (emplacement, multiplicateur, Shopping) n'ont de destinataire
-    // que côté joueur : slot et multiplicateur touchent au board/aux dégâts
+    // que côté joueur : énergie et multiplicateur touchent au board/aux dégâts
     // dans des voies déjà asymétriques (déterminisme PvP), et Shopping n'existe
     // structurellement pas pour l'IA.
     //
@@ -423,7 +423,7 @@ export class AttributeManager {
       enemyRevived: adverse.reanimees,
       draw_bonus: joueur.pioches,
       guaranteed_draws: joueur.pioches_garanties, // cf. types.GuaranteedDraw
-      board_slot_bonus: joueur.slots_board,
+      energy_bonus: joueur.energie,
       damage_multiplier_bonus: joueur.multiplicateur,
       shopping_bonus: joueur.magies_shop,
       // Gain/perte de PV du joueur — pendant de `damage_multiplier_bonus`,
@@ -443,11 +443,11 @@ export class AttributeManager {
       enemy_draw_bonus: adverse.pioches,
       enemy_guaranteed_draws: adverse.pioches_garanties,
       // ⚠️ **L'IA porte ses effets comme un vrai joueur** (décision 3 du §7).
-      // Deux ressources seulement y ont un destinataire : le slot de plateau
-      // (`enemy_board_slots`, que `placeFromHand` lit déjà) et le multiplicateur
+      // Deux ressources seulement y ont un destinataire : l'énergie
+      // (`enemy_energy_bonus`, ajoutée au budget de `placeFromHand`) et le multiplicateur
       // de dégâts. Le Shopping n'existe structurellement pas pour elle — ce
       // n'est pas une limite du moteur, c'est un fait du jeu.
-      enemy_board_slot_bonus: adverse.slots_board,
+      enemy_energy_bonus: adverse.energie,
       // Gain/perte de PV de l'adversaire — pendant de `player_hp_bonus`. En
       // PvP, l'adversaire se le verse de son côté : ne pas le reporter ici
       // laissait les deux clients en désaccord sur ses PV de fin de round.

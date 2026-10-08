@@ -40,7 +40,7 @@ function run(over: any = {}) {
         { kind: 'attempt', card_id: 'N1', outcome: 'placed', reason: null },
         { kind: 'attempt', card_id: 'F1', outcome: 'refused', reason: 'missing_material' },
         { kind: 'attempt', card_id: 'F1', outcome: 'refused', reason: 'missing_material' },
-        { kind: 'attempt', card_id: 'S1', outcome: 'refused', reason: 'board_full' },
+        { kind: 'attempt', card_id: 'S1', outcome: 'refused', reason: 'over_budget' },
       ],
     }],
     ...over,
@@ -75,7 +75,7 @@ describe('ailog.record — validation et résumé', () => {
     expect(row).toMatchObject({ rounds: 1, placed: 1, refused: 3, deck_id: 'PUBLIC_DECK_001' });
 
     expect(ailog.get(id).payload.refusals_by_reason)
-      .toEqual({ missing_material: 2, board_full: 1 });
+      .toEqual({ missing_material: 2, over_budget: 1 });
     ailog.remove(id);
   });
 

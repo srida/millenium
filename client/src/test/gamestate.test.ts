@@ -180,17 +180,6 @@ describe('GameState — fin de combat', () => {
   });
 });
 
-describe('GameState — bonus de slot partagé (cap +1)', () => {
-  it('Yeux bleus / Réaction en chaîne / Fission partagent un seul +1', () => {
-    const gs = new (GameState as any)();
-    expect(gs.grantLimitedBoardSlotBonus(1)).toBe(1);
-    expect(gs.player_board_slots).toBe(6);
-    // Deuxième source : cap atteint, rien accordé
-    expect(gs.grantLimitedBoardSlotBonus(1)).toBe(0);
-    expect(gs.player_board_slots).toBe(6);
-  });
-});
-
 describe('GameState — tours et fin de partie', () => {
   it('nextRound incrémente et reset les multiplicateurs', () => {
     const gs = new (GameState as any)();

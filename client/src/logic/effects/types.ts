@@ -230,7 +230,7 @@ export const CHAMPS_JOUEUR = Object.freeze({
   pv: 'pv',
   pioches: 'pioches',
   pioches_garanties: 'pioches_garanties',
-  slots_board: 'slots_board',
+  energie: 'energie',
   multiplicateur: 'multiplicateur',
   magies_shop: 'magies_shop',
   magies_garanties: 'magies_garanties',

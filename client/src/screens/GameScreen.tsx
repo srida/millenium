@@ -11,7 +11,6 @@ import { useTournamentStore } from '../stores/tournamentStore.js';
 import { useArcadeStore, currentDuel } from '../stores/arcadeStore.js';
 import * as PublicDeckDatabase from '../data/PublicDeckDatabase.js';
 import Board3DCanvas from '../components/board/Board3DCanvas.js';
-import UnitCounterBadge from '../components/board/UnitCounterBadge.js';
 import Hud from '../components/hud/Hud.js';
 import SynergyPanel from '../components/hud/SynergyPanel.js';
 import PhaseControls from '../components/hud/PhaseControls.js';
@@ -113,7 +112,6 @@ export default function GameScreen() {
   return (
     <div className="relative h-[var(--app-h,100dvh)] overflow-hidden bg-surface text-white" onPointerDown={() => useUiStore.getState().hideTooltip()}>
       <Board3DCanvas controller={controller} />
-      <UnitCounterBadge />
       <Hud enemyAvatarSrc={enemyAvatarSrc} enemyName={enemyName} />
       <DuelIntro enemyAvatarSrc={enemyAvatarSrc} enemyName={enemyName} onDone={() => controller.begin()} />
       <SynergyPanel />

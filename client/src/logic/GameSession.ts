@@ -36,7 +36,7 @@ const {
   validCells, summonConditionsStatus,
 } = _InvocationRules as any;
 import {
-  summonConditions, conditionMaterials, conditionRequires, livingSlotUnits,
+  summonConditions, conditionMaterials, conditionRequires,
 } from './InvocationManager.js';
 import { tiersForRound, drawHand, resolveGuaranteedDraws, poolForRound } from './Draw.js';
 import { tiersOf } from './Tiers.js';
@@ -637,8 +637,8 @@ export class GameSession {
 
   // ── Budget d'invocation (énergie) ────────────────────────────────────────
 
-  /** Le budget du tour en cours. */
-  energyBudget(): number { return budgetForRound(this.gameState.round); }
+  /** Le budget du tour en cours, plus l'énergie gagnée pour la partie (`energy_bonus`). */
+  energyBudget(): number { return budgetForRound(this.gameState.round) + this.gameState.player_energy_bonus; }
 
   /** Ce que le plateau occupe déjà : chaque unité vivante du joueur, survivantes
    *  comprises. Structurel — « Tout annuler » et le mulligan n'ont rien à rendre. */
@@ -679,8 +679,8 @@ export class GameSession {
     // Le mot-clé Unique vaut pour l'IA comme pour le joueur, sans drapeau
     // d'asymétrie : `EnemyAI` tient son propre registre (`_uniqueDrawn`).
     this.enemyAI.drawHand(this.gameState.round, null, extraDraws, guaranteedDraws, this._isUnique);
-    this.enemyAI.placeFromHand(this.board, this.gameState.enemy_board_slots, this.enemyGraveyard, null, this._hasMultiple, budgetForRound(this.gameState.round));
-    this.enemyAI.rearrangeUnits(this.board, this.gameState.enemy_board_slots, null, (u: Unit) => this.placementKeywordOf(u.attributes));
+    this.enemyAI.placeFromHand(this.board, this.enemyGraveyard, null, this._hasMultiple, budgetForRound(this.gameState.round) + this.gameState.enemy_energy_bonus);
+    this.enemyAI.rearrangeUnits(this.board, null, (u: Unit) => this.placementKeywordOf(u.attributes));
     this.enemyUnits = this.board.getLivingUnitsOnSide('enemy');
     this._applyEnemyBonus();
   }
@@ -771,7 +771,7 @@ export class GameSession {
 
   isPlayable(card: Card): boolean {
     if (!this.canAffordSummon(card)) return false;
-    return isPlayable(card as any, this.board, this.graveyard, this.gameState.player_board_slots, this._hasMultiple(card));
+    return isPlayable(card as any, this.board, this.graveyard, this._hasMultiple(card));
   }
 
   needsMaterials(card: Card, conditionIndex: number | null = null): boolean {
@@ -783,7 +783,7 @@ export class GameSession {
   }
 
   summonConditionsStatus(card: Card) {
-    return summonConditionsStatus(card as any, this.board, this.graveyard, this.gameState.player_board_slots, this._hasMultiple(card));
+    return summonConditionsStatus(card as any, this.board, this.graveyard, this._hasMultiple(card));
   }
 
   /**
@@ -794,8 +794,7 @@ export class GameSession {
   validCells(card: Card, selectedMaterials: Unit[], conditionIndex: number | null = null): Position[] {
     return validCells(card as any, {
       board: this.board, graveyard: this.graveyard,
-      selectedMaterials, playerBoardSlots: this.gameState.player_board_slots,
-      conditionIndex, hasMultiple: this._hasMultiple(card),
+      selectedMaterials, conditionIndex, hasMultiple: this._hasMultiple(card),
     });
   }
 
@@ -833,10 +832,6 @@ export class GameSession {
       return { ok: false, reason: `Énergie insuffisante (${energyCost(card)} requise, ${this.energyLeft()} restante)` };
     }
     return verdict;
-  }
-
-  exceedsBoardSlots(card: Card, selectedMaterials: Unit[]): boolean {
-    return InvocationManager.exceedsBoardSlots(card as any, selectedMaterials, this.board, this.graveyard, this.gameState.player_board_slots);
   }
 
   /** Exécute l'invocation (validée en amont). Retourne l'unité placée ou null. */
@@ -1411,7 +1406,6 @@ export class GameSession {
       handHasNamedRequirement: this.hand.some(_retouchable('remove_requirements')),
       handMaterialCostAttributes:     _attributesOf(this.hand.filter(_retouchable('reduce_materials'))),
       handNamedRequirementAttributes: _attributesOf(this.hand.filter(_retouchable('remove_requirements'))),
-      boardSlotBonusAvailable: this.gameState.hasLimitedBoardSlotBonusLeft(),
       playerHpBelowCap:        this.gameState.player_hp < PLAYER_HP_CAP,
     };
   }
@@ -1515,7 +1509,7 @@ export class GameSession {
 
   /**
    * Verse ce qu'une magie a accumulé. ⚠️ **Les plafonds vivent ICI**, jamais
-   * dans le moteur : `PLAYER_HP_CAP` et le cap partagé +1 slot sont des règles
+   * dans le moteur : `PLAYER_HP_CAP` est une règle
    * de `GameState`, que le moteur n'importe pas. L'accumulateur ne connaît que
    * des montants.
    */
@@ -1525,7 +1519,7 @@ export class GameSession {
     if (r.pioches) g.player_extra_draws += r.pioches;
     if (r.sources.length) g.player_draw_sources.push(...r.sources);
     if (r.pioches_garanties.length) g.player_guaranteed_draws.push(...r.pioches_garanties);
-    if (r.slots_board) g.grantLimitedBoardSlotBonus(r.slots_board);
+    if (r.energie) g.player_energy_bonus += r.energie;
     if (r.magies_shop) g.player_extra_shopping_magies += r.magies_shop;
     // ⚠️ Le montant et sa provenance partent ENSEMBLE, comme la pioche juste
     // au-dessus : c'est ce qui tient `sum(sources.value) === le bonus`, et donc
@@ -1850,8 +1844,7 @@ export class GameSession {
       const matCard = this.deps.cardDb.getCard(matId);
       if (!matCard) continue;
       const matUnit = new Unit(matCard, 'player');
-      const cell = livingSlotUnits(this.board, 'player').length < this.gameState.player_board_slots
-        ? this.board.firstEmptyPlayerCell() : null;
+      const cell = this.board.firstEmptyPlayerCell();
       if (cell) {
         matUnit.initial_position = { ...cell };
         this.board.placeUnit(matUnit, cell);

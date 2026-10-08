@@ -158,7 +158,6 @@ export interface GameSnapshot {
   enemyHp: number;
   playerMultiplier: number;
   enemyMultiplier: number;
-  boardSlots: number;
   placedCount: number;
   /** Quelque chose a été posé/déplacé depuis l'ouverture du tour → le bouton
    *  « Tout annuler » de la barre de préparation s'affiche. */
@@ -227,7 +226,7 @@ export interface GameSnapshot {
 
 export const EMPTY_SNAPSHOT: GameSnapshot = {
   round: 1, phase: 'preparation', playerHp: 1000, enemyHp: 1000,
-  playerMultiplier: 1, enemyMultiplier: 1, boardSlots: 5, placedCount: 0, canUndo: false,
+  playerMultiplier: 1, enemyMultiplier: 1, placedCount: 0, canUndo: false,
   canMulligan: false, mulliganCost: MULLIGAN_COST_HP, energyBudget: 3, energyLeft: 3,
   hand: [], graveyard: [], synergies: [], invocationBanner: null, errorFlash: null,
   boardTerrain: null, terrainAlert: null, roundIntro: null, drawPopup: null,

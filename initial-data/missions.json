@@ -211,8 +211,8 @@
     "id": "MISSION_D_004",
     "family": "shopping",
     "slot_weight": 2,
-    "label": "Utiliser une magie de terrain ou de défusion",
-    "objective": { "event": "magic_selected", "filters": { "effect_type_in": ["board_slot_bonus", "defuse_fusion"] }, "target": 1, "scope": "cumulative" },
+    "label": "Utiliser une magie d'énergie ou de défusion",
+    "objective": { "event": "magic_selected", "filters": { "effect_type_in": ["energy_bonus", "defuse_fusion"] }, "target": 1, "scope": "cumulative" },
     "tags": ["shopping"]
   },
   {

@@ -148,7 +148,7 @@ export function boardEffectLabel(
     // peut pas deviner : *quand* (en mourant) et *laquelle* (la plus proche).
     // Le repli sur le type brut sortait « destroy_enemy » à l'écran.
     case 'destroy_enemy':     return 'En mourant, détruit l\'unité adverse la plus proche';
-    case 'board_slot_bonus':  return `+${effect.value} slot`;
+    case 'energy_bonus':  return `+${effect.value || 1} énergie`;
     // ⚠️ Effet d'ATTRIBUT, pas de terrain — cette fonction sert les deux (cf.
     // `TooltipHost.describeEffects`). Sans son entrée ici, le palier de synergie
     // annonçait « shopping_bonus » au joueur, en toutes lettres.

@@ -2006,7 +2006,7 @@ async function toggleAiDetail(id) {
     return `<div class="ai-round">
       <strong>Round ${r.round}</strong>
       <span style="color:var(--muted)"> — main ${AI_HAND_SOURCES[r.hand_source] || 'composée'} :
-        ${esc((r.hand || []).join(', ') || '—')} ; ${(r.board_after || []).length} unité(s) sur ${r.slots} slots</span>
+        ${esc((r.hand || []).join(', ') || '—')} ; ${(r.board_after || []).length} unité(s)${r.budget != null ? ` · ⚡ ${r.budget}` : ''}</span>
       ${attempts || '<div style="color:var(--muted)">Aucune tentative.</div>'}
       ${dropped}
     </div>`;
@@ -3758,6 +3758,7 @@ function renderAttrDetail() {
  * n'en dépend.
  */
 const EFFECT_NOTES = {
+  energy_bonus: `S'ajoute au budget d'énergie de CHAQUE tour, jusqu'à la fin de la partie. Cumulable, sans plafond.`,
   duplicate_unit: `Nombre de copies ajoutées à la main. <b>0 vaut 1 copie</b> — une magie qui ne
     rendrait rien encaisserait son contrecoup pour du vide.<br>
     ⚠️ En dupliquant une <b>unité</b>, c'est sa <b>carte de catalogue</b> qui revient :
@@ -6963,7 +6964,7 @@ function _filterFieldHtml(key, filters) {
   } else if (key === 'effect_type') {
     input = `<input id="msf-filter-effect_type" value="${esc(v ?? '')}" placeholder="ex. revive">`;
   } else if (key === 'effect_type_in') {
-    input = `<input id="msf-filter-effect_type_in" value="${esc(Array.isArray(v) ? v.join(', ') : '')}" placeholder="ex. board_slot_bonus, defuse_fusion">`;
+    input = `<input id="msf-filter-effect_type_in" value="${esc(Array.isArray(v) ? v.join(', ') : '')}" placeholder="ex. energy_bonus, defuse_fusion">`;
   } else {
     input = `<input id="msf-filter-${key}" type="number" value="${v ?? ''}">`;
   }

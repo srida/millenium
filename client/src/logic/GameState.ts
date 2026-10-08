@@ -20,7 +20,6 @@ export function roundFactor(round: number): number {
   return 1 + 0.5 * (Math.max(1, round) - 1);
 }
 const STARTING_HP = 1000;
-const DEFAULT_BOARD_SLOTS = 5;
 
 /** Plafond de `player_hp` : c'est le pool de départ lui-même — `player_hp_bonus`
  *  et `drain_life` ne font que le regarnir, jamais le dépasser. Exporté parce
@@ -28,10 +27,6 @@ const DEFAULT_BOARD_SLOTS = 5;
  *  (`MagieOffer.isMagieRelevant`). ⚠️ `MagieEffect.js` en garde une copie
  *  littérale (`Math.min(…, 1000)`) : les deux doivent rester d'accord. */
 export const PLAYER_HP_CAP = STARTING_HP;
-
-/** Cap PARTAGÉ du bonus de slot de board : attribut Yeux Bleus ∪ magies
- *  `board_slot_bonus`, +1 pour toute la partie. */
-export const LIMITED_BOARD_SLOT_CAP = 1;
 
 /**
  * Les deux gestes que le joueur PAIE EN PV, et le seul endroit qui les chiffre
@@ -60,12 +55,10 @@ export class GameState {
   player_unit_multiplier: number;
   enemy_unit_multiplier: number;
 
-  // Expanded by board_slot_bonus attribute effect
-  player_board_slots: number;
-  enemy_board_slots: number;
-  // Yeux bleus / Réaction en chaîne / Fission share a single +1 slot cap (non cumulable)
-  _limitedBoardSlotBonusUsed: number;
-  _enemyBoardSlotBonusUsed: number;
+  // Énergie d'invocation en plus, pour toute la partie (`energy_bonus` :
+  // magie ou attribut). S'ajoute au budget du tour (`SummonBudget`).
+  player_energy_bonus: number;
+  enemy_energy_bonus: number;
 
   // Carry-over from previous rounds
   player_extra_draws: number;              // accumulated draw_bonus
@@ -86,7 +79,7 @@ export class GameState {
    *  d'un coup par `GameSession.getShoppingMagies()`. */
   player_guaranteed_magies: GuaranteedMagie[];
   /**
-   * Pendant enemy des deux champs ci-dessus : contrairement au slot, au
+   * Pendant enemy des deux champs ci-dessus : contrairement au
    * multiplicateur et au Shopping (ressources exclusivement joueur), la
    * pioche a un destinataire de CHAQUE côté — `EnemyAI` pioche aussi.
    * Consommés par `GameSession._placeEnemyUnits`, comme leurs pendants
@@ -142,10 +135,8 @@ export class GameState {
     this.player_unit_multiplier = 1.0;
     this.enemy_unit_multiplier  = 1.0;
 
-    this.player_board_slots = DEFAULT_BOARD_SLOTS;
-    this.enemy_board_slots  = DEFAULT_BOARD_SLOTS;
-    this._limitedBoardSlotBonusUsed = 0;
-    this._enemyBoardSlotBonusUsed = 0;
+    this.player_energy_bonus = 0;
+    this.enemy_energy_bonus  = 0;
 
     this.player_extra_draws = 0;
     this.player_guaranteed_draws = [];
@@ -245,8 +236,8 @@ export class GameState {
     this.enemy_hp  = Math.max(0, this.enemy_hp);
 
     // Accumulate end-of-combat attribute bonuses
-    if (attributeResult.board_slot_bonus) {
-      this.grantLimitedBoardSlotBonus(attributeResult.board_slot_bonus);
+    if (attributeResult.energy_bonus) {
+      this.player_energy_bonus += attributeResult.energy_bonus;
     }
     if (attributeResult.draw_bonus) {
       this.player_extra_draws += attributeResult.draw_bonus;
@@ -272,8 +263,8 @@ export class GameState {
     if (attributeResult.enemy_guaranteed_draws?.length) {
       this.enemy_guaranteed_draws.push(...attributeResult.enemy_guaranteed_draws);
     }
-    if (attributeResult.enemy_board_slot_bonus) {
-      this.grantEnemyBoardSlotBonus(attributeResult.enemy_board_slot_bonus);
+    if (attributeResult.enemy_energy_bonus) {
+      this.enemy_energy_bonus += attributeResult.enemy_energy_bonus;
     }
 
     // ⚠️ Deux sources pour le MÊME champ : le terrain (posé au lancement du
@@ -304,45 +295,6 @@ export class GameState {
       playerMultiplierSources, enemyMultiplierSources,
       playerHpBonus, playerHpSources,
     };
-  }
-
-  /**
-   * Grants board slot bonus from the shared, non-stackable +1 pool
-   * (Yeux bleus attribute, magies Réaction en chaîne / Fission).
-   * Returns the amount actually granted (0 once the cap is reached).
-   */
-  grantLimitedBoardSlotBonus(value: number, cap = LIMITED_BOARD_SLOT_CAP): number {
-    const grant = Math.max(0, Math.min(value, cap - this._limitedBoardSlotBonusUsed));
-    this.player_board_slots += grant;
-    this._limitedBoardSlotBonusUsed += grant;
-    return grant;
-  }
-
-  /**
-   * Le pendant adverse, avec son PROPRE compteur de cap.
-   *
-   * ⚠️ Deux compteurs et non un : le cap est « +1 par camp sur toute la partie »,
-   * pas « +1 en tout ». Un compteur partagé ferait qu'un attribut du joueur
-   * fermerait la porte à l'IA, ce qu'aucune règle ne dit.
-   *
-   * ⚠️ Il n'y a PAS d'équivalent de `hasLimitedBoardSlotBonusLeft` : celui-là
-   * sert la pertinence d'une magie, et l'IA n'a pas de Phase Shopping.
-   */
-  grantEnemyBoardSlotBonus(value: number, cap = LIMITED_BOARD_SLOT_CAP): number {
-    const grant = Math.max(0, Math.min(value, cap - this._enemyBoardSlotBonusUsed));
-    this.enemy_board_slots += grant;
-    this._enemyBoardSlotBonusUsed += grant;
-    return grant;
-  }
-
-  /**
-   * Le cap partagé est-il encore libre ? Lu par la pertinence de l'offre de
-   * Shopping : une magie `board_slot_bonus` proposée une fois le cap consommé
-   * s'appliquerait sans erreur et ne donnerait RIEN
-   * (`grantLimitedBoardSlotBonus` rend 0 en silence).
-   */
-  hasLimitedBoardSlotBonusLeft(cap = LIMITED_BOARD_SLOT_CAP): boolean {
-    return this._limitedBoardSlotBonusUsed < cap;
   }
 
   /**
@@ -382,7 +334,7 @@ export class GameState {
       enemy_hp: this.enemy_hp,
       player_multiplier: this.player_multiplier,
       enemy_multiplier: this.enemy_multiplier,
-      player_board_slots: this.player_board_slots,
+      player_energy_bonus: this.player_energy_bonus,
     };
   }
 }

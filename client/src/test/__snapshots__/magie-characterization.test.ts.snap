@@ -137,11 +137,11 @@ exports[`Magies livrées — l'oracle de l'étape 0 > ce que chacune des 55 magi
   },
   {
     "change": {
-      "slots": "5 → 6",
+      "energie": "0 → 2",
     },
     "cible": "—",
     "contrecoup": 0,
-    "effet": "board_slot_bonus · 1",
+    "effet": "energy_bonus · 2",
     "famille": "globale",
     "id": "MAGIE_014",
     "nom": "Réaction en chaîne",

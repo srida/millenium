@@ -43,7 +43,7 @@ export interface Ressources {
    *  `pioches_garanties`, sur le vocabulaire de la magie. */
   magies_garanties: GuaranteedMagie[];
   /** Terrains promis au prochain combat — un id par effet, doublons compris. */
-  slots_board: number;
+  energie: number;
   multiplicateur: number;
   magies_shop: number;
   pv: number;
@@ -61,7 +61,7 @@ export interface Ressources {
 
 export function ressourcesVides(): Ressources {
   return {
-    pioches: 0, pioches_garanties: [], magies_garanties: [], slots_board: 0, multiplicateur: 0,
+    pioches: 0, pioches_garanties: [], magies_garanties: [], energie: 0, multiplicateur: 0,
     magies_shop: 0, pv: 0, sources: [], sources_multiplicateur: [], sources_pv: [], reanimees: [],
   };
 }
@@ -480,9 +480,9 @@ function appliqueSurJoueur(t: TacheModifier, monde: Monde, trace: Trace): void {
       trace.applique.push(`joueur·pioches+${reel}`);
       return;
     }
-    case 'slots_board':
-      cible.slots_board = Math.min(cible.slots_board + d, t.plafond ?? Infinity);
-      trace.applique.push(`joueur·slots+${d}`);
+    case 'energie':
+      cible.energie = Math.min(cible.energie + d, t.plafond ?? Infinity);
+      trace.applique.push(`joueur·energie+${d}`);
       return;
     case 'magies_shop':
       cible.magies_shop = Math.min(cible.magies_shop + d, t.plafond ?? Infinity);

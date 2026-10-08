@@ -661,12 +661,13 @@ Bouton **↺** de `PhaseControls`. Tout est dans `GameSession.undoPreparation()`
 |---|---|---|---|---|---|
 | Budget | 3 | 5 | 8 | 13 | 21 |
 
-- **Plafond de plateau** : chaque unité vivante du camp occupe le **tier** de sa carte (`Unit.energy_cost` = `energyCost`, le plus **bas** pour une multi-tiers), **survivantes comprises** ; une invocation passe si le plateau posé tient dans le budget du tour. Les tokens n'occupent rien (`unitEnergy`).
+- **Plafond de plateau, et le SEUL** (il n'y a plus de nombre maximum d'unités) : chaque unité vivante du camp occupe le **tier** de sa carte (`Unit.energy_cost` = `energyCost`, le plus **bas** pour une multi-tiers), **survivantes comprises** ; une invocation passe si le plateau posé tient dans le budget du tour. Les tokens n'occupent rien (`unitEnergy`).
 - Les matériaux pris **sur le plateau** rendent leur coût ; ceux du cimetière n'occupaient rien. `canAffordSummon(card, materials)` est exact avec une sélection, **optimiste** sans (`isPlayable`) — `canSummon` tranche, et seulement **après** la règle d'invocation (une sélection incomplète ne doit pas lire « Énergie insuffisante »).
 - ⚠️ **Structurel, aucun compteur** : `energyUsed()` relit le plateau, donc « Tout annuler », le mulligan et les magies n'ont rien à rendre.
 - **Les deux camps** : `EnemyAI.placeFromHand(..., budget)` part de `budget − boardEnergy(son camp)` et refuse en `over_budget` (glosé dans `aiLabRun.REASON_LABELS` et `AI_REASONS` d'`admin.html`). ⚠️ L'IA ne compte pas d'avance ce que des matériaux lui rendraient (une tentative mute le plateau) : elle est plus prudente que le joueur. `MatchSimulator` et le Labo IA passent `budgetForRound`. `budget = Infinity` (défaut) = ancien comportement.
 - Rien côté PvP : chaque client tient son propre budget.
-- Affichage : ⚡ `restant/budget` dans le `Hud`, à côté des PV du joueur, à la place du multiplicateur (qui ne s'affiche qu'en combat).
+- **`energy_bonus`** (magie Réaction en chaîne, ou attribut) : `player_energy_bonus` / `enemy_energy_bonus`, **cumulables, sans plafond**, ajoutés au budget de chaque tour (`GameSession.energyBudget`, `_placeEnemyUnits`).
+- Affichage : ⚡ `restant/budget` dans le `Hud`, sous le numéro de manche, en préparation seulement.
 
 ### Mulligan — le seul geste qui DÉPLACE le point de retour
 
@@ -747,7 +748,7 @@ multiplicateur_final = multiplier(unitCount) × roundFactor(round)   // ×1, ×1
 
 ## Board (`logic/Board.ts`)
 
-**5 colonnes × 11 rangées.** Joueur 0–3 · zone neutre 4–6 (inoccupable en préparation) · ennemi 7–10. Maximum **5** unités (6 avec certaines synergies). Stockage **col-major** : `grid[col][row]`.
+**5 colonnes × 11 rangées.** Joueur 0–3 · zone neutre 4–6 (inoccupable en préparation) · ennemi 7–10. Aucun maximum d'unités : le budget d'énergie borne le camp. Stockage **col-major** : `grid[col][row]`.
 
 ⚠️ **`Board.ts` est la source de vérité.** Ne jamais déduire une position depuis un élément DOM. Lors d'un déplacement, dans cet ordre : `board.grid` → `unit.position` → animation. `board.moveUnit(unit, to)` fait les deux premiers ensemble.
 
@@ -884,13 +885,12 @@ matchesMaterial / materialLineageLegit / materialLineageMatches
 materialSlotsPaid(units, required) / materialValueOf(card) / isAttributeMaterial(matId)
 ```
 
-**Les cinq règles de `_canSummonWith`**, et rien d'autre :
+**Les quatre règles de `_canSummonWith`**, et rien d'autre (plus de plafond d'unités : l'énergie le remplace) :
 
 1. **Où l'unité se pose.** Une condition à **UN matériel** impose la case de ce matériel ; sinon la case doit être libre, ou occupée par un matériau consommé (il part avant la pose).
 2. **Le doublon** — cf. la règle du doublon, plus haut.
 3. **Quantité** — `materialSlotsPaid` des unités disponibles (terrain **et** cimetière) ≥ `materials`.
 4. **Exigences nommées** — couvertes par `getUncoveredRequirements`, chacune par une doublure légitime (lignée).
-5. **Slots** — `vivants − matériaux_du_board + 1 ≤ plafond`.
 
 ⚠️ **Un matériel NOMMÉ par id ne paie qu'UN slot, quelle que soit sa valeur ; un slot LIBRE ou une exigence d'ATTRIBUT se paient en `material_value`.** `materialSlotsPaid(units, required)` est le SEUL endroit qui compte ce qu'une sélection paie — la garde de quantité, `materialsComplete`, le filtrage des candidats, le remplissage automatique et l'IA y passent tous. « 3 matériels dont CORE_002 » se lit donc littéralement : CORE_002, **qui vaut pourtant 2**, plus deux autres unités. Sans la règle, nommer un gros matériel *baissait* le prix de la recette et le chiffre affiché sur la vignette ne disait plus ce qu'il en coûte.
 - ⚠️ **Exception : une exigence d'ATTRIBUT (`ARCH_*`) se paie en `material_value`** — l'unité qui la tient vaut ses slots, comme sur un slot libre. Seul le nommé par **id de carte** ne paie qu'un slot.
@@ -900,8 +900,7 @@ materialSlotsPaid(units, required) / materialValueOf(card) / isAttributeMaterial
 
 - ⚠️ **`summonCost(card)` est le SEUL endroit qui répond à « quel genre d'invocation est-ce »** (le minimum de `materials` sur ses conditions). Il y en avait trois : la table de priorité de l'IA, celle de l'auto-joueur, et l'agrégat par voie du rapport d'équilibrage.
 - ⚠️ **`forcedCell` est le SEUL endroit qui répond à « où l'unité se pose »**, et ses trois appelants — la validation, la pose, l'IA — ne peuvent donc pas se contredire. C'est l'ancienne Transformation, énoncée sur le **coût** : à un matériel, le résultat prend la place de sa cible, d'où qu'elle vienne. La case retenue est celle que le matériel **occupe encore** (`board.getUnit(pos) === u`) : une unité retirée du board garde une `position` périmée, que quelqu'un d'autre occupe peut-être.
-- ⚠️ **Les matériaux partent AVANT la pose**, cimetière compris (un corps neutralisé occupe encore une case). C'est ce qui rend les règles 1 et 5 vraies sans une ligne pour les dire.
-- ⚠️ **Le cimetière ne libère aucun SLOT** (il n'en occupe pas) mais libère bien une **case**. La Transformation échappait au plafond par exception ; la règle unifiée ne regarde que ce qui est libéré, donc une condition payée au seul cimetière est refusée sur un board plein.
+- ⚠️ **Les matériaux partent AVANT la pose**, cimetière compris (un corps neutralisé occupe encore une case). C'est ce qui rend la règle 1 vraie sans une ligne pour la dire.
 
 `data/SummonInfo` (pur) met tout ça **en mots** pour le tooltip : `summonRecipes` (une par condition), `summonCostOf`, `recipeCostText`, `materialsLabel`, `recipeIsFree`. ⚠️ **« Matériels » vs « dont » se dérive du coût seul** : autant d'exigences nommées que de slots → elles sont toutes listées ; moins → les autres slots restent libres et les nommées sont prises *dedans*. C'était la distinction Fusion / Héritage, écrite en dur dans deux tables par voie.
 
@@ -1017,7 +1016,6 @@ Les unités neutralisées entrent dans `graveyard[]` / `enemyGraveyard[]`.
 
 - Elles **restent sur le board** après le combat et toute la phase de préparation suivante, disponibles comme **matériaux d'invocation**.
 - Elles sont **définitivement retirées au lancement du combat suivant** si non consommées.
-- Une unité venant du cimetière **ne consomme pas de slot de board** lors d'une transformation.
 
 **Dégâts** (`GameState.applyEndOfCombat(winner, playerSurvivorsAtk, enemySurvivorsAtk, attributeResult)`) — reçoit une **somme d'ATK**, pas un nombre d'unités :
 
@@ -1031,7 +1029,7 @@ player_hp -= round(sum(survivingEnemyUnits.atk) × enemy_multiplier)
 
 ⚠️ **`draw` et `timeout` font encaisser les DEUX camps.** Le `draw` (annihilation mutuelle) laisse en pratique deux sommes nulles ; le `timeout` fait mal aux deux — c'est ce qui dissuade les boards purement défensifs.
 
-`attributeResult` (de `AttributeManager.applyEndOfCombat()`) apporte `damage_multiplier_bonus`, `draw_bonus`, `guaranteed_draws`, `board_slot_bonus`, `shopping_bonus`, `revived`.
+`attributeResult` (de `AttributeManager.applyEndOfCombat()`) apporte `damage_multiplier_bonus`, `draw_bonus`, `guaranteed_draws`, `energy_bonus`, `shopping_bonus`, `revived`.
 
 ⚠️ **Ne jamais modifier un tableau pendant son itération** : `for (const unit of [...units])`.
 
@@ -1214,7 +1212,7 @@ Troisième catégorie **mécanique** après `Tiers` et `Invocation` : un mot-cl�
 | `draw_bonus` | `end_of_combat` | Pioches supplémentaires (plafonné par `max`) |
 | `guaranteed_draw` | `end_of_combat` | Pousse les critères dans `player_guaranteed_draws` — ⚠️ **les mêmes qu'une magie** (`tier`, `attributes`, `card_ids`) : même file, même `Draw.resolveGuaranteedDraws`, donc même éditeur d'admin |
 | `guaranteed_draw_bearer` | `end_of_combat` | Même file, **critères lus sur la CARTE** (`card.appel`) : une promesse par porteur. Aucun champ sur l'effet (cf. « Les mots-clés ») |
-| `board_slot_bonus` | `end_of_combat` | Via `grantLimitedBoardSlotBonus` — **cap +1 partagé avec les magies de slot** |
+| `energy_bonus` | `end_of_combat` | Énergie en plus pour toute la partie, **cumulable** (plafonné par `max` à chaque versement) |
 | `damage_multiplier_bonus` | `end_of_combat` | S'ajoute au `player_multiplier` **de ce round** |
 | `shopping_bonus` | `end_of_combat` | Magies supplémentaires au Shopping suivant (plafonné par `max`) |
 
@@ -1239,8 +1237,8 @@ getActiveSynergies(units)                  // → [{ attr, count, activeThreshol
 - Le décompte `end_of_combat` inclut les unités **neutralisées** (le palier tient même si les porteurs sont morts) ; les autres timings ne comptent que les vivantes.
 - ⚠️ Les seuils `during_combat` sont **verrouillés au début du combat** : les morts en cours de combat ne désactivent pas les effets déjà actifs.
 - Tous les bonus d'attribut sont réinitialisés en fin de combat. ⚠️ `finishCombat` balaie **tous les participants** (`combatants`, capturé avant les filtres), neutralisés compris — sinon une unité morte garde ses bonus, `max_hp` gonflé compris, et le round suivant les recumule.
-- ⚠️ `applyEndOfCombat` traite les **deux camps** (`_applyEndForSide`) : `revive` remet une unité sur le plateau et vaut donc des deux côtés ; les effets de **ressource** (pioches, slot, multiplicateur, shopping) restent au joueur, seul destinataire possible.
-- ⚠️ **L'IA porte ses effets comme un vrai joueur** : le moteur accumule pour les deux camps, sans drapeau d'asymétrie, et c'est le **versement** qui dit ce qui a un destinataire. Trois ressources en ont un côté IA — la pioche (`EnemyAI.drawHand`), l'emplacement de plateau (`enemy_board_slots`) et le multiplicateur de dégâts ; le Shopping n'en a pas, et c'est un fait du jeu, pas une limite du moteur. ⚠️ Le cap d'emplacement a **un compteur par camp** : « +1 par camp sur toute la partie », pas « +1 en tout ».
+- ⚠️ `applyEndOfCombat` traite les **deux camps** (`_applyEndForSide`) : `revive` remet une unité sur le plateau et vaut donc des deux côtés ; les effets de **ressource** (pioches, énergie, multiplicateur, shopping) restent au joueur, seul destinataire possible.
+- ⚠️ **L'IA porte ses effets comme un vrai joueur** : le moteur accumule pour les deux camps, sans drapeau d'asymétrie, et c'est le **versement** qui dit ce qui a un destinataire. Trois ressources en ont un côté IA — la pioche (`EnemyAI.drawHand`), l'énergie (`enemy_energy_bonus`) et le multiplicateur de dégâts ; le Shopping n'en a pas, et c'est un fait du jeu, pas une limite du moteur. ⚠️ Le cap d'emplacement a **un compteur par camp** : « +1 par camp sur toute la partie », pas « +1 en tout ».
 - ⚠️ **Un effet n'a plus qu'UN endroit où se déclarer : `effect-schema.mjs`** (racine). Il en avait trois — le moteur, le `<select>` de l'onglet, le libellé français — et deux sur trois donnaient une fonctionnalité que personne ne pouvait ni écrire ni lire (c'est arrivé à `shopping_bonus`). La table déclare, `compile.ts` traduit, et `effect-schema.test.ts` les fait répondre la même chose : un type déclaré doit COMPILER, un type que le compilateur traduit doit être OFFERT, un champ offert doit être LU (sonde), un champ non offert ne doit PAS l'être (sonde inverse).
 
 **L'icône d'un attribut est une image ; l'emoji n'est que le repli.** Art dans `ILLUS_DIR` sous l'`id` de l'attribut, importé depuis l'onglet Attributs. Le champ `icon` du JSON reste l'emoji de repli.
@@ -1473,7 +1471,6 @@ Détection **automatique** dérivée de `effect.type` — **aucun champ admin à
 | une unité du board dont la **carte est au catalogue** | `duplicate_unit` |
 | une unité du cimetière dont la carte est au catalogue | `duplicate_graveyard_unit` |
 | le deck porte **le** tier demandé | `guaranteed_draw` |
-| le cap partagé +1 slot est encore libre | `board_slot_bonus` |
 | `player_hp < PLAYER_HP_CAP` | `player_hp_bonus` |
 | une carte **en main** à coût en matériels — **portant l'`attribute`** s'il y en a un | `reduce_materials` |
 | une carte **en main** à exigence **nommée** — même règle | `remove_requirements` |
@@ -1483,13 +1480,12 @@ Détection **automatique** dérivée de `effect.type` — **aucun champ admin à
 | une carte en main dont un **matériel** est résolvable | `draw_material` |
 | une carte en main **et** `player_hp < PLAYER_HP_CAP` | `sacrifice_card_hp` |
 | `token_ids` porte au moins une entrée | `summon_token` |
-| toujours | `draw_bonus` |
+| toujours | `draw_bonus`, `energy_bonus` |
 
 - ⚠️ **La table est FERMÉE (`default: false`)** : un `effect` nul ou d'un type inconnu traverse `applyEffect` sans rien faire. **Corollaire : un type ajouté à `applyEffect` mais oublié dans `isMagieRelevant` disparaît silencieusement du jeu.** `magie-offer.test.ts` relit `initial-data/magies.json` et exige que chaque magie livrée soit offrable sous un contexte permissif.
 - ⚠️ **Les deux remises se testent sur la MAIN** — elles sont immédiates et ciblées. `_retouchable(type)` est le **prédicat exact** qu'`applyMagieOnHandCard` appliquera, et l'offre, le ciblage et l'application l'appellent tous les trois : une carte sans coût, ou sans exigence nommée, n'est jamais une cible. ⚠️ Corollaire : **une main vide ne les offre plus**. Différées, elles se jugeaient sur le deck et pouvaient promettre une remise que la pioche ne servait jamais.
 - ⚠️ **Le booléen et la liste d'attributs ne disent pas la même chose, et la liste ne remplace pas le booléen** : une carte retouchable qui ne porte **aucun** attribut rend `deckHasMaterialCost` vrai sans rien ajouter à `deckMaterialCostAttributes`. Une remise visée lit la liste, une remise nue lit le booléen. Tester « attribut présent » et « carte retouchable » **séparément** offrirait la magie sur un deck où ce sont deux cartes différentes.
 - ⚠️ **`guaranteed_draw` hors deck n'est pas un no-op** : `startPreparation` a un **double repli** et pioche quand même, parfois au-dessus de ce que le round autorise. Le filtre supprime là un effet accidentellement bon, délibérément — la magie **promet un tier qu'elle ne rend pas**.
-- ⚠️ **`board_slot_bonus` est la seule magie qui peut s'appliquer sans erreur et ne rien donner** (`grantLimitedBoardSlotBonus` rend 0 en silence une fois le cap consommé) → `GameState.hasLimitedBoardSlotBonusLeft()`.
 - Les règles servant à la fois le **ciblage** et la **pertinence** n'existent qu'à un endroit : `_defusableFusions`, `_poweredUnits`, `_cataloguedUnits`, `_drawableMaterialIds`, `_boardTierShiftPool`.
 - **Limite connue** : `heal` / `team_heal` sont offertes dès qu'une unité est au board, **même à PV pleins** (`current_hp` n'est pas restauré entre les rounds, le cas est marginal).
 - Les trois gardes « aucune cible valide » de `GameController.chooseMagie` sont devenues quasi inatteignables mais sont **gardées** : ce sont les seuls filets si un type sortait de la table. Elles ne consomment pas la magie.
@@ -1524,13 +1520,13 @@ Champ **racine** `rarity: 1 | 2 | 3` (Commune / Rare / Légendaire). ⚠️ **Pa
 | `shield` | `value` | `applyShield(value)` |
 | `revive` | `value` (% PV max) | Unité du **cimetière** : `is_neutralized = false`, `current_hp = max(1, round(max_hp × value/100))`, purge de tous les statuts |
 | `player_hp_bonus` | `value` | `player_hp = min(player_hp + value, 1000)` |
-| `board_slot_bonus` | `value` | `grantLimitedBoardSlotBonus(value \|\| 1)` — **cap partagé +1 sur toute la partie**, pool commun avec l'attribut Yeux Bleus |
+| `energy_bonus` | `value` (déf. 1) | `player_energy_bonus += value` — énergie en plus à **chaque** tour, pour toute la partie, cumulable |
 | `draw_bonus` | `value` | `player_extra_draws += (value \|\| 1)` |
 | `guaranteed_draw` | `tier`, `attribute` | Pousse dans `player_guaranteed_draws` — les **deux filtres sont facultatifs et se cumulent** |
 | `grant_power` | `power_id`, `power_rate`, `value` **ou** `duration` | Pose (ou **remplace**) le pouvoir, remet la jauge à zéro, lève un blocage en cours. ⚠️ Le chiffre suit le pouvoir donné : `duration` sur les quatre pouvoirs de durée, `value` sur les dix autres — et rien n'est hérité de l'ancien |
 | `power_cooldown` | `value` (facteur, déf. 2) | **DIVISE la PÉRIODE** du pouvoir, puis la retraduit en compteur (plancher 2 ticks). Ne cible que les unités **portant** un pouvoir |
 | `damage_multiplier_bonus` | `value` | **Permanent et cumulatif**, s'ajoute au multiplicateur du joueur à chaque fin de combat |
-| `defuse_fusion` | — | `GameSession._defuseFusion()` — sépare la fusion en ses matériaux (au cimetière s'il n'y a plus de slot) |
+| `defuse_fusion` | — | `GameSession._defuseFusion()` — sépare la fusion en ses matériaux (au cimetière s'il n'y a plus de case libre) |
 | `destroy_unit` | — | `_destroyUnit()` — retire du board et envoie au cimetière (libère un slot, rend disponible comme matériau) |
 | `drain_life` | — | `_drainLife()` — `destroy_unit` **plus** le versement des PV de l'unité au joueur |
 | `hand_to_graveyard` | — | Cible une carte de la **main** : elle devient une unité **neutralisée** au cimetière |
@@ -1611,11 +1607,11 @@ N'importe quelle magie peut coûter des **PV du joueur**. Champ de **premier niv
 
 **Quand l'IA joue : en dernier.** Son placement a lieu au **lancement du combat** (`GameSession.startCombat` → `_placeEnemyUnits`, avant la purge des cimetières qui lui sert de matériaux), donc quand le joueur tape PRÊT ou que le chrono tombe à 0. Le joueur pose son board sans adversaire, puis voit l'IA arriver (`Scene3D.revealEnemyUnits` la fait tomber en cascade, `refresh()` ne passant plus une fois en mode combat). En PvP, `_placeEnemyUnits` est un **no-op**.
 
-⚠️ **`revealEnemyUnits` est une SYNCHRO du côté ennemi, pas un simple ajout** : le tour de l'IA peut aussi **retirer** des unités (survivant consommé comme matériau, remplacé par une transformation, écarté par le plafond de `rearrangeUnits`). Ces unités ont déjà une carte à l'écran et `refresh()` ne repasse plus : sans purge, un **fantôme** reste affiché tout le combat. La purge est un retrait franc (`_removeUnitObj`), pas un `killUnitObj` — une explosion de mort avant le premier coup mentirait. Le côté joueur n'est jamais touché ici.
+⚠️ **`revealEnemyUnits` est une SYNCHRO du côté ennemi, pas un simple ajout** : le tour de l'IA peut aussi **retirer** des unités (survivant consommé comme matériau, remplacé par une transformation). Ces unités ont déjà une carte à l'écran et `refresh()` ne repasse plus : sans purge, un **fantôme** reste affiché tout le combat. La purge est un retrait franc (`_removeUnitObj`), pas un `killUnitObj` — une explosion de mort avant le premier coup mentirait. Le côté joueur n'est jamais touché ici.
 
 **Placement en deux passes** : cartes normales d'abord (elles libèrent les matériaux), puis invocations spéciales (qui peuvent les consommer).
 
-**`rearrangeUnits`** : mêlée (`range ≤ 1`) → rangées 7–8, distance → 9–10 ; colonnes `[2, 1, 3, 0, 4]` (centre vers bords) ; PV le plus élevé en rangée la plus avancée ; **3 unités max par rangée**, débordement vers la suivante. ⚠️ Les unités au-delà du cap sont **jetées en silence** (ni mort, ni cimetière) — le labo IA les nomme dans `dropped`.
+**`rearrangeUnits`** : mêlée (`range ≤ 1`) → rangées 7–8, distance → 9–10 ; colonnes `[2, 1, 3, 0, 4]` (centre vers bords) ; PV le plus élevé en rangée la plus avancée ; **3 unités par rangée**, débordement vers la suivante. Aucun plafond d'unités : une case calculée prise ou hors zone retombe sur la première case libre de la zone (`_firstFreeCell`) — jusqu'à cinq unités, placement historique au bit près.
 
 ### La main s'accumule
 
@@ -2299,9 +2295,9 @@ Répond à « pourquoi l'IA n'a pas joué cette fusion ? ». Écran `dev/AiLab.t
 
 Il existe parce que `EnemyAI` **n'émettait rien**, et surtout parce que son `_tryPlace` avait une quinzaine de `return null` **tous indiscernables**. C'est le préalable à des comportements par difficulté : on ne diversifie pas un comportement qu'on ne sait pas constater.
 
-**`_tryPlace` est devenu `_attempt`**, qui rend `{ unit, cell, consumed, option_index }` ou `{ unit: null, reason, detail }`. Motifs (slugs stables) : `board_full`, `duplicate_on_board`, `no_free_cell`, `not_enough_material`, `would_exceed_slots`, `missing_material` (le matériau **nommé**), `material_outranks_result`, `all_conditions_failed`.
+**`_tryPlace` est devenu `_attempt`**, qui rend `{ unit, cell, consumed, option_index }` ou `{ unit: null, reason, detail }`. Motifs (slugs stables) : `over_budget`, `duplicate_on_board`, `no_free_cell` (vérifié AVANT de consommer les matériaux), `not_enough_material`, `missing_material` (le matériau **nommé**), `material_outranks_result`, `all_conditions_failed`.
 
-- ⚠️ **L'observateur est un PARAMÈTRE, jamais un état d'instance** : `drawHand(round, trace)`, `placeFromHand(board, max, graveyard, trace)`, `rearrangeUnits(board, max, trace)` l'appellent en `trace?.(event)` — une fonction nue, donc aucun import neuf et `logic/` ignore qu'un écran l'observe (même geste que `deps.rand`). **Il n'y a pas de `setTrace()`** : une partie réelle ne peut structurellement pas se retrouver tracée par un sink oublié sur l'objet.
+- ⚠️ **L'observateur est un PARAMÈTRE, jamais un état d'instance** : `drawHand(round, trace)`, `placeFromHand(board, graveyard, trace)`, `rearrangeUnits(board, trace)` l'appellent en `trace?.(event)` — une fonction nue, donc aucun import neuf et `logic/` ignore qu'un écran l'observe (même geste que `deps.rand`). **Il n'y a pas de `setTrace()`** : une partie réelle ne peut structurellement pas se retrouver tracée par un sink oublié sur l'objet.
 - ⚠️ **Addition de métadonnées, rien d'autre** : aucune condition, aucun ordre, aucune case ne change. La suite passe **sans une seule mise à jour de snapshot**.
 - ⚠️ **Le pilote est PUR** (aucune dépendance React/Zustand/Three/DOM) et ne réimplémente **aucune** règle : une seconde copie finirait par ne plus dire la même chose que celle qui est jouée, ce que le labo existe pour constater.
 - ⚠️ **Les `uid` sont renumérotés en index LOCAUX au run** (`canonicaliseUids`) : `Unit.uid` sort d'un compteur de module et grandit sur toute la vie de l'onglet — deux exécutions du même scénario rendaient deux traces impossibles à differ. Même leçon que `CombatRecorder`.

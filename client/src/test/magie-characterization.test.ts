@@ -169,7 +169,7 @@ function snapshot(s: GameSession) {
     pioches: g.player_extra_draws,
     garanties: g.player_guaranteed_draws.map((d: any) =>
       [d.tier ?? '—', (d.attributes ?? []).join('|') || (d.attribute ?? '—'), (d.card_ids ?? []).join('|') || '—'].join(':')),
-    slots: g.player_board_slots,
+    energie: g.player_energy_bonus,
     multiplicateur: g.player_damage_multiplier_bonus ?? 0,
     shopping: g.player_extra_shopping_magies ?? 0,
     // ⚠️ Le coût, et pas seulement l'id : une remise ne change PAS l'identité

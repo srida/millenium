@@ -254,8 +254,7 @@ function cheminCompile(m: Magie) {
       pv: Math.min(700 + ressources.pv, 1000) - 700,
       pioches: ressources.pioches,
       garanties: garanties(ressources.pioches_garanties),
-      // Le slot passe par le plafond partagé, comme `grantLimitedBoardSlotBonus`.
-      slots: 5 + Math.min(ressources.slots_board, 1),
+      energie: ressources.energie,
       multiplicateur: ressources.multiplicateur,
     },
     trace,

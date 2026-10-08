@@ -566,16 +566,6 @@ export class GameController {
   }
 
   /**
-   * L'inverse — le point de l'écran sous une case, `null` sans scène. Sert au
-   * badge de compteur d'unités posé au coin de la grille (`UnitCounterBadge`) :
-   * une position dérivée de la vraie projection caméra, jamais d'un calcul CSS
-   * recopié à côté (`_cameraFraming` change avec le mode portrait/web).
-   */
-  screenPosForCell(pos: Position): { x: number; y: number } | null {
-    return this.scene ? this.scene.worldToScreen(this.scene.tilePosition(pos)) : null;
-  }
-
-  /**
    * Allume la case survolée pendant un glisser de carte.
    *
    * ⚠️ Le glisser n'écrivait AUCUN retour sur le plateau : la carte suivait le
@@ -639,10 +629,6 @@ export class GameController {
   private _tryPlace(card: Card, pos: Position): void {
     const result = this.session.canSummon(card, pos, this.selectedMaterials, this.selectedConditionIndex) as any;
     if (!result.ok) { this._flashError(result.reason); return; }
-    if (this.session.exceedsBoardSlots(card, this.selectedMaterials)) {
-      this._flashError(`Maximum ${this.session.gameState.player_board_slots} unités sur le terrain`);
-      return;
-    }
     if (this._markPrepId !== this.session.prepId) {
       this._markPrepId = this.session.prepId;
       this._eventMark = useMissionStore.getState().eventMark();
@@ -1387,7 +1373,6 @@ export class GameController {
       enemyHp: gs.enemy_hp,
       playerMultiplier: gs.player_multiplier,
       enemyMultiplier: gs.enemy_multiplier,
-      boardSlots: gs.player_board_slots,
       placedCount: this.session.getPlayerUnits().filter(u => !u.is_token).length,
       canUndo: gs.phase === Phase.PREPARATION
         && this._committedPrepId !== this.session.prepId

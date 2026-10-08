@@ -195,7 +195,7 @@ function cheminCompile(attr: any, seuil: any) {
       ressources: etatRessources({
         pioches: ressources.pioches,
         garanties: ressources.pioches_garanties,
-        slots: ressources.slots_board,
+        slots: ressources.energie,
         mult: ressources.multiplicateur,
         shop: ressources.magies_shop,
         reanimees: ressources.reanimees.map(u => u.card_id),
@@ -272,7 +272,7 @@ describe('Mode ombre — le compilateur d\'attribut', () => {
 // Ce que le CATALOGUE n'exerce pas
 //
 // ⚠️ Les attributs livrés n'exercent que huit des dix types codés :
-// `board_slot_bonus` et `shopping_bonus` sont **codés des deux côtés et exercés
+// `energy_bonus` et `shopping_bonus` sont **codés des deux côtés et exercés
 // par aucun**, et un seul effet du catalogue porte un plafond `max` — qui ne
 // mord jamais sur un casting de la taille de son palier. Le mode ombre joué sur
 // le seul catalogue laisserait donc trois branches sans preuve : vérifié en
@@ -286,7 +286,7 @@ describe('Mode ombre — le compilateur d\'attribut', () => {
 const SYNTHETIQUES: any[] = [
   {
     id: 'ARCH_SYNTH_SLOT', name: 'Slot', timing: 'end_of_combat',
-    thresholds: [{ count: 2, effects: [{ type: 'board_slot_bonus', value: 1 }] }],
+    thresholds: [{ count: 2, effects: [{ type: 'energy_bonus', value: 1 }] }],
   },
   {
     id: 'ARCH_SYNTH_SHOP', name: 'Shopping', timing: 'end_of_combat',
@@ -318,7 +318,7 @@ describe('Mode ombre — les branches que le catalogue n\'exerce pas', () => {
 
   // ⚠️ **Un SNAPSHOT, depuis la bascule, et non plus une comparaison.** Ces
   // attributs n'existent pas dans la donnée : ils existent pour que les deux
-  // types que le catalogue n'exerce jamais (`board_slot_bonus`,
+  // types que le catalogue n'exerce jamais (`energy_bonus`,
   // `shopping_bonus`) et le seul plafond `max` qui morde soient épinglés
   // quelque part. L'oracle des 57 livrés ne peut pas le faire — il n'en porte
   // aucun exemplaire — et il n'y a plus de second chemin à qui les comparer.

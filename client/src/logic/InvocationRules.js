@@ -1,6 +1,6 @@
 import {
   materialLineageMatches, materialSlotsPaid, getUncoveredRequirements,
-  canSummon, exceedsBoardSlots, livingSlotUnits, summonConditions, conditionAt,
+  canSummon, summonConditions, conditionAt,
   conditionMaterials, conditionRequires, conditionIsFree,
 } from './InvocationManager.js';
 
@@ -131,11 +131,11 @@ function _candidates(card, condition, alreadySelected, available, board, hasMult
  * affiché en main, avant toute case ou matériau. `null` quand il n'y a rien à
  * choisir.
  */
-export function summonConditionsStatus(card, board, graveyard = [], maxSlots = Infinity, hasMultiple = false) {
+export function summonConditionsStatus(card, board, graveyard = [], hasMultiple = false) {
   const conditions = summonConditions(card);
   if (conditions.length <= 1) return null;
   return conditions.map((condition, index) => {
-    const verdict = _playableWith(card, condition, board, graveyard, maxSlots, hasMultiple);
+    const verdict = _playableWith(card, condition, board, graveyard, hasMultiple);
     return { index, condition, ok: verdict.ok, reason: verdict.reason };
   });
 }
@@ -145,10 +145,10 @@ export function summonConditionsStatus(card, board, graveyard = [], maxSlots = I
  * Volontairement indulgent : ne réclame pas de case libre quand l'invocation en
  * libère elle-même.
  */
-export function isPlayable(card, board, graveyard = [], maxSlots = Infinity, hasMultiple = false) {
+export function isPlayable(card, board, graveyard = [], hasMultiple = false) {
   const conditions = summonConditions(card);
-  if (conditions.length === 0) return _playableWith(card, null, board, graveyard, maxSlots, hasMultiple).ok;
-  return conditions.some(condition => _playableWith(card, condition, board, graveyard, maxSlots, hasMultiple).ok);
+  if (conditions.length === 0) return _playableWith(card, null, board, graveyard, hasMultiple).ok;
+  return conditions.some(condition => _playableWith(card, condition, board, graveyard, hasMultiple).ok);
 }
 
 /**
@@ -157,21 +157,16 @@ export function isPlayable(card, board, graveyard = [], maxSlots = Infinity, has
  * motif est celui de la première règle qui refuse — même discipline que
  * `canSummon`, dont c'est le pendant « sans case ».
  */
-function _playableWith(card, condition, board, graveyard, maxSlots, hasMultiple = false) {
+function _playableWith(card, condition, board, graveyard, hasMultiple = false) {
   const no = (reason) => ({ ok: false, reason });
   const living = board.getLivingUnitsOnSide('player');
   const duplicate = !hasMultiple && living.find(u => u.card_id === card.id);
-  // ⚠️ Un token ne pèse pas sur le plafond (`InvocationManager.livingSlotUnits`) :
-  // il n'a coûté aucun slot à naître, lui en compter un grisait une carte que
-  // rien n'empêche vraiment de poser.
-  const slotUnits = livingSlotUnits(board, 'player');
 
   if (!condition || conditionIsFree(condition)) {
     // Sans matériau à consommer, un doublon vivant interdit la pose et il n'y a
     // pas de case à libérer : il faut donc une case déjà vide. ⚠️ Sauf
     // **Multiple**, qui lève cette interdiction (`duplicate` vaut alors `false`).
     if (duplicate) return no('Un exemplaire vit déjà sur le terrain');
-    if (slotUnits.length >= maxSlots) return no('Plus de slot libre');
     return hasEmptyPlayerCell(board) ? { ok: true, reason: '' } : no('Aucune case libre');
   }
 
@@ -187,9 +182,6 @@ function _playableWith(card, condition, board, graveyard, maxSlots, hasMultiple 
     return no(uncovered.length > 1 ? 'Matériels manquants' : 'Matériel manquant');
 
   // Le doublon, s'il existe, est consommable : il compte parmi les matériaux.
-  // ⚠️ Un coût satisfait uniquement au cimetière ne libère aucun SLOT (le
-  // cimetière n'en occupe pas), il faut donc que le plafond soit encore ouvert.
-  if (slotUnits.length >= maxSlots && !available.some(u => living.includes(u))) return no('Plus de slot libre');
   // Une CASE, en revanche, il y en a toujours une : `summon` retire du board
   // tous les matériaux consommés, cimetière compris.
   return { ok: true, reason: '' };
@@ -226,11 +218,9 @@ export function hasEmptyPlayerCell(board) {
  * Sur une condition à un matériel, `canSummon` n'en laissera passer qu'une : la
  * case de ce matériel.
  */
-export function validCells(card, { board, graveyard, selectedMaterials, playerBoardSlots, conditionIndex = null, hasMultiple = false }) {
+export function validCells(card, { board, graveyard, selectedMaterials, conditionIndex = null, hasMultiple = false }) {
   if (needsMaterials(card, conditionIndex)
       && !materialsComplete(card, selectedMaterials, conditionIndex, board, hasMultiple)) return [];
-
-  if (exceedsBoardSlots(card, selectedMaterials, board, graveyard, playerBoardSlots)) return [];
 
   const freed = new Set(
     selectedMaterials

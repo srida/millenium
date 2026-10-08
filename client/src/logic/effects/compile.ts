@@ -350,7 +350,7 @@ const QUANDS_PAR_TYPE: Record<string, readonly Quand[]> = {
   // Le mot-clé **Appelant** — même moment et même file que `guaranteed_draw`,
   // dont il ne diffère que par l'endroit où se lisent les critères.
   guaranteed_draw_bearer: ['fin_combat'],
-  board_slot_bonus: ['fin_combat'],
+  energy_bonus: ['fin_combat'],
   damage_multiplier_bonus: ['fin_combat'],
   shopping_bonus: ['fin_combat'],
   player_hp_bonus: ['fin_combat'],
@@ -601,11 +601,11 @@ export function compileAttribute(attr: AttributeLike, connus?: ReadonlySet<strin
           return;
 
         case 'draw_bonus':
-        case 'board_slot_bonus':
+        case 'energy_bonus':
         case 'damage_multiplier_bonus':
         case 'shopping_bonus': {
           const champ = ({
-            draw_bonus: 'pioches', board_slot_bonus: 'slots_board',
+            draw_bonus: 'pioches', energy_bonus: 'energie',
             damage_multiplier_bonus: 'multiplicateur', shopping_bonus: 'magies_shop',
           } as const)[effect.type];
           pousse([{
@@ -943,8 +943,8 @@ export function compileMagie(magie: MagieLike): CompilationResult {
       }]);
       return { effets, refus };
 
-    case 'board_slot_bonus':
-      pousse([{ action: 'modifier', cible: leJoueur(), champ: 'slots_board', operateur: '+', valeur: (e.value as number) || 1, duree: 'partie', provenance: 'magie' }]);
+    case 'energy_bonus':
+      pousse([{ action: 'modifier', cible: leJoueur(), champ: 'energie', operateur: '+', valeur: (e.value as number) || 1, duree: 'partie', provenance: 'magie' }]);
       return { effets, refus };
 
     case 'draw_bonus':

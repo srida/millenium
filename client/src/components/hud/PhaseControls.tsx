@@ -185,8 +185,6 @@ export default function PhaseControls({ pvp = false }: { pvp?: boolean }) {
 
   return (
     <div className={classname_footer2}>
-      {/* Le compteur d'unités vit désormais au coin du plateau
-          (`UnitCounterBadge`) : le montrer ICI aussi le dirait deux fois. */}
       <PhaseClock
         remaining={prepRemaining}
         label={`Temps de préparation restant : ${prepRemaining} secondes`}

@@ -252,7 +252,7 @@ describe('Terrains livrés — l\'oracle de l\'étape 0', () => {
       applyBoardEffects(b, { playerUnits: [], enemyUnits: cast('enemy'), gameState });
       expect(gameState.enemy_extra_draws).toBe(0);
       expect(gameState.enemy_guaranteed_draws).toEqual([]);
-      expect(gameState.player_board_slots).toBe(new GameState().player_board_slots);
+      expect(gameState.player_energy_bonus).toBe(0);
     }
   });
 

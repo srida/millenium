@@ -258,7 +258,7 @@ export function effectLabel(magie, names = RAW_NAMES) {
     // self-cible, mais rien n'empêche une `Valeur` négative (une magie qui
     // inflige des PV au joueur qui la lance, comme contrecoup narratif).
     case 'player_hp_bonus':  return `${e.value > 0 ? '+' : ''}${e.value} PV joueur`;
-    case 'board_slot_bonus':         return `+${e.value} slot${e.value > 1 ? 's' : ''} de board permanent${e.value > 1 ? 's' : ''}`;
+    case 'energy_bonus':         return `+${e.value || 1} énergie d'invocation pour le reste de la partie`;
     case 'defuse_fusion':            return 'Sépare un monstre Fusion en ses matériaux';
     case 'destroy_unit':             return 'Détruit une unité alliée (libère son emplacement, devient un matériau disponible au cimetière)';
     case 'drain_life':               return 'Absorbe les PV d\'une unité alliée : elle part au cimetière et tu récupères ses PV courants';
@@ -406,8 +406,8 @@ export function applyEffect(magie, { gameState = null, targetUnit = null, target
     case 'player_hp_bonus':
       if (gameState) gameState.player_hp = Math.min(gameState.player_hp + e.value, 1000);
       break;
-    case 'board_slot_bonus':
-      if (gameState) gameState.grantLimitedBoardSlotBonus(e.value || 1);
+    case 'energy_bonus':
+      if (gameState) gameState.player_energy_bonus += e.value || 1;
       break;
     case 'draw_bonus':
       if (gameState) {

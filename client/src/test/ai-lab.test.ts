@@ -28,7 +28,7 @@ function db(cards: any[]) {
 
 function run(over: Partial<AiLabInput> & { cardDb: any }): ReturnType<typeof runAiPlacement> {
   return runAiPlacement({
-    deck: {}, round: 1, slots: 5, survivors: [], graveyard: [],
+    deck: {}, round: 1, survivors: [], graveyard: [],
     hand: [], draw: false, seed: 'test', ...over
   } as AiLabInput);
 }
@@ -63,8 +63,8 @@ describe('Non-régression — observer ne change rien', () => {
     // Main imposée pour que les deux exécutions partent du même point : la
     // pioche consomme `rand`, et c'est le PLACEMENT qu'on compare.
     ai.setHand(cards);
-    ai.placeFromHand(board, 5, [], sink);
-    ai.rearrangeUnits(board, 5, sink);
+    ai.placeFromHand(board, [], sink);
+    ai.rearrangeUnits(board, sink);
     return board.getLivingUnitsOnSide('enemy')
       .map((u: any) => `${u.card_id}@${u.position.col},${u.position.row}`)
       .sort();
@@ -77,7 +77,7 @@ describe('Non-régression — observer ne change rien', () => {
   it('les appels sans trace restent la forme par défaut (aucun argument requis)', () => {
     const board = makeBoard();
     const ai = new (EnemyAI as any)({ 1: ['N1'] }, db(cards), 'enemy');
-    expect(() => { ai.drawHand(1); ai.placeFromHand(board, 5, []); ai.rearrangeUnits(board, 5); })
+    expect(() => { ai.drawHand(1); ai.placeFromHand(board, []); ai.rearrangeUnits(board); })
       .not.toThrow();
     expect(board.getLivingUnitsOnSide('enemy')).toHaveLength(1);
   });
@@ -89,14 +89,12 @@ describe('Non-régression — observer ne change rien', () => {
 // seul fait qu'aucune unité n'est sortie : c'est très exactement l'ambiguïté
 // que le lot supprime, un test qui s'en contenterait la réintroduirait.
 describe('Motifs de refus — un par cas', () => {
-  it('board_full : le cap est atteint', () => {
-    const cards = ['A', 'B', 'C', 'D', 'E', 'F'].map(id => makeCard({ id, summon_conditions: [] }));
-    // Tour 5 : le budget (21) couvre les six cartes, seul le cap les arrête.
-    const r = run({ cardDb: db(cards), hand: cards.map(c => c.id), slots: 5, round: 5 });
-    expect(r.board_after).toHaveLength(5);
-    expect(refusalOf(r, 'F')).toBe('board_full');
-    const a = attempts(r).find(x => x.card_id === 'F')!;
-    expect(a.detail).toMatchObject({ on_board: 5, max_units: 5 });
+  it('aucun plafond d\'unités : seul le budget borne le camp', () => {
+    const cards = ['A', 'B', 'C', 'D', 'E', 'F', 'G'].map(id => makeCard({ id, summon_conditions: [] }));
+    // Tour 5 : le budget (21) couvre les sept cartes, rien d'autre ne les arrête.
+    const r = run({ cardDb: db(cards), hand: cards.map(c => c.id), round: 5 });
+    expect(r.board_after).toHaveLength(7);
+    expect(r.hand_left).toEqual([]);
   });
 
   it('duplicate_on_board : deux exemplaires vivants de la même carte', () => {
@@ -130,9 +128,25 @@ describe('Motifs de refus — un par cas', () => {
     expect(attempts(r).find(a => a.card_id === 'F')!.detail).toMatchObject({ material: 'N2' });
   });
 
-  it('would_exceed_slots : la fusion ne consomme pas assez de place', () => {
-    // 5 unités sur 5 slots, une fusion dont l'unique matériau est au CIMETIÈRE :
-    // elle ne libère aucune case du board, le solde net serait +1.
+  it('no_free_cell : refusée AVANT de consommer quoi que ce soit', () => {
+    // Zone pleine (20 cases), une invocation dont l'unique matériau est au
+    // CIMETIÈRE : elle ne libère aucune case. Le refus doit tomber avant que
+    // le matériau soit mangé.
+    const surv = Array.from({ length: 20 }, (_, i) => makeCard({ id: `S${i}`, summon_conditions: [] }));
+    const mat = makeCard({ id: 'M', summon_conditions: [] });
+    const f = makeCard({ id: 'F', summon_conditions: [{ materials: 1, requires: ['M'] }] });
+    const r = run({ round: 5,
+      cardDb: db([...surv, mat, f]),
+      survivors: surv.map((c, i) => ({ card_id: c.id, col: i % 5, row: 7 + Math.floor(i / 5) })),
+      graveyard: ['M'],
+      hand: ['F'],
+    });
+    expect(r.board_after).toHaveLength(20);
+    expect(refusalOf(r, 'F')).toBe('no_free_cell');
+    expect(r.graveyard_left).toEqual(['M']);
+  });
+
+  it('une invocation payée au seul cimetière passe dès qu\'une case est libre', () => {
     const surv = ['A', 'B', 'C', 'D', 'E'].map(id => makeCard({ id, summon_conditions: [] }));
     const mat = makeCard({ id: 'M', summon_conditions: [] });
     const f = makeCard({ id: 'F', summon_conditions: [{ materials: 1, requires: ['M'] }] });
@@ -141,11 +155,9 @@ describe('Motifs de refus — un par cas', () => {
       survivors: surv.map((c, i) => ({ card_id: c.id, col: i, row: 7 })),
       graveyard: ['M'],
       hand: ['F'],
-      slots: 5
     });
-    expect(r.board_after).toHaveLength(5);
-    expect(refusalOf(r, 'F')).toBe('would_exceed_slots');
-    expect(attempts(r)[0].detail).toMatchObject({ on_board: 5, consumed_from_board: 0, max_units: 5 });
+    expect(r.board_after).toHaveLength(6);
+    expect(refusalOf(r, 'F')).toBe(null);
   });
 
   // ⚠️ Les TROIS motifs propres à la Transformation ont disparu, et c'est le
@@ -547,25 +559,24 @@ describe('Passes — le point fixe de placeFromHand', () => {
 });
 
 // ── Le rangement ─────────────────────────────────────────────────────────────
-describe('rearrangeUnits — ce qui est rangé, et ce qui est jeté', () => {
-  it('les unités au-delà du cap sont NOMMÉES dans dropped', () => {
-    // 6 survivants pour 5 slots : `rearrangeUnits` en retire une du board sans
-    // qu'elle meure ni passe au cimetière. Elle disparaissait en silence.
-    const surv = ['A', 'B', 'C', 'D', 'E', 'F'].map((id, i) =>
-      makeCard({ id, summon_conditions: [], stats: { hp: 10 + i } as any }));
+describe('rearrangeUnits — tout le camp est rangé', () => {
+  it('un camp nombreux tient sur la zone : personne n\'est jeté ni empilé', () => {
+    // 12 mêlées : la grille historique (3 par rangée) déborde sur la zone de
+    // la distance ; le repli prend la première case libre.
+    const melee = Array.from({ length: 12 }, (_, i) =>
+      makeCard({ id: `M${i}`, summon_conditions: [], stats: { range: 1, hp: 10 + i } as any }));
+    const ranged = Array.from({ length: 4 }, (_, i) =>
+      makeCard({ id: `R${i}`, summon_conditions: [], stats: { range: 4, hp: 10 + i } as any }));
+    const all = [...melee, ...ranged];
     const r = run({
-      cardDb: db(surv),
-      survivors: surv.map((c, i) => ({ card_id: c.id, col: i % 5, row: 7 + Math.floor(i / 5) })),
+      cardDb: db(all),
+      survivors: all.map((c, i) => ({ card_id: c.id, col: i % 5, row: 7 + Math.floor(i / 5) })),
       hand: [],
-      slots: 5
     });
-    const re = r.events.find(e => e.kind === 'rearrange') as any;
-    expect(re.before).toHaveLength(6);
-    expect(re.after).toHaveLength(5);
-    expect(re.dropped).toHaveLength(1);
-    // Le tri range par range puis PV décroissants : le plus faible tombe.
-    expect(re.dropped[0].card_id).toBe('A');
-    expect(r.board_after).toHaveLength(5);
+    expect(r.board_after).toHaveLength(16);
+    const cells = new Set(r.board_after.map(u => `${u.col},${u.row}`));
+    expect(cells.size).toBe(16);
+    expect(r.board_after.every(u => (u.row ?? -1) >= 7 && (u.row ?? 99) <= 10)).toBe(true);
   });
 
   it('mêlée devant, distance derrière', () => {
@@ -710,7 +721,7 @@ describe('Pioche — semée, et court-circuitable', () => {
       // — ses matériaux ne sont pas encore sur le plateau.
       ai.drawHand(1);
       expect(ai.getHand().map((c: any) => c.id)).toEqual(['F', 'F', 'F', 'F', 'F']);
-      ai.placeFromHand(board, 5, []);
+      ai.placeFromHand(board, []);
       expect(board.getLivingUnitsOnSide('enemy')).toHaveLength(0);
       // ⚠️ Cette rétention-CI marchait déjà : `placeFromHand` finit par
       // `this._hand = unplaced`. C'est le `drawHand` du round suivant qui
@@ -724,7 +735,7 @@ describe('Pioche — semée, et court-circuitable', () => {
       spawn(board, n2, 'enemy', { col: 1, row: 7 });
 
       // Aucune pioche : c'est bien la main RETENUE qui joue.
-      ai.placeFromHand(board, 5, []);
+      ai.placeFromHand(board, []);
       expect(board.getLivingUnitsOnSide('enemy').map((u: any) => u.card_id)).toEqual(['F']);
     });
 
@@ -774,7 +785,7 @@ describe('Pioche — semée, et court-circuitable', () => {
       const board = makeBoard();
       const ai = new (EnemyAI as any)({ 1: ['N1'] }, db([n1]), 'enemy');
       ai.setHand([n1, n1, fus]);
-      ai.placeFromHand(board, 5, []);
+      ai.placeFromHand(board, []);
       // N1 posé une fois (règle du doublon), son doublon et la fusion retenus.
       expect(board.getLivingUnitsOnSide('enemy')).toHaveLength(1);
       expect(ai.getHand().map((c: any) => c.id).sort()).toEqual(['F', 'N1']);
@@ -851,20 +862,20 @@ describe('Main affichée — les cartes posées la quittent', () => {
   // ci-dessus rouge si on rebranche la pioche.
   it('garder le reliquat avec la pioche armée referait tomber la MÊME main', () => {
     const deck1 = { 1: ['N1', 'N2'] };
-    const first = run({ cardDb: db([n1, n2]), deck: deck1, hand: null, draw: true, round: 1, seed: 's', slots: 1 });
+    const first = run({ cardDb: db([n1, n2]), deck: deck1, hand: null, draw: true, round: 1, seed: 's' });
     expect(first.hand).toHaveLength(5);
     expect(first.hand_left.length).toBeGreaterThan(0);
 
     // Ce que ferait un « Placer » relancé sur le reliquat, pioche encore armée.
     const armed = run({
-      cardDb: db([n1, n2]), deck: deck1, hand: first.hand_left, draw: true, round: 1, seed: 's', slots: 1
+      cardDb: db([n1, n2]), deck: deck1, hand: first.hand_left, draw: true, round: 1, seed: 's'
     });
     expect(armed.hand).toEqual([...first.hand_left, ...first.hand]);
 
     // Ce que fait l'écran, la pioche coupée par `handAfterEdit`.
     const state = handAfterEdit({ hand: first.hand, draw: true }, first.hand_left, true);
     const cut = run({
-      cardDb: db([n1, n2]), deck: deck1, hand: state.hand, draw: state.draw, round: 1, seed: 's', slots: 1
+      cardDb: db([n1, n2]), deck: deck1, hand: state.hand, draw: state.draw, round: 1, seed: 's'
     });
     expect(cut.hand).toEqual(first.hand_left);
   });

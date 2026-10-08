@@ -73,7 +73,7 @@ function etat(player: Unit[], enemy: Unit[], g: GameState) {
     ennemi: enemy.map(u),
     pioches: g.player_extra_draws,
     sources: g.player_draw_sources.map((s: any) => `${s.kind}:${s.ref}:${s.value}`),
-    slots: g.player_board_slots,
+    energie: g.player_energy_bonus,
     pv: g.player_hp,
   };
 }
@@ -92,7 +92,7 @@ function verser(r: Ressources, g: GameState): void {
   g.player_extra_draws += r.pioches;
   g.player_draw_sources.push(...r.sources);
   g.player_guaranteed_draws.push(...r.pioches_garanties);
-  if (r.slots_board) g.grantLimitedBoardSlotBonus(r.slots_board);
+  g.player_energy_bonus += r.energie;
   g.player_extra_shopping_magies += r.magies_shop;
   g.player_hp += r.pv;
 }

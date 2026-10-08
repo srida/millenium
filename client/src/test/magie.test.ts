@@ -47,7 +47,7 @@ describe('MagieEffect — routage du ciblage', () => {
 
   it('effectLabel couvre tous les types sans planter', () => {
     for (const t of ['stat_bonus', 'stat_modifier', 'draw_bonus', 'guaranteed_draw', 'heal', 'revive', 'shield',
-      'player_hp_bonus', 'board_slot_bonus', 'defuse_fusion', 'destroy_unit', 'reduce_materials',
+      'player_hp_bonus', 'energy_bonus', 'defuse_fusion', 'destroy_unit', 'reduce_materials',
       'remove_requirements', 'team_stat_bonus', 'drain_life',
       'hand_to_graveyard', 'team_heal', 'grant_power',
       'power_cooldown', 'damage_multiplier_bonus']) {
@@ -185,13 +185,12 @@ describe('MagieEffect — effets globaux (gameState)', () => {
     expect(gs.player_hp).toBe(1000);
   });
 
-  it('board_slot_bonus passe par le cap partagé (+1 max avec Yeux bleus)', () => {
+  it('energy_bonus est cumulable, sans plafond', () => {
     const gs = new (GameState as any)();
-    applyEffect(magie({ type: 'board_slot_bonus', value: 1 }), { gameState: gs });
-    expect(gs.player_board_slots).toBe(6);
-    // Le même cap est déjà consommé : une 2e magie de slot n'ajoute rien
-    applyEffect(magie({ type: 'board_slot_bonus', value: 1 }), { gameState: gs });
-    expect(gs.player_board_slots).toBe(6);
+    applyEffect(magie({ type: 'energy_bonus', value: 2 }), { gameState: gs });
+    expect(gs.player_energy_bonus).toBe(2);
+    applyEffect(magie({ type: 'energy_bonus', value: 2 }), { gameState: gs });
+    expect(gs.player_energy_bonus).toBe(4);
   });
 
   it('draw_bonus / guaranteed_draw', () => {

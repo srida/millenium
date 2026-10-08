@@ -87,12 +87,12 @@ describe('InvocationRules — la main et les cases valides suivent la même règ
   it('isPlayable : refusé sur un doublon normal, jouable pour Multiple', () => {
     const board = makeBoard();
     spawn(board, NORMAL as any, 'player', { col: 0, row: 0 });
-    expect(isPlayable(NORMAL as any, board, [], Infinity, false)).toBe(false);
+    expect(isPlayable(NORMAL as any, board, [], false)).toBe(false);
 
     const board2 = makeBoard();
     spawn(board2, MULTI as any, 'player', { col: 0, row: 0 });
-    expect(isPlayable(MULTI as any, board2, [], Infinity, false)).toBe(false);
-    expect(isPlayable(MULTI as any, board2, [], Infinity, true)).toBe(true);
+    expect(isPlayable(MULTI as any, board2, [], false)).toBe(false);
+    expect(isPlayable(MULTI as any, board2, [], true)).toBe(true);
   });
 
   it('materialsComplete et validCells ignorent le doublon quand hasMultiple est vrai', () => {
@@ -103,13 +103,13 @@ describe('InvocationRules — la main et les cases valides suivent la même règ
     expect(materialsComplete(MULTI as any, [], null, board, true)).toBe(true);
 
     const cells = validCells(MULTI as any, {
-      board, graveyard: [], selectedMaterials: [], playerBoardSlots: 5,
+      board, graveyard: [], selectedMaterials: [],
       conditionIndex: null, hasMultiple: true,
     });
     expect(cells.length).toBeGreaterThan(0);
 
     const cellsSansMultiple = validCells(MULTI as any, {
-      board, graveyard: [], selectedMaterials: [], playerBoardSlots: 5,
+      board, graveyard: [], selectedMaterials: [],
       conditionIndex: null, hasMultiple: false,
     });
     expect(cellsSansMultiple).toEqual([]);
@@ -125,7 +125,7 @@ describe('EnemyAI — même exemption côté adversaire', () => {
 
     const ai = new (EnemyAI as any)({ 1: ['MULTI'] }, cardDb, 'enemy');
     (ai as any).setHand([MULTI]);
-    const placed = ai.placeFromHand(board, 5, [], null, () => true);
+    const placed = ai.placeFromHand(board, [], null, () => true);
 
     expect(placed).toHaveLength(1);
     expect(board.getLivingUnitsOnSide('enemy')).toHaveLength(2);
@@ -137,7 +137,7 @@ describe('EnemyAI — même exemption côté adversaire', () => {
 
     const ai = new (EnemyAI as any)({ 1: ['MULTI'] }, cardDb, 'enemy');
     (ai as any).setHand([MULTI]);
-    const placed = ai.placeFromHand(board, 5, []);
+    const placed = ai.placeFromHand(board, []);
 
     expect(placed).toHaveLength(0);
     expect(board.getLivingUnitsOnSide('enemy')).toHaveLength(1);

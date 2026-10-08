@@ -108,6 +108,34 @@ describe('GameSession — budget du joueur', () => {
   });
 });
 
+describe('Plus de plafond d\'unités : l\'énergie est la seule borne', () => {
+  it('le joueur pose une sixième unité dès que le budget la couvre', () => {
+    const cards = ['A', 'B', 'C', 'D', 'E', 'F'].map(id => makeCard({ id, tier: 1 }));
+    const session = makeSession(cards);
+    session.gameState.round = 5;
+    session.hand = cards.map(c => ({ ...c })) as any;
+    session.startPreparation();
+    for (let c = 0; c < 6; c++) {
+      expect(session.place(session.hand[0], { col: c % 5, row: Math.floor(c / 5) }, [], 0)).not.toBeNull();
+    }
+    expect(session.getPlayerUnits()).toHaveLength(6);
+    expect(session.energyLeft()).toBe(21 - 6);
+  });
+
+  it('l\'énergie gagnée pour la partie s\'ajoute au budget de CHAQUE tour, des deux côtés', () => {
+    const session = makeSession();
+    session.gameState.player_energy_bonus = 2;
+    session.gameState.enemy_energy_bonus = 3;
+    session.gameState.round = 2;
+    expect(session.energyBudget()).toBe(5 + 2);
+
+    let budget: number | null = null;
+    (session as any).enemyAI.placeFromHand = (...args: any[]) => { budget = args[4]; return []; };
+    (session as any)._placeEnemyUnits();
+    expect(budget).toBe(5 + 3);
+  });
+});
+
 describe('EnemyAI — budget de l\'IA', () => {
   it('l\'IA ne pose pas au-delà de son budget, et le refus porte son motif', () => {
     const cards = ['X', 'Y', 'Z'].map(id => makeCard({ id, tier: 2, summon_conditions: [] }));
@@ -115,7 +143,7 @@ describe('EnemyAI — budget de l\'IA', () => {
     const ai = new (EnemyAI as any)({}, { getCard: (id: string) => byId.get(id) ?? null });
     ai._hand = cards.map(c => ({ ...c }));
     const events: any[] = [];
-    const placed = ai.placeFromHand(new Board(), 5, [], (e: any) => events.push(e), null, 5);
+    const placed = ai.placeFromHand(new Board(), [], (e: any) => events.push(e), null, 5);
     expect(placed).toHaveLength(2);
     expect(events.some(e => e.kind === 'attempt' && e.reason === 'over_budget')).toBe(true);
   });
@@ -128,7 +156,7 @@ describe('EnemyAI — budget de l\'IA', () => {
     ai._hand = cards.map(c => ({ ...c }));
     const board = new Board();
     spawn(board, old, 'enemy', { col: 0, row: 7 });
-    expect(ai.placeFromHand(board, 5, [], null, null, 5)).toHaveLength(1);
+    expect(ai.placeFromHand(board, [], null, null, 5)).toHaveLength(1);
   });
 
   it('sans budget, le comportement d\'avant', () => {
@@ -136,6 +164,6 @@ describe('EnemyAI — budget de l\'IA', () => {
     const byId = new Map(cards.map(c => [c.id, c]));
     const ai = new (EnemyAI as any)({}, { getCard: (id: string) => byId.get(id) ?? null });
     ai._hand = cards.map(c => ({ ...c }));
-    expect(ai.placeFromHand(new Board(), 5, [])).toHaveLength(3);
+    expect(ai.placeFromHand(new Board(), [])).toHaveLength(3);
   });
 });

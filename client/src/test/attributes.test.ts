@@ -274,9 +274,9 @@ describe('AttributeManager — end_of_combat', () => {
   // exclusivement JOUEUR : l'IA n'a ni Phase Shopping ni cap de slot dérivé de
   // l'attribut, et le multiplicateur d'attribut est volontairement asymétrique
   // (contrat de déterminisme PvP, cf. CLAUDE.md « damage_multiplier_bonus »).
-  it('board_slot_bonus / damage_multiplier_bonus / shopping_bonus côté ENNEMI ne donnent rien', () => {
+  it('energy_bonus / damage_multiplier_bonus / shopping_bonus côté ENNEMI ne donnent rien', () => {
     const attrs = [
-      { id: 'ARCH_SLOT', name: 'S', timing: 'end_of_combat', thresholds: [{ count: 1, effects: [{ type: 'board_slot_bonus', value: 1 }] }] },
+      { id: 'ARCH_SLOT', name: 'S', timing: 'end_of_combat', thresholds: [{ count: 1, effects: [{ type: 'energy_bonus', value: 1 }] }] },
       { id: 'ARCH_DMG', name: 'D', timing: 'end_of_combat', thresholds: [{ count: 1, effects: [{ type: 'damage_multiplier_bonus', value: 2 }] }] },
       { id: 'ARCH_SHOP', name: 'H', timing: 'end_of_combat', thresholds: [{ count: 1, effects: [{ type: 'shopping_bonus', value: 1 }] }] },
     ];
@@ -289,7 +289,7 @@ describe('AttributeManager — end_of_combat', () => {
     const am = new (AttributeManager as any)(attrs, [], [e1, e2, e3]);
     const result = am.applyEndOfCombat([], []);
 
-    expect(result.board_slot_bonus).toBe(0);
+    expect(result.energy_bonus).toBe(0);
     expect(result.damage_multiplier_bonus).toBe(0);
     expect(result.shopping_bonus).toBe(0);
   });
@@ -359,7 +359,7 @@ describe('AttributeManager — le partage joueur / adverse des ressources', () =
       count: 1,
       effects: [
         { type: 'draw_bonus', value: 2 },
-        { type: 'board_slot_bonus', value: 1 },
+        { type: 'energy_bonus', value: 1 },
         { type: 'damage_multiplier_bonus', value: 3 },
         { type: 'shopping_bonus', value: 2 },
         { type: 'guaranteed_draw', tier: 3 },
@@ -380,7 +380,7 @@ describe('AttributeManager — le partage joueur / adverse des ressources', () =
   it('le camp du JOUEUR reçoit les quatre ressources et la pioche garantie', () => {
     const r = joue('player');
     expect(r.draw_bonus).toBe(2);
-    expect(r.board_slot_bonus).toBe(1);
+    expect(r.energy_bonus).toBe(1);
     expect(r.damage_multiplier_bonus).toBe(3);
     expect(r.shopping_bonus).toBe(2);
     expect(r.guaranteed_draws).toHaveLength(1);
@@ -392,20 +392,20 @@ describe('AttributeManager — le partage joueur / adverse des ressources', () =
   // ⚠️ **Décision 3 du §7, branchée à l'étape 4 : l'IA porte ses effets comme un
   // vrai joueur.** Ce cas disait auparavant « le camp adverse ne reçoit QUE la
   // pioche » ; il dit maintenant ce qui a un DESTINATAIRE de ce côté. Deux
-  // ressources en ont un — l'emplacement de plateau (`placeFromHand` le lit) et
+  // ressources en ont un — l'énergie (ajoutée au budget de `placeFromHand`) et
   // le multiplicateur de dégâts ; le Shopping n'en a pas, et ce n'est pas une
   // limite du moteur mais un fait du jeu.
   it('le camp ADVERSE reçoit tout ce qui a un destinataire chez lui', () => {
     const r = joue('enemy');
     expect(r.enemy_draw_bonus).toBe(2);
     expect(r.enemy_guaranteed_draws).toHaveLength(1);
-    expect(r.enemy_board_slot_bonus).toBe(1);
+    expect(r.enemy_energy_bonus).toBe(1);
     expect(r.enemy_damage_multiplier_bonus).toBe(3);
     // ⚠️ Et rien ne fuit vers le joueur : ni sa pioche, ni son emplacement, ni
     // son multiplicateur, ni sa provenance. C'est le sélecteur `camp` qui le
     // tient, plus une exception écrite dans le moteur.
     expect(r.draw_bonus).toBe(0);
-    expect(r.board_slot_bonus).toBe(0);
+    expect(r.energy_bonus).toBe(0);
     expect(r.damage_multiplier_bonus).toBe(0);
     expect(r.guaranteed_draws).toEqual([]);
     expect(r.draw_sources).toEqual([]);
@@ -445,23 +445,11 @@ describe('GameState — le versement des ressources adverses', () => {
   // directement prouverait le cap et PAS le branchement. La première version de
   // ce cas ne faisait que ça, et retirer l'appel de `GameState` la laissait
   // verte.
-  it('l’emplacement adverse arrive jusqu’à `enemy_board_slots`', () => {
+  it('l’énergie adverse arrive jusqu’à `enemy_energy_bonus`, et se cumule', () => {
     const gs = new (GameState as any)();
-    const avant = gs.enemy_board_slots;
-    gs.applyEndOfCombat('player', 0, 0, resultat({ enemy_board_slot_bonus: 1 }));
-    expect(gs.enemy_board_slots).toBe(avant + 1);
-  });
-
-  // ⚠️ DEUX compteurs de cap, un par camp : « +1 par camp sur toute la partie »,
-  // pas « +1 en tout ». Un compteur partagé ferait qu'un attribut du joueur
-  // fermerait la porte à l'IA, ce qu'aucune règle ne dit.
-  it('le cap d’emplacement est PAR CAMP, pas partagé', () => {
-    const gs = new (GameState as any)();
-    expect(gs.grantLimitedBoardSlotBonus(1)).toBe(1);
-    expect(gs.grantEnemyBoardSlotBonus(1)).toBe(1);
-    // Chacun a consommé le sien, et seulement le sien.
-    expect(gs.grantLimitedBoardSlotBonus(1)).toBe(0);
-    expect(gs.grantEnemyBoardSlotBonus(1)).toBe(0);
-    expect(gs.enemy_board_slots).toBe(gs.player_board_slots);
+    gs.applyEndOfCombat('player', 0, 0, resultat({ enemy_energy_bonus: 1 }));
+    gs.applyEndOfCombat('player', 0, 0, resultat({ enemy_energy_bonus: 1 }));
+    expect(gs.enemy_energy_bonus).toBe(2);
+    expect(gs.player_energy_bonus).toBe(0);
   });
 });

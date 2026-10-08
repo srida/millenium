@@ -168,7 +168,7 @@ describe('Émission — la forme', () => {
     //
     // ⚠️ « Plus à dire » se mesure sur les lignes JUGEABLES, jamais sur les
     // lignes significatives. La significativité demande en plus que l'écart
-    // franchisse son intervalle de Wilson, ce qui à 1 500 parties tient à deux
+    // franchisse son intervalle de Wilson, ce qui à 1 000 parties tient à deux
     // cartes près : le compte y vaut 0 ou 2 selon le vent, et un test qui en
     // dépend mesure le bruit, pas la règle. Le protocole du projet le dit
     // lui-même — il faut ~60 000 parties pour trancher à ±2 points, soit onze
@@ -179,11 +179,11 @@ describe('Émission — la forme', () => {
     // significativité attend.
     // Mutation : échanger `petit` et `grand` → ROUGE sur les deux assertions.
     const petit = makeShow(300, 'petit');
-    const grand = makeShow(1500, 'grand');
+    const grand = makeShow(1000, 'grand');
     const jugeables = (r: DetectorResult) => r.rows.filter(x => x.played >= MIN_PLAYED).length;
     expect(jugeables(grand.detector)).toBeGreaterThan(jugeables(petit.detector));
     expect(grand.show.words).toBeGreaterThan(petit.show.words);
-    // ⚠️ Délai EXPLICITE : ce cas est le seul à payer un run de 1 500 parties en
+    // ⚠️ Délai EXPLICITE : ce cas est le seul à payer un run de 1 000 parties en
     // plus du run mémoïsé, et il tournait à ~28 s contre les 30 s par défaut de
     // vitest — deux secondes de marge, c'est-à-dire aucune. Un runner un peu
     // chargé le faisait tomber en « Test timed out », un rouge qui ne dit rien

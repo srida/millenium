@@ -46,14 +46,14 @@ describe('EnemyAI.rearrangeUnits — les porteurs', () => {
   // ⚠️ La garantie de non-régression : sans porteur, le placement est celui
   // d'avant au bit près — c'est ce qui laisse la simulation inchangée.
   it('sans porteur, la lecture des mots-clés ne change rien', () => {
-    const a = plateau(null); ia().rearrangeUnits(a.board, 5);
-    const b = plateau(null); ia().rearrangeUnits(b.board, 5, null, keywordOf);
+    const a = plateau(null); ia().rearrangeUnits(a.board);
+    const b = plateau(null); ia().rearrangeUnits(b.board, null, keywordOf);
     expect(disposition(b.board)).toEqual(disposition(a.board));
   });
 
   it('Tireur d\'élite au fond', () => {
     const { board, porteur } = plateau('tireur_elite');
-    ia().rearrangeUnits(board, 5, null, keywordOf);
+    ia().rearrangeUnits(board, null, keywordOf);
     expect(porteur.position.row).toBe(10);
   });
 
@@ -61,20 +61,20 @@ describe('EnemyAI.rearrangeUnits — les porteurs', () => {
     // Sans le mot-clé, le porteur (mêlée) tomberait en colonne 3, dont le
     // couloir est bloqué.
     const { board, porteur } = plateau('embusque', [{ col: 3, row: 5 }]);
-    ia().rearrangeUnits(board, 5, null, keywordOf);
+    ia().rearrangeUnits(board, null, keywordOf);
     expect(porteur.position.row).toBe(7);
     expect(porteur.position.col).not.toBe(3);
   });
 
   it('Flanc sur une colonne de bord', () => {
     const { board, porteur } = plateau('flanc');
-    ia().rearrangeUnits(board, 5, null, keywordOf);
+    ia().rearrangeUnits(board, null, keywordOf);
     expect([0, 4]).toContain(porteur.position.col);
   });
 
   it('Garde du corps au contact de l\'allié le plus blessé', () => {
     const { board, units, porteur } = plateau('garde_du_corps');
-    ia().rearrangeUnits(board, 5, null, keywordOf);
+    ia().rearrangeUnits(board, null, keywordOf);
     const ward = units[1].position;
     expect(Math.abs(porteur.position.col - ward.col) + Math.abs(porteur.position.row - ward.row)).toBe(1);
   });

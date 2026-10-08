@@ -5,7 +5,7 @@
 import { describe, it, expect } from 'vitest';
 import {
   canSummon, summon, matchesMaterial, materialLineageLegit,
-  materialLineageMatches, materialSlotsPaid, exceedsBoardSlots,
+  materialLineageMatches, materialSlotsPaid,
 } from '../logic/InvocationManager.js';
 import {
   materialCandidateCells, materialsComplete, getUncoveredRequirements, isPlayable, validCells,
@@ -125,7 +125,7 @@ describe('un matériel nommé ne paie qu’un slot', () => {
 
   const cells = (card: unknown, board: unknown, selectedMaterials: unknown[]) =>
     validCells(card as any, {
-      board, graveyard: [], selectedMaterials, playerBoardSlots: 5, conditionIndex: null,
+      board, graveyard: [], selectedMaterials, conditionIndex: null,
     } as any);
 
   const setup = () => {
@@ -184,7 +184,7 @@ describe('un matériel nommé ne paie qu’un slot', () => {
     spawn(board, FODDER(1), 'player', { col: 1, row: 0 });
     void big;
     expect(can(ULTIME as any, { col: 4, row: 0 }, board, [], [], []).ok).toBe(false);
-    expect(isPlayable(ULTIME as any, board, [], 5)).toBe(false);
+    expect(isPlayable(ULTIME as any, board, [])).toBe(false);
   });
 });
 
@@ -313,40 +313,6 @@ describe('transfert des bonus shopping et de la vétérance', () => {
 // `switch` propre à l'invocation normale. Les deux tombent maintenant de la
 // règle générale, et c'est exactement ce qui doit être verrouillé — une refonte
 // qui « simplifie » en perdant une règle ne se voit nulle part ailleurs.
-describe('exceedsBoardSlots — le cimetière ne libère aucune case', () => {
-  const SLOTS = 5;
-  const fill = (board: any, n: number) => {
-    const units = [];
-    for (let c = 0; c < n; c++) units.push(spawn(board, makeCard({ id: `FILL_${c}` }), 'player', { col: c, row: 0 }));
-    return units;
-  };
-
-  // ⚠️ CHANGEMENT DE GAMEPLAY ASSUMÉ : la Transformation échappait au plafond
-  // par exception, quelle que soit la provenance de sa cible. La règle unifiée
-  // ne regarde plus que ce qui est LIBÉRÉ.
-  // Mutation : compter aussi les matériaux du cimetière → ROUGE.
-  it('un matériau pris au CIMETIÈRE ne rend pas de case : refusé sur un board plein', () => {
-    const board = makeBoard();
-    fill(board, SLOTS);
-    const dead = spawn(board, makeCard({ id: 'DEAD' }), 'player', { col: 0, row: 1 });
-    board.removeUnit(dead);
-    dead.is_neutralized = true;
-    const graveyard = [dead];
-
-    const card = makeCard({ id: 'BOSS', summon_conditions: [{ materials: 1, requires: ['DEAD'] }] });
-    expect(exceedsBoardSlots(card as any, [dead], board, graveyard, SLOTS)).toBe(true);
-  });
-
-  // Mutation : ignorer les matériaux du board → ROUGE.
-  it('un matériau pris sur le BOARD rend sa case : accepté sur un board plein', () => {
-    const board = makeBoard();
-    const [first] = fill(board, SLOTS);
-
-    const card = makeCard({ id: 'BOSS', summon_conditions: [{ materials: 1, requires: ['FILL_0'] }] });
-    expect(exceedsBoardSlots(card as any, [first], board, [], SLOTS)).toBe(false);
-  });
-});
-
 // Une condition à UN matériel ne consomme qu'une unité : le résultat prend sa
 // case. C'est l'ancienne Transformation, mais énoncée sur le COÛT — elle vaut
 // donc pour n'importe quelle condition à un matériel, sacrifice compris, et

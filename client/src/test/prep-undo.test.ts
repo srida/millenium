@@ -296,7 +296,7 @@ describe('Tout annuler — ce qu\'il ne touche pas', () => {
     session.hand = [{ ...plain } as any];
     session.gameState.player_hp = 640;
     session.gameState.enemy_hp = 810;
-    session.gameState.player_board_slots = 6;
+    session.gameState.player_energy_bonus = 2;
     session.startPreparation();
 
     session.place(session.hand[0], { col: 0, row: 0 }, [], 0);
@@ -306,7 +306,7 @@ describe('Tout annuler — ce qu\'il ne touche pas', () => {
     expect(session.gameState.round).toBe(1);
     expect(session.gameState.player_hp).toBe(640);
     expect(session.gameState.enemy_hp).toBe(810);
-    expect(session.gameState.player_board_slots).toBe(6);
+    expect(session.gameState.player_energy_bonus).toBe(2);
   });
 
   it('le tour suivant a son propre point de retour', () => {

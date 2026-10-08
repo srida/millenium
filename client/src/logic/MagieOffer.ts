@@ -107,8 +107,6 @@ export interface MagieOfferContext {
    */
   handMaterialCostAttributes: string[];
   handNamedRequirementAttributes: string[];
-  /** Le cap partagé +1 slot de board est-il encore libre ? */
-  boardSlotBonusAvailable: boolean;
   /** `player_hp` est-il sous son plafond (`PLAYER_HP_CAP`) ? */
   playerHpBelowCap: boolean;
 }
@@ -213,7 +211,7 @@ export function isMagieRelevant(magie: Magie, ctx: MagieOfferContext): boolean {
     // Offerte en PvP aussi : le bonus voyage dans `round:board_ready`.
     case 'damage_multiplier_bonus':  return true;
 
-    case 'board_slot_bonus':         return ctx.boardSlotBonusAvailable;
+    case 'energy_bonus':             return true;
     case 'player_hp_bonus':          return ctx.playerHpBelowCap;
     // ⚠️ Même garde que `guaranteed_draw` : une magie garantie SANS AUCUN
     // critère ne promet rien de nommable (elle déplace un emplacement
