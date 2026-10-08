@@ -192,18 +192,20 @@
   pointer-events: none;
 }
 
-/* Rôle — HAUT-DROITE, DANS la carte : le coin de `.card3d-role` en main.
-   Le médaillon de statut (hors carte, même coin) passe par-dessus quand il
-   est posé : un statut est passager, le rôle se relit après. */
+/* Rôle — BAS-GAUCHE, premier élément de la rangée des barres : la place de
+   l'ancien losange d'équipe, dont la couleur se lit déjà sur la barre de vie.
+   Même coin que `.card3d-role` en main. */
 .unit-role-badge {
-  position: absolute; top: 2px; right: 2px; z-index: 4;
-  min-width: 13px; height: 13px; padding: 0 2px; border-radius: 4px;
-  background: rgba(0,0,0,.7);
+  flex: none;
+  /* ⚠️ GROS à dessein : c'est la lecture d'un coup d'œil des rôles en jeu. */
+  width: 20px; height: 20px; border-radius: 5px;
+  background: rgba(0,0,0,.75);
+  box-shadow: 0 0 0 1px rgba(255,255,255,.35), 0 1px 3px rgba(0,0,0,.8);
   display: flex; align-items: center; justify-content: center;
-  font: 400 8px/1 var(--font-sans); color: #fff;
+  font: 400 13px/1 var(--font-sans); color: #fff;
   pointer-events: none;
 }
-.unit-role-badge img { width: 9px; height: 9px; object-fit: contain; }
+.unit-role-badge img { width: 17px; height: 17px; object-fit: contain; }
 
 /* Status medallion — top-right, outside card */
 .unit-medallion {
@@ -234,21 +236,6 @@
   position: absolute; bottom: 5px; left: 5px; right: 5px; z-index: 4;
   display: flex; flex-direction: row; align-items: flex-end; gap: 5px;
 }
-.unit-team-hex-wrap { flex: none; }
-.unit-team-hex {
-  position: relative; width: 10px; height: 10px;
-  clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
-}
-.unit-team-hex-inner {
-  position: absolute; inset: 1px;
-  clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
-}
-.unit-player .unit-team-hex        { background: var(--sf-team-blue); box-shadow: 0 0 8px rgba(109,159,230,.65); }
-.unit-player .unit-team-hex-inner  { background: linear-gradient(160deg,#c2d8ff,#4d82e6); }
-.unit-player .unit-team-hex-wrap   { filter: drop-shadow(0 0 4px rgba(109,159,230,.7)); }
-.unit-enemy  .unit-team-hex        { background: var(--sf-team-red);  box-shadow: 0 0 8px rgba(216,106,126,.65); }
-.unit-enemy  .unit-team-hex-inner  { background: linear-gradient(160deg,#f5b3bf,#c44f63); }
-.unit-enemy  .unit-team-hex-wrap   { filter: drop-shadow(0 0 4px rgba(216,106,126,.7)); }
 
 /* Bars stack */
 .unit-bars-stack { flex: 1; display: flex; flex-direction: column; gap: 2px; min-width: 0; }
