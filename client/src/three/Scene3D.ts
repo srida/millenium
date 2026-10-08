@@ -49,6 +49,9 @@ function easeOutBack(x: number): number {
   return 1 + (c + 1) * k * k * k + c * k * k;
 }
 
+// Opacité des survivants adverses pendant la préparation (cf. `_visibilityFor`).
+const ENEMY_PREP_OPACITY = 0.55;
+
 // Apparition d'une unité : entrée + impact élémentaires, cf. `UnitSpawns`.
 // LEAD/STAGGER ne servent qu'à la cascade d'apparition de l'IA (revealEnemyUnits) :
 // le lead laisse la caméra amorcer son travelling de combat avant la 1re carte.
@@ -2299,8 +2302,16 @@ export class Scene3D {
 
   // ── Unités CSS3D ──────────────────────────────────────────────────────────
 
+  /**
+   * L'opacité d'une unité hors combat. Les SURVIVANTS adverses restent visibles
+   * en préparation, en fantôme : le joueur les a vus combattre, et c'est contre
+   * eux qu'il place. Les poses du tour adverse restent cachées (en solo l'IA
+   * place au PRÊT, en PvP le board adverse n'arrive qu'à `round:go`), et ses
+   * neutralisés ne s'affichent pas.
+   */
   _visibilityFor(unit: Unit): number {
-    return (this._combatMode || this.showEnemySide || unit.side === 'player') ? 1 : 0;
+    if (this._combatMode || this.showEnemySide || unit.side === 'player') return 1;
+    return unit.is_neutralized ? 0 : ENEMY_PREP_OPACITY;
   }
 
   // Rejoue une classe d'animation CSS depuis le début (retire puis pose,
@@ -2667,9 +2678,9 @@ export class Scene3D {
   }
 
   _fadeEntry(entry: UnitEntry, show: boolean): void {
-    const from = show ? 0 : 1;
-    const to = show ? 1 : 0;
-    if (parseFloat(entry.wrap.style.opacity || '1') === to) return;
+    const from = parseFloat(entry.wrap.style.opacity || '1');
+    const to = show ? 1 : this._visibilityFor(entry.unit);
+    if (from === to) return;
     let t = 0;
     this.anims.push({
       update: (dt: number) => {
@@ -2779,8 +2790,13 @@ export class Scene3D {
       // DÉFILEMENT de la vue de préparation : un glisser vertical parti d'une
       // case VIDE (ou d'hors du plateau). Une unité sous le doigt se déplace,
       // elle ne fait pas défiler. Seuil de 8 px pour ne pas voler un tap.
-      if (!state.entry && !this._combatMode) {
-        if (!state.panning && Math.abs(dy) > 8 && Math.abs(dy) > Math.abs(dx)) state.panning = true;
+      // ⚠️ Un fantôme adverse (survivant visible en préparation) ne se déplace
+      // pas : un glisser parti de lui fait défiler, comme une case vide.
+      if ((!state.entry || state.entry.unit.side !== 'player') && !this._combatMode) {
+        if (!state.panning && Math.abs(dy) > 8 && Math.abs(dy) > Math.abs(dx)) {
+          state.panning = true;
+          if (state.longPressTimer) { clearTimeout(state.longPressTimer); state.longPressTimer = null; }
+        }
         if (state.panning) {
           const h = this.container.clientHeight || 1;
           this.setPrepView(state.panFrom + dy / (h * 0.6));

@@ -10,6 +10,15 @@ export const Phase = Object.freeze({
 export type PhaseValue = typeof Phase[keyof typeof Phase];
 
 const MAX_ROUNDS = 5;
+
+/**
+ * Le facteur de tour du multiplicateur de dégâts : ×1, ×1,5, ×2, ×2,5, ×3.
+ * Il valait le numéro du tour (×1…×5), si bien que le dernier tour pesait un
+ * tiers de la partie — et c'est celui où une carte précise sort le moins.
+ */
+export function roundFactor(round: number): number {
+  return 1 + 0.5 * (Math.max(1, round) - 1);
+}
 const STARTING_HP = 1000;
 const DEFAULT_BOARD_SLOTS = 5;
 
@@ -158,8 +167,8 @@ export class GameState {
     this.phase = Phase.COMBAT;
     this.player_unit_multiplier = this._multiplier(playerUnitCount);
     this.enemy_unit_multiplier  = this._multiplier(enemyUnitCount);
-    this.player_multiplier = this.player_unit_multiplier * this.round;
-    this.enemy_multiplier  = this.enemy_unit_multiplier * this.round;
+    this.player_multiplier = this.player_unit_multiplier * roundFactor(this.round);
+    this.enemy_multiplier  = this.enemy_unit_multiplier * roundFactor(this.round);
   }
 
   _multiplier(unitCount: number): number {

@@ -1,6 +1,7 @@
 import { Unit } from './Unit.js';
 import { tiersForRound, resolveGuaranteedDraws, deckPoolByTier, poolForRound } from './Draw.js';
 import { primaryTier } from './Tiers.js';
+import { energyCost } from './SummonBudget.js';
 import { bestKeywordCell } from './KeywordPlacement.js';
 import {
   materialLineageMatches, summonConditions, conditionMaterials, conditionRequires,
@@ -168,11 +169,15 @@ export class EnemyAI {
    *   nomme, symétrique du pendant joueur (`GameSession._hasMultiple`).
    *   `null` (défaut) revient à « aucune carte n'a Multiple », le comportement
    *   d'avant.
+   * @param {number} [budget]  Le budget d'invocation du tour (cf.
+   *   `SummonBudget`) : chaque carte posée en coûte son tier. `Infinity`
+   *   (défaut) = pas de budget, le comportement d'avant.
    * @returns {Unit[]} placed units
    */
-  placeFromHand(board, maxUnits = 5, graveyard = [], trace = null, hasMultiple = null) {
+  placeFromHand(board, maxUnits = 5, graveyard = [], trace = null, hasMultiple = null, budget = Infinity) {
     let unplaced = [...this._hand];
     const placed = [];
+    let energyLeft = budget;
     let pass = 0;
 
     for (;;) {
@@ -188,9 +193,12 @@ export class EnemyAI {
       trace?.({ kind: 'pass_start', pass, order: sorted.map(c => c.id) });
 
       for (const card of sorted) {
-        const res = _attempt(card, board, maxUnits, graveyard, this._side, hasMultiple?.(card) ?? false);
+        const cost = energyCost(card);
+        const res = cost > energyLeft
+          ? _refused('over_budget', { cost, left: energyLeft })
+          : _attempt(card, board, maxUnits, graveyard, this._side, hasMultiple?.(card) ?? false);
         trace?.(_attemptEvent(pass, card, res));
-        if (res.unit) placed.push(res.unit);
+        if (res.unit) { placed.push(res.unit); energyLeft -= cost; }
         else remaining.push(card);
       }
 

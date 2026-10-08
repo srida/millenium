@@ -735,6 +735,11 @@ export const TYPES = Object.freeze({
     court: 'Remplacer une carte (tier voisin)',
     magie: { quands: ['immediat'], champs: { value: { label: 'Décalage de tier (signé)', defaut: 1 } } },
   },
+  swap_card: {
+    label: 'Échanger une carte de la main contre une carte du pool du tour',
+    court: 'Échangeur de carte',
+    magie: { quands: ['immediat'], champs: {} },
+  },
   shift_tier_unit: {
     label: 'Remplacer une unité du terrain par une unité du tier voisin',
     court: 'Remplacer une unité (tier voisin)',

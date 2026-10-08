@@ -530,5 +530,13 @@
 				"TOKEN_011"
 			]
 		}
+	},
+	{
+		"id": "MAGIE_057",
+		"name": "Échangeur de carte",
+		"rarity": 1,
+		"effect": {
+			"type": "swap_card"
+		}
 	}
 ]

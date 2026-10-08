@@ -240,8 +240,8 @@ function applique(m: Magie) {
 // ───────────────────────────────────────────────────────────────────────────
 
 describe('Magies livrées — invariants du catalogue', () => {
-  it('les 54 magies sont là, et chacune porte un effet typé', () => {
-    expect(magies).toHaveLength(54);
+  it('les 55 magies sont là, et chacune porte un effet typé', () => {
+    expect(magies).toHaveLength(55);
     for (const m of magies) {
       expect(m.effect, m.id).toBeTruthy();
       expect(typeof m.effect!.type, m.id).toBe('string');
@@ -334,7 +334,7 @@ describe('Magies livrées — l\'oracle de l\'étape 0', () => {
   // ne se met PAS à jour à la légère : une ligne qui bouge veut dire que la
   // magie ne fait plus la même chose, ce qui est soit la donnée qui a changé,
   // soit une régression.
-  it('ce que chacune des 54 magies fait, figé', () => {
+  it('ce que chacune des 55 magies fait, figé', () => {
     const oracle = magies.map(m => {
       const { cible, delta } = applique(m);
       return {

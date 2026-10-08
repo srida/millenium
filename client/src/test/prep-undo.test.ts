@@ -206,6 +206,8 @@ describe('Tout annuler — invocations composites', () => {
     const fus = makeCard({ id: 'CF', tier: 2, summon_conditions: [{ materials: 2, requires: ['CA', 'CB'] }] });
     const session = makeSession([a, b, fus]);
     session.hand = [{ ...a }, { ...b }, { ...fus }] as any;
+    // Tour 2 : les trois invocations coûtent 1 + 1 + 2 = 4, le budget du tour 1 est 3.
+    session.gameState.round = 2;
     session.startPreparation();
     const before = [...session.hand];
 

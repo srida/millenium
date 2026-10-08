@@ -63,6 +63,9 @@ export interface MagieOfferContext {
   duplicableGraveyardCount: number;
   graveyardCount: number;
   handCount: number;
+  /** Cartes de la MAIN que l'échangeur (`swap_card`) peut échanger : celles
+   *  pour qui le sac de pioche du tour porte au moins une AUTRE carte. */
+  swapTargetCount: number;
   /** Tiers des cartes de la MAIN — ce que `shift_tier_card` peut remplacer. */
   handTiers: number[];
   /** Tiers des unités du BOARD dont la carte est au catalogue — ce que
@@ -190,6 +193,7 @@ export function isMagieRelevant(magie: Magie, ctx: MagieOfferContext): boolean {
     // deck à ce tier soient posées en même temps ; il retombe alors sur la
     // garde « Aucune cible valide » de `GameController.chooseMagie`, qui ne
     // consomme pas la magie — le joueur en choisit une autre.
+    case 'swap_card':                return ctx.swapTargetCount > 0;
     case 'shift_tier_card':          return _hasTierShift(ctx.handTiers, ctx.deckTiers, tierShift(magie));
     case 'shift_tier_unit':          return _hasTierShift(ctx.boardTiers, ctx.deckTiers, tierShift(magie));
     case 'draw_material':            return ctx.materialSourceCount > 0;

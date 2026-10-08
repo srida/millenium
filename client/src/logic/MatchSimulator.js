@@ -1,6 +1,7 @@
 import { Board } from './Board.js';
 import { GameState } from './GameState.js';
 import { EnemyAI } from './EnemyAI.js';
+import { budgetForRound } from './SummonBudget.js';
 import { AttributeManager } from './AttributeManager.js';
 import { CombatManager, MAX_COMBAT_TICKS } from './CombatManager.js';
 
@@ -29,8 +30,8 @@ function simulateGame(deckA, deckB, { attributeList, cardDb }) {
   for (;;) {
     aiA.drawHand(gameState.round);
     aiB.drawHand(gameState.round);
-    aiA.placeFromHand(board, gameState.player_board_slots, graveyardA);
-    aiB.placeFromHand(board, gameState.enemy_board_slots, graveyardB);
+    aiA.placeFromHand(board, gameState.player_board_slots, graveyardA, null, null, budgetForRound(gameState.round));
+    aiB.placeFromHand(board, gameState.enemy_board_slots, graveyardB, null, null, budgetForRound(gameState.round));
     aiA.rearrangeUnits(board, gameState.player_board_slots);
     aiB.rearrangeUnits(board, gameState.enemy_board_slots);
 

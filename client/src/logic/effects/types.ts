@@ -379,6 +379,13 @@ export interface TacheAjouter {
  * appel par tirage, aucun sur un pool vide** (la règle de `BoardPicker`). Les
  * golden tests de `sim/` et le filet PvP à 300 graines en dépendent.
  */
+/**
+ * Où un remplacement puise : `tier_voisin` (le deck, au tier voisin de la
+ * cible) ou `pool_tour` (le sac de pioche du tour en cours, moins la cible —
+ * l'échangeur de carte). Un seul tirage dans les deux cas.
+ */
+export type SourceRemplacement = 'tier_voisin' | 'pool_tour';
+
 export interface TacheRemplacer {
   action: 'remplacer';
   cible: Selecteur;
@@ -391,7 +398,7 @@ export interface TacheRemplacer {
    * changerait la distribution ET le nombre d'appels à `rand` — cf. `MANQUE`
    * dans `compile.ts`.
    */
-  source: 'tier_voisin';
+  source: SourceRemplacement;
   /** Le décalage de tier, pour `tier_voisin`. */
   decalage?: number;
 }

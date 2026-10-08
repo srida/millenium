@@ -1890,6 +1890,7 @@ const AI_REASONS = {
   missing_material: 'matériel nommé manquant',
   material_outranks_result: "le seul matériel disponible est d'un tier plus haut que le résultat",
   all_conditions_failed: 'aucune de ses recettes ne passe',
+  over_budget: "pas assez d'énergie ce tour (une carte coûte son tier)",
 };
 
 function aiReason(reason, detail) {
@@ -3764,6 +3765,9 @@ const EFFECT_NOTES = {
     ⚠️ Depuis le <b>terrain</b>, la règle du doublon rend la copie injouable tant que
     l'original vit (sauf à le désigner comme matériau) — c'est un remplaçant qu'on met
     de côté. Depuis le <b>cimetière</b>, la copie est jouable tout de suite.`,
+  swap_card: `Le joueur désigne une carte de sa main ; elle est remplacée par une carte tirée
+    au hasard dans le <b>pool de pioche du tour</b> (les tiers du tour, dans son deck),
+    jamais par elle-même. Rien à saisir.`,
   shift_tier_card: `Décalage de <b>tier</b> : <b>1</b> = le tier au-dessus, <b>−1</b> = celui en dessous.
     <b>0 vaut 1</b> — un décalage nul remplacerait une carte par une carte du même tier,
     contrecoup encaissé pour rien.<br>

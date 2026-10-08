@@ -26,7 +26,7 @@ import { Unit } from '../Unit.js';
 import type { Card, GuaranteedDraw, GuaranteedMagie, DrawSourceEntry, BonusSourceEntry, MovePolicy, TargetPolicy } from '../types.js';
 import { CHAMPS_UNITE, cleDeTri } from './types.js';
 import { clampRate, rateForTicks } from '../../../../speed-scale.mjs';
-import type { Effet, Tache, TacheModifier, TacheDeplacer, TachePoserStatut, TacheAjouter, TacheRetirer, TacheRemplacer, TachePoserEffet, TacheInvoquer, EntreeRegistre, Portee, Selecteur, ChampUnite, Camp } from './types.js';
+import type { Effet, Tache, TacheModifier, TacheDeplacer, TachePoserStatut, TacheAjouter, TacheRetirer, TacheRemplacer, SourceRemplacement, TachePoserEffet, TacheInvoquer, EntreeRegistre, Portee, Selecteur, ChampUnite, Camp } from './types.js';
 
 /**
  * Ce qu'un lot d'effets a produit pour le JOUEUR — le pendant exact de
@@ -116,7 +116,7 @@ export interface Monde {
    * USAGE, et ignore d'où ils viennent. Même patron que `deps.rand` et que
    * `catalogue`.
    */
-  pool?: (source: 'tier_voisin', ctx: { carte: Card | null; decalage?: number }) => Card[];
+  pool?: (source: SourceRemplacement, ctx: { carte: Card | null; decalage?: number }) => Card[];
   /**
    * Les substitutions à opérer sur le board, rendues à l'appelant.
    *
@@ -817,7 +817,7 @@ function appliqueRemplacer(t: TacheRemplacer, monde: Monde, trace: Trace): void 
     const idx = monde.cibleMain ?? 0;
     const carte = monde.main[idx];
     if (!carte) { trace.neant.push('(aucune carte désignée)'); return; }
-    const remplacante = tire(monde.pool?.('tier_voisin', { carte, decalage: t.decalage }) ?? []);
+    const remplacante = tire(monde.pool?.(t.source, { carte, decalage: t.decalage }) ?? []);
     if (!remplacante) { trace.neant.push('(aucun remplaçant)'); return; }
     monde.main[idx] = remplacante;
     trace.applique.push(`main ${carte.id}→${remplacante.id}`);

@@ -172,6 +172,10 @@ export interface GameSnapshot {
   /** Le prix du mulligan en PV, pour que la confirmation l'annonce sans le
    *  recopier. */
   mulliganCost: number;
+  /** Le budget d'invocation du tour (cf. `logic/SummonBudget`) et ce qu'il en
+   *  reste. Une carte coûte son tier. */
+  energyBudget: number;
+  energyLeft: number;
   hand: HandEntry[];
   graveyard: GraveyardEntry[];
   synergies: SynergyEntry[];
@@ -224,7 +228,7 @@ export interface GameSnapshot {
 export const EMPTY_SNAPSHOT: GameSnapshot = {
   round: 1, phase: 'preparation', playerHp: 1000, enemyHp: 1000,
   playerMultiplier: 1, enemyMultiplier: 1, boardSlots: 5, placedCount: 0, canUndo: false,
-  canMulligan: false, mulliganCost: MULLIGAN_COST_HP,
+  canMulligan: false, mulliganCost: MULLIGAN_COST_HP, energyBudget: 3, energyLeft: 3,
   hand: [], graveyard: [], synergies: [], invocationBanner: null, errorFlash: null,
   boardTerrain: null, terrainAlert: null, roundIntro: null, drawPopup: null,
   combatActive: false, combatOutro: null, phaseWipe: null, combatRemaining: 60, speed: 2, showGrid: false, paused: false,

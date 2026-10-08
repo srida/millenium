@@ -91,7 +91,8 @@ describe('Non-régression — observer ne change rien', () => {
 describe('Motifs de refus — un par cas', () => {
   it('board_full : le cap est atteint', () => {
     const cards = ['A', 'B', 'C', 'D', 'E', 'F'].map(id => makeCard({ id, summon_conditions: [] }));
-    const r = run({ cardDb: db(cards), hand: cards.map(c => c.id), slots: 5 });
+    // Tour 5 : le budget (21) couvre les six cartes, seul le cap les arrête.
+    const r = run({ cardDb: db(cards), hand: cards.map(c => c.id), slots: 5, round: 5 });
     expect(r.board_after).toHaveLength(5);
     expect(refusalOf(r, 'F')).toBe('board_full');
     const a = attempts(r).find(x => x.card_id === 'F')!;

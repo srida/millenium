@@ -1394,6 +1394,8 @@ export class GameController {
         && this.session.canUndoPreparation(),
       canMulligan: this.canMulligan(),
       mulliganCost: this.session.mulliganCostHp(),
+      energyBudget: this.session.energyBudget(),
+      energyLeft: this.session.energyLeft(),
       hand,
       graveyard,
       synergies,

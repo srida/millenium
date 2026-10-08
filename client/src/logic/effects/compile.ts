@@ -1047,6 +1047,16 @@ export function compileMagie(magie: MagieLike): CompilationResult {
       pousse([{ action: 'remplacer', cible: uneUnite(), source: 'tier_voisin', decalage: (e.value as number) || 1 }]);
       return { effets, refus };
 
+    case 'swap_card':
+      // L'échangeur : le même geste que `shift_tier_card` (une case de la main
+      // écrasée, un seul tirage), puisé dans le sac de pioche du tour.
+      pousse([{
+        action: 'remplacer',
+        cible: { conteneur: 'main', camp: 'allie', combien: 'un' },
+        source: 'pool_tour',
+      }]);
+      return { effets, refus };
+
     case 'shift_tier_card':
       pousse([{
         action: 'remplacer',

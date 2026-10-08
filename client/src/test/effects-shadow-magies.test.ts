@@ -316,7 +316,7 @@ describe('Mode ombre — la discipline d\'appel à `rand`', () => {
     // ⚠️ `MAGIE_052` (`draw_material`) N'Y EST PLUS : elle est refusée depuis la
     // bascule, parce qu'elle consomme deux tirages là où `remplacer` n'en fait
     // qu'un. C'est ce cas-ci qui l'aurait dit si on l'avait su plus tôt.
-    expect(REMPLACANTES.map(m => m.id)).toEqual(['MAGIE_050', 'MAGIE_053']);
+    expect(REMPLACANTES.map(m => m.id)).toEqual(['MAGIE_050', 'MAGIE_053', 'MAGIE_057']);
   });
 
   it('un pool non vide coûte EXACTEMENT un appel', () => {
@@ -396,8 +396,9 @@ describe('Mode ombre — ce que le vocabulaire ne couvre PAS encore', () => {
 
   it('la part traduite est mesurée, pas estimée', () => {
     expect(TRADUITES.length + REFUSEES.size).toBe(new Set(magies.map(m => m.id)).size);
-    // 52 des 54 magies livrées entrent dans le vocabulaire du moteur (49 + les
-    // trois `summon_token` MAGIE_054–056, ajoutées depuis), et les deux refus
+    // 53 des 55 magies livrées entrent dans le vocabulaire du moteur (49 + les
+    // trois `summon_token` MAGIE_054–056 et l'échangeur MAGIE_057, ajoutés
+    // depuis), et les deux refus
     // n'ont PAS la même nature :
     //
     //   • `defuse_fusion` ne lit pas un CHAMP mais une RÈGLE d'invocation (la
@@ -411,7 +412,7 @@ describe('Mode ombre — ce que le vocabulaire ne couvre PAS encore', () => {
     //
     // ⚠️ Le second n'a été vu qu'à la BASCULE : ce fichier le comptait traduit,
     // parce qu'une comparaison d'état ne voit pas le flux de hasard.
-    expect(TRADUITES).toHaveLength(52);
+    expect(TRADUITES).toHaveLength(53);
     expect(REFUSEES.size).toBe(2);
   });
 });

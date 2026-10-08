@@ -38,8 +38,9 @@ const {
 import {
   summonConditions, conditionMaterials, conditionRequires, livingSlotUnits,
 } from './InvocationManager.js';
-import { tiersForRound, drawHand, resolveGuaranteedDraws } from './Draw.js';
+import { tiersForRound, drawHand, resolveGuaranteedDraws, poolForRound } from './Draw.js';
 import { tiersOf } from './Tiers.js';
+import { budgetForRound, energyCost } from './SummonBudget.js';
 import { indexeMotsCles, porteMotCle, catalogueDeclare } from './Keywords.js';
 import type { IndexMotsCles, AttributMotCle } from './Keywords.js';
 import { indexPlacementKeywords, placementKeyword } from './KeywordPlacement.js';
@@ -237,6 +238,8 @@ interface PrepSnapshot {
    * `veterancy_points` et l'`uid` restent des RÉFÉRENCES intactes.
    */
   bonus: { unit: Unit; stats: Record<string, number> }[];
+  /** L'énergie déjà dépensée à l'ouverture du tour (0, sauf mulligan). */
+  energySpent: number;
 }
 
 export interface StartCombatResult {
@@ -272,6 +275,11 @@ export class GameSession {
 
   // État de début de tour, pour « Tout annuler » (cf. PrepSnapshot).
   private _prepSnapshot: PrepSnapshot | null = null;
+
+  /** L'énergie dépensée ce tour par les invocations depuis la main (cf.
+   *  `SummonBudget`). Remise à zéro par `startPreparation`, rendue par
+   *  `undoPreparation`. Les poses gratuites (magies, tokens) n'y entrent pas. */
+  private _energySpent = 0;
 
   /** Terrains déjà JOUÉS dans ce duel. Vit sur la session, donc sa durée de vie
    *  est exactement celle du duel — rien à réinitialiser, rien à purger, et
@@ -435,6 +443,8 @@ export class GameSession {
   startPreparation(): DrawSummary {
     // Nettoie le terrain du combat précédent
     this.board.clearBlockedCells();
+    // Le budget d'invocation repart à plein — ce qui n'a pas été dépensé est perdu.
+    this._energySpent = 0;
 
     // Pioches garanties : occupent des slots dans la main normale (pas des cartes en plus)
     const guaranteedDraws = this.gameState.player_guaranteed_draws.splice(0);
@@ -577,6 +587,7 @@ export class GameSession {
         initial_position: unit.initial_position ? { ...unit.initial_position } : null,
       })),
       bonus: units.map(unit => ({ unit, stats: { ...(unit as any)._stat_bonuses } })),
+      energySpent: this._energySpent,
     };
   }
 
@@ -629,8 +640,23 @@ export class GameSession {
     }
     this.hand = [...snap.hand];
     this.graveyard = [...snap.graveyard];
+    this._energySpent = snap.energySpent;
     return true;
   }
+
+  // ── Budget d'invocation (énergie) ────────────────────────────────────────
+
+  /** Le budget du tour en cours. */
+  energyBudget(): number { return budgetForRound(this.gameState.round); }
+
+  /** Ce qu'il reste à dépenser ce tour. */
+  energyLeft(): number { return Math.max(0, this.energyBudget() - this._energySpent); }
+
+  /** Ce que coûte l'invocation de cette carte (son tier). */
+  energyCost(card: Card): number { return energyCost(card); }
+
+  /** Le budget couvre-t-il cette carte ? */
+  canAffordSummon(card: Card): boolean { return energyCost(card) <= this.energyLeft(); }
 
   /** Placement de l'adversaire IA — le joueur pose en premier, l'IA répond au
    *  moment où il valide (bouton PRÊT / fin du chrono). No-op en PvP. */
@@ -646,7 +672,7 @@ export class GameSession {
     // Le mot-clé Unique vaut pour l'IA comme pour le joueur, sans drapeau
     // d'asymétrie : `EnemyAI` tient son propre registre (`_uniqueDrawn`).
     this.enemyAI.drawHand(this.gameState.round, null, extraDraws, guaranteedDraws, this._isUnique);
-    this.enemyAI.placeFromHand(this.board, this.gameState.enemy_board_slots, this.enemyGraveyard, null, this._hasMultiple);
+    this.enemyAI.placeFromHand(this.board, this.gameState.enemy_board_slots, this.enemyGraveyard, null, this._hasMultiple, budgetForRound(this.gameState.round));
     this.enemyAI.rearrangeUnits(this.board, this.gameState.enemy_board_slots, null, (u: Unit) => this.placementKeywordOf(u.attributes));
     this.enemyUnits = this.board.getLivingUnitsOnSide('enemy');
     this._applyEnemyBonus();
@@ -737,6 +763,7 @@ export class GameSession {
   }
 
   isPlayable(card: Card): boolean {
+    if (!this.canAffordSummon(card)) return false;
     return isPlayable(card as any, this.board, this.graveyard, this.gameState.player_board_slots, this._hasMultiple(card));
   }
 
@@ -791,6 +818,9 @@ export class GameSession {
   }
 
   canSummon(card: Card, pos: Position, selectedMaterials: Unit[], conditionIndex: number | null = null) {
+    if (!this.canAffordSummon(card)) {
+      return { ok: false, reason: `Énergie insuffisante (${energyCost(card)} requise, ${this.energyLeft()} restante)` };
+    }
     return InvocationManager.canSummon(card as any, pos, this.board, this.hand, this.graveyard, selectedMaterials, conditionIndex, this._hasMultiple(card));
   }
 
@@ -800,13 +830,17 @@ export class GameSession {
 
   /** Exécute l'invocation (validée en amont). Retourne l'unité placée ou null. */
   place(card: Card, pos: Position, selectedMaterials: Unit[], handIdx: number | null, conditionIndex: number | null = null): Unit | null {
+    if (!this.canAffordSummon(card)) return null;
     const unit = InvocationManager.summon(card as any, pos, this.board, this.hand, selectedMaterials.length > 0 ? selectedMaterials : null, handIdx, conditionIndex, this._hasMultiple(card));
     // Retire les unités de cimetière consommées
     for (const u of selectedMaterials) {
       const gi = this.graveyard.indexOf(u);
       if (gi !== -1) this.graveyard.splice(gi, 1);
     }
-    if (unit) this._joueInvocation();
+    if (unit) {
+      this._energySpent += energyCost(card);
+      this._joueInvocation();
+    }
     return unit;
   }
 
@@ -1347,6 +1381,7 @@ export class GameSession {
       duplicableGraveyardCount: this._duplicableGraveyardUnits().length,
       graveyardCount: this.graveyard.length,
       handCount: this.hand.length,
+      swapTargetCount: this.hand.filter(c => this._swapPool(c).length > 0).length,
       handTiers: _tiers(this.hand),
       boardTiers: _tiers(this._duplicableUnits().map(u => this.deps.cardDb.getCard(u.card_id)!)),
       materialSourceCount: this.hand.filter(c => this._drawableMaterialIds(c).length > 0).length,
@@ -1449,6 +1484,10 @@ export class GameSession {
       // ⚠️ Les PV d'AVANT : la garde d'accessibilité se juge sur eux, jamais sur
       // ceux d'après — sinon `drain_life` financerait son propre contrecoup.
       pvJoueur: this.gameState.player_hp,
+      // ⚠️ Le flux semé de la partie : sans lui, le moteur retombe sur
+      // `() => 0` et un remplacement (`shift_tier_*`, `swap_card`) rendait
+      // toujours la PREMIÈRE carte de son pool.
+      rand: this._rand,
       // `summon_token` — une magie ne cible jamais que son propre camp
       // (`compileMagie` refuse `camp: 'ennemi'`), donc `allie` vaut toujours
       // le joueur ici, sans ambiguïté à traduire comme pour un attribut.
@@ -1555,6 +1594,16 @@ export class GameSession {
    * en gardant l'ordre du deck : c'est cet ordre que `_pickFrom` indexe, donc
    * ce qui garde le flux semé en phase.
    */
+  /**
+   * Le pool de l'échangeur (`swap_card`) : le sac de pioche du tour en cours
+   * (`Draw.poolForRound`, Uniques déjà tirées exclues), moins la carte
+   * échangée — échanger une carte contre elle-même ne serait pas un échange.
+   */
+  private _swapPool(card: Card | null | undefined): Card[] {
+    return poolForRound(this.deps.cardsByTier, this.gameState.round, this._uniqueDrawn)
+      .filter(c => c.id !== card?.id);
+  }
+
   private _tierShiftPool(card: Card | null | undefined, shift: number): Card[] {
     const seen = new Set<string>();
     return tiersOf(card)
@@ -1667,6 +1716,8 @@ export class GameSession {
     const attribut = (magie.effect as { attribute?: string } | undefined)?.attribute;
     const ok = type === 'shift_tier_card'
       ? (card: Card) => this._tierShiftPool(card, tierShift(magie as any)).length > 0
+      : type === 'swap_card'
+        ? (card: Card) => this._swapPool(card).length > 0
       : type === 'draw_material'
         ? (card: Card) => this._drawableMaterialIds(card).length > 0
         // ⚠️ Les deux remises n'acceptent que ce qu'elles peuvent RETOUCHER, et
@@ -1862,6 +1913,7 @@ export class GameSession {
     // compilée — partirait à vide (cf. le filet de `magie-characterization`).
     if (type === 'shift_tier_card'
       && !this._tierShiftPool(card, tierShift(magie as any)).length) return null;
+    if (type === 'swap_card' && !this._swapPool(card).length) return null;
     if ((type === 'reduce_materials' || type === 'remove_requirements')
       && !_retouchable(type)(card)) return null;
 
@@ -1872,7 +1924,9 @@ export class GameSession {
     const avant = this.graveyard.length;
     this._runMagie(magie, {
       cibleMain: handIdx,
-      pool: (_s, ctx) => this._tierShiftPool(ctx.carte, ctx.decalage ?? 1),
+      pool: (source, ctx) => source === 'pool_tour'
+        ? this._swapPool(ctx.carte)
+        : this._tierShiftPool(ctx.carte, ctx.decalage ?? 1),
     });
 
     // ⚠️ `hand_to_graveyard` est la seule magie de main qui CRÉE une unité, et

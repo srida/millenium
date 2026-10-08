@@ -15,6 +15,7 @@ import { Unit } from '../logic/Unit.js';
 import { EnemyAI } from '../logic/EnemyAI.js';
 import { seededRandom } from '../logic/Random.js';
 import { materialValueOf } from '../logic/InvocationManager.js';
+import { budgetForRound } from '../logic/SummonBudget.js';
 import type { Card, GuaranteedDraw, Position } from '../logic/types.js';
 
 /** La zone de l'IA — les seules rangées que le labo montre et manipule. */
@@ -302,7 +303,7 @@ export function runAiPlacement(input: AiLabInput): AiLabRound {
     input.draw ? (handCarried.length > 0 ? 'carry_draw' : 'draw') : 'manual';
   const handIn = ai.getHand().map(c => c.id);
 
-  ai.placeFromHand(board, slots, graveyard, trace);
+  ai.placeFromHand(board, slots, graveyard, trace, null, budgetForRound(round));
   ai.rearrangeUnits(board, slots, trace);
 
   const after = board.getLivingUnitsOnSide('enemy');
@@ -379,6 +380,7 @@ export const REASON_LABELS: Record<string, string> = {
   would_exceed_slots: 'dépasserait le nombre de slots — pas assez de place libérée',
   missing_material: 'matériau manquant',
   all_conditions_failed: 'aucune de ses conditions ne passe',
+  over_budget: "pas assez d'énergie ce tour (une carte coûte son tier)",
 };
 
 /** Le motif, glosé, avec le détail qui le rend actionnable (le matériau nommé). */

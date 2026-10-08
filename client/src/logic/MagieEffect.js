@@ -215,7 +215,7 @@ export function needsGraveyardTarget(magie) {
 // se laisseraient jouer sur une carte qu'elles ne peuvent pas servir.
 export function needsHandTarget(magie) {
   return ['hand_to_graveyard', 'duplicate_card', 'shift_tier_card', 'draw_material',
-    'sacrifice_card_hp',
+    'sacrifice_card_hp', 'swap_card',
     // ⚠️ Les deux remises d'invocation sont IMMÉDIATES et CIBLÉES : le joueur
     // désigne la carte de sa main qu'il remise. Elles étaient différées au tour
     // suivant, ce qui coûtait un état de round entier pour un effet que
@@ -277,6 +277,7 @@ export function effectLabel(magie, names = RAW_NAMES) {
     // Les deux remplacements par tier : même geste, deux provenances — comme
     // les deux duplications d'unité. Le libellé nomme donc ce qu'on désigne.
     case 'shift_tier_card':          return `Remplace une carte de ta main par une carte de ton deck ${tierShiftLabel(magie)}`;
+    case 'swap_card':                return 'Échange une carte de ta main contre une carte du pool de pioche de ce tour';
     case 'shift_tier_unit':          return `Remplace une unité de ton terrain par une unité de ton deck ${tierShiftLabel(magie)}`;
     case 'draw_material':            return 'Ajoute à ta main un matériel d\'invocation d\'une carte de ta main';
     case 'sacrifice_card_hp':        return sacrificeHpPercent(magie) === 100
@@ -459,6 +460,7 @@ export function applyEffect(magie, { gameState = null, targetUnit = null, target
       // Handled by GameSession.applyMagieOnHandCard() — applyEffect is a no-op here
       break;
     case 'shift_tier_card':
+    case 'swap_card':
     case 'draw_material':
     case 'sacrifice_card_hp':
       // Handled by GameSession.applyMagieOnHandCard() — applyEffect is a no-op here

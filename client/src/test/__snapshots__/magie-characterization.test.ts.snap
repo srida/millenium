@@ -1,6 +1,6 @@
 // Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
-exports[`Magies livrées — l'oracle de l'étape 0 > ce que chacune des 54 magies fait, figé 1`] = `
+exports[`Magies livrées — l'oracle de l'étape 0 > ce que chacune des 55 magies fait, figé 1`] = `
 [
   {
     "change": {
@@ -605,6 +605,17 @@ exports[`Magies livrées — l'oracle de l'étape 0 > ce que chacune des 54 magi
     "famille": "globale",
     "id": "MAGIE_056",
     "nom": "Agneaux égarés",
+  },
+  {
+    "change": {
+      "main": "["DECK_FUSION[2m+DECK_T1/DECK_T2]","DECK_T2","DECK_T1","DECK_COUT_ARCH_086[2m+DECK_T1/DECK_T2]","DECK_COUT_ARCH_087[3m+DECK_T1/DECK_T2]","DECK_COUT_ARCH_088[4m+DECK_T1/DECK_T2]","DECK_COUT_ARCH_089[5m+DECK_T1/DECK_T2]","DECK_COUT_ARCH_090[6m+DECK_T1/DECK_T2]"] → ["DECK_T1","DECK_T2","DECK_T1","DECK_COUT_ARCH_086[2m+DECK_T1/DECK_T2]","DECK_COUT_ARCH_087[3m+DECK_T1/DECK_T2]","DECK_COUT_ARCH_088[4m+DECK_T1/DECK_T2]","DECK_COUT_ARCH_089[5m+DECK_T1/DECK_T2]","DECK_COUT_ARCH_090[6m+DECK_T1/DECK_T2]"]",
+    },
+    "cible": "DECK_FUSION",
+    "contrecoup": 0,
+    "effet": "swap_card",
+    "famille": "main",
+    "id": "MAGIE_057",
+    "nom": "Échangeur de carte",
   },
 ]
 `;

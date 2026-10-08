@@ -166,7 +166,7 @@ export const CHAPTERS: Chapter[] = [
     id: 'hand',
     icon: 'UI_HAND',
     title: 'La main',
-    blurb: '5 cartes par tour, conservées — et un mulligan au tour 1.',
+    blurb: '5 cartes par tour, conservées, un budget d\'énergie — et un mulligan au tour 1.',
     blocks: [
       { kind: 'text', text: "Au début de chaque tour, tu **pioches 5 cartes** dans ton deck. Les cartes que tu ne joues pas **restent en main** : elles s'ajoutent à la pioche du tour suivant. La main n'a pas de taille limite." },
       { kind: 'text', text: "Le tier des cartes piochées dépend du tour. Les grosses cartes n'arrivent pas tout de suite — c'est ce qui donne sa courbe à la partie." },
@@ -178,7 +178,9 @@ export const CHAPTERS: Chapter[] = [
         ['5', 'Tier 3 à 5'],
       ] },
       { kind: 'cards', caption: 'Trois cartes d\'une même main', pick: (cards) => [1, 2, 3].flatMap(t => firstWhere(cards, c => hasTier(c, t))) },
-      { kind: 'note', text: "Les exemplaires identiques sont **empilés** sous une seule vignette, avec un badge ×N. Une carte grisée est injouable pour l'instant : matériaux manquants, terrain plein, ou doublon déjà en jeu." },
+      { kind: 'text', text: "⚡ **L'énergie.** Chaque tour te donne un budget d'invocation, et chaque carte posée depuis ta main en coûte **son tier** (le plus bas, pour une carte à plusieurs tiers). Ce que tu ne dépenses pas est perdu au tour suivant." },
+      { kind: 'table', head: ['Tour', 'Énergie'], rows: [['1', '3'], ['2', '5'], ['3', '8'], ['4', '13'], ['5', '21']] },
+      { kind: 'note', text: "Les exemplaires identiques sont **empilés** sous une seule vignette, avec un badge ×N. Une carte grisée est injouable pour l'instant : énergie insuffisante, matériaux manquants, terrain plein, ou doublon déjà en jeu." },
       { kind: 'text', text: ":UI_MULLIGAN: **Le mulligan.** Une main de départ ratée n'est plus une partie perdue d'avance : au **tour 1**, le bouton :UI_MULLIGAN: de la barre du bas remet ta main dans le deck et t'en repioche autant, contre **50 PV**." },
       { kind: 'bullets', items: [
         "**Une seule fois par partie**, et **au premier tour seulement** — le bouton n'existe nulle part ailleurs.",
@@ -253,7 +255,7 @@ export const CHAPTERS: Chapter[] = [
         ['2', '×2'],
         ['0 ou 1', '×3'],
       ] },
-      { kind: 'note', text: "Ce multiplicateur est ensuite **multiplié par le numéro du tour** : au tour 5, tout fait cinq fois plus mal. Une partie ne se joue pas au tour 1." },
+      { kind: 'note', text: "Ce multiplicateur est ensuite **multiplié par un facteur de tour** : ×1 au tour 1, puis +0,5 par tour, jusqu'à ×3 au tour 5. Les derniers tours comptent plus, sans que tout se joue au dernier." },
       { kind: 'text', text: "Peu d'unités, c'est donc frapper plus fort — mais c'est aussi risquer de perdre le combat. C'est l'arbitrage central du jeu." },
       { kind: 'note', text: "Un combat qui n'a pas départagé les camps au bout de 60 secondes est **coupé** : les deux joueurs encaissent alors les dégâts des survivants d'en face. Un board purement défensif ne protège de rien." },
     ],

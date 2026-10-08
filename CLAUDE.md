@@ -655,6 +655,19 @@ Bouton **↺** de `PhaseControls`. Tout est dans `GameSession.undoPreparation()`
   - ⚠️ **Rollback des missions (`_eventMark` / `_markPrepId`)** : `_tryPlace` mémorise la longueur de la file avant la **première** invocation du tour, l'annulation y revient. Sans le test sur `prepId`, annuler un tour où l'on n'a fait que **déplacer** rejouerait une marque périmée.
 - **Rien côté réseau** : l'annulation est purement locale et précède toujours l'envoi.
 
+### Budget d'invocation (énergie, `logic/SummonBudget.ts`)
+
+| Tour | 1 | 2 | 3 | 4 | 5 |
+|---|---|---|---|---|---|
+| Budget | 3 | 5 | 8 | 13 | 21 |
+
+- Une invocation **depuis la main** coûte le **tier** de la carte (`energyCost`) ; carte multi-tiers → son tier **le plus bas**. Le reliquat est **perdu** au tour suivant.
+- `GameSession` : `energyBudget` / `energyLeft` / `canAffordSummon` ; la garde vit dans `isPlayable`, `canSummon` (raison « Énergie insuffisante ») et `place`. Les poses gratuites (magies, tokens) ne dépensent rien.
+- ⚠️ `_energySpent` est remis à zéro par `startPreparation` et **capturé dans `PrepSnapshot`** : « Tout annuler » rend l'énergie.
+- **Les deux camps** : `EnemyAI.placeFromHand(..., budget)` refuse en `over_budget` (glosé dans `aiLabRun.REASON_LABELS` et `AI_REASONS` d'`admin.html`). `MatchSimulator` et le Labo IA passent `budgetForRound` aussi. `budget = Infinity` (défaut) = ancien comportement.
+- Rien côté PvP : chaque client tient son propre budget.
+- Affichage : chip ⚡ `restant/budget` dans la barre de préparation (`PhaseControls.EnergyChip`).
+
 ### Mulligan — le seul geste qui DÉPLACE le point de retour
 
 Bouton **🔄** de `PhaseControls`, au **tour 1** : remet la main dans le deck et en repioche autant, contre **`MULLIGAN_COST_HP` = 50 PV** (`GameState.ts`, avec `SHOPPING_REROLL_COST_HP` et `MULLIGAN_ROUND`). Tout est dans `GameSession.canMulligan()` / `mulligan()`.
@@ -720,8 +733,10 @@ Calculé au lancement du combat, **indépendamment pour chaque côté** :
 | 0–1 | 3.0 |
 
 ```js
-multiplicateur_final = multiplier(unitCount) × round      // tour 1 = ×1 … tour 5 = ×5
+multiplicateur_final = multiplier(unitCount) × roundFactor(round)   // ×1, ×1,5, ×2, ×2,5, ×3
 ```
+
+`roundFactor` (`GameState.ts`) = `1 + 0,5 × (round − 1)`. Il valait le numéro du tour : le tour 5 pesait un tiers de la partie.
 
 `gameState.startCombat(playerUnitCount, enemyUnitCount)` calcule `player_multiplier` / `enemy_multiplier` ; `player_unit_multiplier` garde la composante « nombre d'unités » seule, pour l'affichage du détail. L'effet d'attribut `end_of_combat` `damage_multiplier_bonus` s'y **ajoute** (côté joueur).
 
@@ -736,7 +751,9 @@ multiplicateur_final = multiplier(unitCount) × round      // tour 1 = ×1 … t
 
 ⚠️ **`Board.ts` est la source de vérité.** Ne jamais déduire une position depuis un élément DOM. Lors d'un déplacement, dans cet ordre : `board.grid` → `unit.position` → animation. `board.moveUnit(unit, to)` fait les deux premiers ensemble.
 
-Pendant la préparation le joueur ne voit que son côté (ennemis masqués) ; pendant le combat, tout le board.
+Pendant la préparation, les **survivants adverses** restent visibles en fantôme (`Scene3D._visibilityFor`, `ENEMY_PREP_OPACITY` 0,55) ; les poses adverses du tour et les neutralisés adverses restent cachés. Pendant le combat, tout le board.
+- ⚠️ Rien à brancher : en solo comme en PvP, les survivants restent sur le board entre `finishCombat` et le placement adverse suivant (IA au PRÊT, reconstruction à `round:go`).
+- Un glisser parti d'un fantôme fait défiler la vue de préparation, il ne déplace rien.
 
 **Cases bloquées** — deux collections, clés `"col,row"` :
 - `_blockedCells` (`Set`) — blocages **permanents** du terrain, posés au lancement du combat
@@ -1461,6 +1478,7 @@ Détection **automatique** dérivée de `effect.type` — **aucun champ admin à
 | une carte **en main** à coût en matériels — **portant l'`attribute`** s'il y en a un | `reduce_materials` |
 | une carte **en main** à exigence **nommée** — même règle | `remove_requirements` |
 | une carte en main **et** le deck porte son tier voisin | `shift_tier_card` |
+| une carte en main pour qui le pool du tour porte une **autre** carte | `swap_card` |
 | une unité au board **et** le deck porte son tier voisin | `shift_tier_unit` |
 | une carte en main dont un **matériel** est résolvable | `draw_material` |
 | une carte en main **et** `player_hp < PLAYER_HP_CAP` | `sacrifice_card_hp` |
@@ -1520,6 +1538,7 @@ Champ **racine** `rarity: 1 | 2 | 3` (Commune / Rare / Légendaire). ⚠️ **Pa
 | `duplicate_graveyard_unit` | `value` | Cible une unité du **cimetière**, ajoute sa carte à la main. Le corps y **reste** |
 | `duplicate_card` | `value` | Cible une carte de la **main** et en ajoute une copie. **L'originale est conservée** |
 | `shift_tier_card` | `value` (décalage, déf. **+1**) | **Remplace** une carte de la main par une carte du **deck** au tier voisin |
+| `swap_card` | — | **Échangeur** : remplace une carte de la main par une carte du **pool de pioche du tour** (`Draw.poolForRound`, Uniques tirées exclues), jamais par elle-même. Un tirage (`remplacer`, source `pool_tour`) |
 | `shift_tier_unit` | `value` | **Remplace** une unité du board par une unité du **deck** au tier voisin, **sur sa case** |
 | `draw_material` | — | Cible une carte de la main, ajoute l'un de ses **matériels**. La source reste en place |
 | `sacrifice_card_hp` | `value` (% des PV, déf. **100**) | **Brûle** une carte de la main et verse ses PV au joueur |
@@ -1537,7 +1556,7 @@ Champ **racine** `rarity: 1 | 2 | 3` (Commune / Rare / Légendaire). ⚠️ **Pa
 
 - `needsUnitTarget` → `stat_bonus`, `stat_modifier`, `shield`, `heal`, `defuse_fusion`, `destroy_unit`, `drain_life`, `grant_power`, `power_cooldown`, `duplicate_unit`, `shift_tier_unit`. ⚠️ `magieUnitTargets` passe par `getPlayerUnits()` — **vivantes seulement**, aucun soin ne tombe sur un neutralisé encore posé.
 - `needsGraveyardTarget` → `revive` et `duplicate_graveyard_unit`. ⚠️ Ils n'en font **pas** le même usage : `revive` l'**en sort**, `duplicate_graveyard_unit` la **laisse**.
-- `needsHandTarget` → `hand_to_graveyard`, `duplicate_card`, `shift_tier_card`, `draw_material`, `sacrifice_card_hp`, **`reduce_materials`**, **`remove_requirements`**. ⚠️ Aucune n'y fait le même geste — seule la façon de **désigner** est commune. Et elles n'acceptent pas les mêmes cartes : **`magieHandTargets(magie)`** rend les index recevables (`shift_tier_card` écarte un tier voisin absent du deck, `draw_material` une carte sans matériel résolvable, les deux remises une carte sans coût / sans exigence nommée ou ne portant pas l'`attribute` visé ; les trois autres acceptent tout, **carte injouable comprise** — c'est souvent celle qu'on veut brûler). Il voyage par `shopping.handTargets` (`null` = aucune restriction) et `resolveMagieHandTarget` le **revérifie** : le HUD montre la règle, il ne la tient pas.
+- `needsHandTarget` → `hand_to_graveyard`, `duplicate_card`, `shift_tier_card`, `swap_card`, `draw_material`, `sacrifice_card_hp`, **`reduce_materials`**, **`remove_requirements`**. ⚠️ Aucune n'y fait le même geste — seule la façon de **désigner** est commune. Et elles n'acceptent pas les mêmes cartes : **`magieHandTargets(magie)`** rend les index recevables (`shift_tier_card` écarte un tier voisin absent du deck, `draw_material` une carte sans matériel résolvable, les deux remises une carte sans coût / sans exigence nommée ou ne portant pas l'`attribute` visé ; les trois autres acceptent tout, **carte injouable comprise** — c'est souvent celle qu'on veut brûler). Il voyage par `shopping.handTargets` (`null` = aucune restriction) et `resolveMagieHandTarget` le **revérifie** : le HUD montre la règle, il ne la tient pas.
 - ⚠️ `magieHandTargets` ne consomme **aucun** hasard (vérifié par golden test) : il est interrogé à chaque rendu de la main, un `rand()` dépensé par une question d'affichage décalerait toute la pioche.
 - Tous les autres types sont **globaux**, les magies d'équipe comprises.
 
@@ -1558,6 +1577,7 @@ Champ **racine** `rarity: 1 | 2 | 3` (Commune / Rare / Légendaire). ⚠️ **Pa
 - **`sacrifice_card_hp`** — ⚠️ la carte est **brûlée**, elle ne va pas au cimetière (sinon le choix avec `hand_to_graveyard` serait sans objet). Les PV lus sont ceux de la **carte** (`stats.hp`). La pertinence exige les **deux** conditions (main non vide *et* `player_hp < PLAYER_HP_CAP`) : une partie **commence** au plafond, la magie n'est donc jamais offerte avant le premier round encaissé.
 - ⚠️ **`value` à 0 vaut TOUJOURS le défaut** (`||`, jamais `??`) : `duplicateCopies` → 1 copie, `tierShift` → +1 tier, pourcentages → 100. `0` est le **défaut du champ** de l'admin, jamais une intention. ⚠️ `MagieOffer` **importe** `tierShift` au lieu de le recopier — offerte sur un décalage et appliquée sur un autre serait le pire des deux mondes.
 - **La copie est prise TELLE QU'ELLE EST**, remises comprises (`_discounted_from` garde les conditions d'origine) : le joueur duplique la carte que son tooltip annonce, et elle rejoint le même groupe (badge ×N).
+- ⚠️ `_runMagie` passe **`rand: this._rand`** au moteur : sans lui, `remplacer` retombait sur `() => 0` et rendait toujours la première carte de son pool.
 - Un remplacement posé en main est un **objet neuf**, jamais la référence du deck (`canUndoPreparation` compare la main par référence, une retouche muterait le deck).
 - **Rien côté PvP / réseau / HUD** pour les duplications et remplacements : la main ne voyage pas dans `round:board_ready`, le ciblage réutilise les familles existantes, et l'application précède la capture du point de retour.
 

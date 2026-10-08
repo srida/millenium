@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { describe, it, expect } from 'vitest';
-import { GameState, Phase } from '../logic/GameState.js';
+import { GameState, Phase, roundFactor } from '../logic/GameState.js';
 import { tiersForRound } from '../logic/Draw.js';
 import { applyBoardEffects } from '../logic/BoardEffect.js';
 
@@ -13,12 +13,16 @@ describe('GameState — multiplicateurs', () => {
     expect(gs.player_unit_multiplier).toBe(expected);
   });
 
-  it('le multiplicateur final inclut le tour (unit_mult × round)', () => {
+  it('le multiplicateur final inclut le facteur de tour (unit_mult × roundFactor)', () => {
     const gs = new (GameState as any)();
     gs.round = 4;
     gs.startCombat(3, 5);
-    expect(gs.player_multiplier).toBe(1.5 * 4);
-    expect(gs.enemy_multiplier).toBe(1.0 * 4);
+    expect(gs.player_multiplier).toBe(1.5 * 2.5);
+    expect(gs.enemy_multiplier).toBe(1.0 * 2.5);
+  });
+
+  it('le facteur de tour va de ×1 à ×3 par pas de 0,5', () => {
+    expect([1, 2, 3, 4, 5].map(roundFactor)).toEqual([1, 1.5, 2, 2.5, 3]);
   });
 });
 
@@ -35,10 +39,10 @@ describe('GameState — fin de combat', () => {
   it('timeout : les deux camps prennent des dégâts', () => {
     const gs = new (GameState as any)();
     gs.round = 2;
-    gs.startCombat(3, 4); // player ×1.5×2=3, enemy ×1.2×2=2.4
+    gs.startCombat(3, 4); // player ×1.5×1.5=2.25, enemy ×1.2×1.5=1.8
     gs.applyEndOfCombat('timeout', 10, 10);
-    expect(gs.enemy_hp).toBe(1000 - Math.round(10 * 3));
-    expect(gs.player_hp).toBe(1000 - Math.round(10 * 2.4));
+    expect(gs.enemy_hp).toBe(1000 - Math.round(10 * 2.25));
+    expect(gs.player_hp).toBe(1000 - Math.round(10 * 1.8));
   });
 
   it('damage_multiplier_bonus (attribut) s\'ajoute au multiplicateur joueur', () => {
