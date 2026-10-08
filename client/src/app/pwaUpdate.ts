@@ -26,7 +26,6 @@
  * le rechargement ne se voit pas — c'est le seul écran où il est gratuit, et
  * c'est le hub par lequel tout repasse.
  */
-import { registerSW } from 'virtual:pwa-register';
 import { useUiStore } from '../stores/uiStore.js';
 import { useTournamentStore } from '../stores/tournamentStore.js';
 
@@ -40,13 +39,12 @@ const CHECK_THROTTLE_MS = 60_000;
 /** Interrogation de fond, pour la session qu'on laisse ouverte des heures. */
 const CHECK_INTERVAL_MS = 60 * 60 * 1000;
 
-/** Envoie le `skipWaiting` puis recharge — rendu par `registerSW`. */
-let applyUpdate: ((reloadPage?: boolean) => Promise<void>) | null = null;
-
 /** Une version est installée et attend son moment. */
 let pending = false;
 
 let lastCheck = 0;
+let waitingSw: ServiceWorker | null = null;
+let reloading = false;
 
 /**
  * ⚠️ Le bracket de tournoi vit en MÉMOIRE (`tournamentStore`) ; connecté il est
@@ -60,47 +58,51 @@ function isIdle(): boolean {
 }
 
 function applyIfIdle(): void {
-  if (!pending || !applyUpdate || !isIdle()) return;
+  if (!pending || !waitingSw || !isIdle()) return;
   pending = false;
-  void applyUpdate();
+  // ⚠️ Le rechargement est ICI et nulle part ailleurs : `registerSW` de
+  // vite-plugin-pwa recharge la page à tout `controlling` dès qu'une version
+  // attend, quel que soit l'écran — c'est ce qui rechargeait en fin de partie.
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if (reloading) return;
+    reloading = true;
+    window.location.reload();
+  }, { once: true });
+  waitingSw.postMessage({ type: 'SKIP_WAITING' });
 }
 
-export function registerPwaUpdates(): void {
-  applyUpdate = registerSW({
-    immediate: true,
-
-    // `prompt` : appelé quand la nouvelle version est installée et en attente.
-    onNeedRefresh() {
-      pending = true;
-      applyIfIdle();
-    },
-
-    onRegisteredSW(_swScriptUrl, registration) {
-      if (!registration) return;
-
-      const check = () => {
-        if (document.visibilityState !== 'visible') return;
-        const now = Date.now();
-        if (now - lastCheck < CHECK_THROTTLE_MS) return;
-        lastCheck = now;
-        // Une interrogation qui échoue (hors ligne, serveur qui redémarre) est
-        // sans conséquence : la suivante arrive au prochain réveil.
-        registration.update().catch(() => {});
-      };
-
-      // `register()` vient d'en faire une : le compteur part chargé, sinon le
-      // premier `visibilitychange` la referait pour rien.
-      lastCheck = Date.now();
-
-      document.addEventListener('visibilitychange', check);
-      window.addEventListener('pageshow', check);
-      window.addEventListener('online', check);
-      setInterval(check, CHECK_INTERVAL_MS);
-    },
+function watch(reg: ServiceWorkerRegistration): void {
+  const flag = () => { if (reg.waiting) { waitingSw = reg.waiting; pending = true; applyIfIdle(); } };
+  flag();
+  reg.addEventListener('updatefound', () => {
+    const sw = reg.installing;
+    sw?.addEventListener('statechange', () => { if (sw.state === 'installed') flag(); });
   });
+}
+
+
+
+export function registerPwaUpdates(): void {
+  if (!('serviceWorker' in navigator)) return;
+  void navigator.serviceWorker.register('/sw.js', { scope: '/' }).then((registration) => {
+    watch(registration);
+    const check = () => {
+      if (document.visibilityState !== 'visible') return;
+      const now = Date.now();
+      if (now - lastCheck < CHECK_THROTTLE_MS) return;
+      lastCheck = now;
+      // Une interrogation qui échoue (hors ligne, serveur qui redémarre) est
+      // sans conséquence : la suivante arrive au prochain réveil.
+      registration.update().catch(() => {});
+    };
+    lastCheck = Date.now();
+    document.addEventListener('visibilitychange', check);
+    window.addEventListener('pageshow', check);
+    window.addEventListener('online', check);
+    setInterval(check, CHECK_INTERVAL_MS);
+  }).catch(() => {});
 
   // Le moment d'appliquer n'est pas celui où la version arrive, c'est celui où
   // le joueur revient au menu — d'où l'abonnement plutôt qu'un simple appel.
   useUiStore.subscribe(applyIfIdle);
-  applyIfIdle();
 }

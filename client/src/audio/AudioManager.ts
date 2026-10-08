@@ -563,6 +563,11 @@ class MusicTrack {
     return !this.wantPlaying;
   }
 
+  /** Octets de PCM décodé gardés par cette piste (float32). */
+  get decodedBytes(): number {
+    return this.buffer ? this.buffer.length * this.buffer.numberOfChannels * 4 : 0;
+  }
+
   play(): void {
     this.wantPlaying = true;
     this.startIfWanted();
@@ -976,4 +981,18 @@ function runFade(step: (t: number) => void, onDone?: () => void): void {
       onDone?.();
     }
   }, FADE_STEP_MS);
+}
+
+/**
+ * Mémoire audio décodée, pour l'indicateur de diagnostic admin : les effets
+ * (gardés toute la session) et la piste de musique en cours (une à la fois).
+ */
+export function audioMemoryStats(): { sfxCount: number; sfxBytes: number; musicBytes: number } {
+  let sfxBytes = 0;
+  for (const b of sfxBufferCache.values()) sfxBytes += b.length * b.numberOfChannels * 4;
+  return {
+    sfxCount: sfxBufferCache.size,
+    sfxBytes,
+    musicBytes: (current?.decodedBytes ?? 0) + [...deferredPauses].reduce((n, t) => n + t.decodedBytes, 0),
+  };
 }

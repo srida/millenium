@@ -2041,6 +2041,10 @@ Trois modules purs, testés, et **aucune décision dans les composants** :
 - Deux transforms imbriqués (l'extérieur porte l'échelle, mesurée une fois par `ResizeObserver` ; l'intérieur le balancement). Largeur par `className`, hauteur par `aspect-ratio` — aucune taille écrite deux fois. Fréquences en **multiples entiers de la boucle** (couture exacte) ; braises et runes **semées**.
 - ⚠️ **L'écran de chargement garde le `logo.png` statique** : il s'affiche avant que les données soient là. `logo.png` reste la source des icônes PWA.
 
+## Indicateur mémoire (admins)
+
+`components/hud/MemoryOverlay.tsx`, monté par `App`, activé par `MemoryToggle` (menu d'options en jeu et ⚙ des menus, `is_admin` seulement ; préférence `millenium_show_mem`). Affiche parties montées, tas JS (absent sur iOS), DOM, géométries/textures GPU (`Scene3D.memoryInfo`), audio décodé (`AudioManager.audioMemoryStats`). ⚠️ Le dernier relevé est écrit dans `localStorage` à chaque seconde : il est relu et montré au démarrage suivant — seule trace d'un onglet tué par iOS.
+
 ## Mise à jour de l'appli installée (`app/pwaUpdate.ts`)
 
 Reprendre une PWA depuis les tâches de fond **n'est pas une navigation** : le navigateur n'interroge le serveur pour un nouveau service worker qu'au chargement d'une page ou sur un `registration.update()` explicite. Deux moitiés, et il faut les deux :
@@ -2051,6 +2055,7 @@ Reprendre une PWA depuis les tâches de fond **n'est pas une navigation** : le n
 | **Appliquer** | l'écran devient `main_menu` (abonnement `uiStore`) | `skipWaiting` + rechargement |
 
 - ⚠️ **`registerType: 'prompt'`, alors que le rechargement EST automatique** : la différence n'est pas la confirmation, c'est **le moment**. `autoUpdate` pose `skipWaiting` + `clientsClaim` → la nouvelle version prend la main **sous la page en cours** et purge le précache de l'ancienne ; les écrans de jeu étant en `lazy()`, un `import()` parti après la bascule demande un chunk dont le nom a changé, le serveur répond par le fallback SPA, et le navigateur essaie de lire `index.html` comme un module.
+- ⚠️ **Pas de `registerSW` de vite-plugin-pwa** : il recharge la page à tout `controlling` dès qu'une version attend, sur n'importe quel écran (flash blanc en fin de partie sur iOS). `pwaUpdate.ts` inscrit `/sw.js` lui-même et ne poste `SKIP_WAITING` + `reload` qu'au menu.
 - ⚠️ **`injectRegister: null`** : le script injecté par défaut se contente d'un `register()` au chargement — il n'a rien pour interroger le serveur au réveil, ce qui est précisément le trou qu'on bouche.
 - ⚠️ **Le rechargement n'a lieu QU'AU MENU PRINCIPAL** : `navigate()` n'écrivant pas dans l'URL, un `reload()` ramène toujours au menu. Recharger en pleine partie perdrait le combat.
 - ⚠️ **Le menu ne suffit pas à dire que rien n'est en cours** : le bracket de tournoi vit en mémoire et se perd, or on revient au menu entre deux manches → seconde clause de `isIdle()`.

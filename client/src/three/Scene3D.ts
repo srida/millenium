@@ -3070,6 +3070,12 @@ export class Scene3D {
     if (fxActive || powersActive) this.fxRenderer.render(this.fxScene, this.camera);
   }
 
+  /** Ressources GPU vivantes — lu par l'indicateur de diagnostic admin. */
+  memoryInfo(): { geometries: number; textures: number; programs: number } {
+    const i = this.renderer.info;
+    return { geometries: i.memory.geometries, textures: i.memory.textures, programs: i.programs?.length ?? 0 };
+  }
+
   dispose(): void {
     this.destroy();
   }
