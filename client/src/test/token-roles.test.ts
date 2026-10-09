@@ -22,7 +22,7 @@ function summonToken(attributes: string[]) {
   };
   const board = makeBoard();
   const caster = spawn(board, makeCard({
-    id: 'P_CASTER', power: { id: 'POWER_SUMMON_TOKEN', power_rate: 100, token_id: def.id },
+    id: 'P_CASTER', power: { id: 'POWER_SUMMON_TOKEN', power_rate: 100, token_id: def.id } as any,
     stats: { atk: 10, hp: 100, attack_rate: 100, movement_rate: 100, range: 1 },
   }), 'player', { col: 2, row: 2 });
   const am = new (AttributeManager as any)(attributs, [caster], [], null);
