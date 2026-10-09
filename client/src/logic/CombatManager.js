@@ -254,7 +254,7 @@ export class CombatManager {
       if (u.move_policy === 'garde' && this._guardMove(u, events)) continue;
 
       const candidates = this._targetCandidates(u, { requireLOS: false });
-      if (candidates.length === 0) continue;
+      if (candidates.length === 0) { u.combat_target_uid = null; continue; }
 
       // Try candidates closest-first; if primary target is blocked, fall back to next reachable one.
       // ⚠️ Chasseur et Briseur marchent vers LEUR proie : même boucle, seul
@@ -267,6 +267,7 @@ export class CombatManager {
         );
       // **Flanc** : un point de passage sur le bord. Pas pour un provoqué, qui
       // marche droit vers son provocateur, quelle que soit sa politique.
+      u.combat_target_uid = sorted[0].uid;
       const flank = u.move_policy === 'flanc' && !this._provoker(u);
       let moved = false;
       for (const target of sorted) {
@@ -305,6 +306,7 @@ export class CombatManager {
       // rangeless powers never needed that target in the first place, so they
       // are offered a null one rather than being skipped with the attack.
       const reachable = target !== null && canAttack(u, target, this.board);
+      if (target) u.combat_target_uid = target.uid;
       // Embusqué : une cible à sa portée le réveille, même si elle meurt de ce
       // coup — elle est entrée et morte dans le même tick, la phase 3 ne l'a
       // jamais vue.
@@ -470,6 +472,7 @@ export class CombatManager {
     const candidates = this._targetCandidates(u, { requireLOS: true });
     const target = candidates.length > 0 ? findAttackTarget(u, candidates, this.board, u.target_policy).unit : null;
     const reachable = target !== null && canAttack(u, target, this.board);
+    u.combat_target_uid = target ? target.uid : null;
     // ⚠️ Le pouvoir prime sur l'attaque simple dans cette fenêtre aussi : sinon un
     // Insaisissable, qui ne reste presque jamais à portée au tick d'attaque,
     // gardait sa jauge pleine et ne lançait jamais son pouvoir.

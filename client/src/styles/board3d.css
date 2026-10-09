@@ -144,6 +144,17 @@
 .unit-card.material-selected { outline: 3px solid #ffffff; }
 .unit-card.material-complete  { outline: 3px solid #ffffff; }
 .unit-card.material-candidate { outline: 3px solid #ff9833; }
+/* Combat : l'unité touchée (blanc) et sa cible (rouge, pulsée), cf.
+   `Scene3D.setCombatFocus`. */
+.unit-card.focus-source { outline: 3px solid #ffffff; outline-offset: -1px; }
+.unit-card.focus-target { outline: 3px solid #ff3b3b; outline-offset: -1px; box-shadow: 0 0 16px 5px rgba(255,59,59,.8); animation: unit-idle-bob 2.6s ease-in-out infinite, focus-target-pulse 0.9s ease-in-out infinite alternate; }
+.unit-card.focus-target::after {
+  content: '🎯'; position: absolute; top: -9px; right: -9px; z-index: 6;
+  font-size: 15px; line-height: 1; pointer-events: none;
+  filter: drop-shadow(0 1px 2px rgba(0,0,0,.9));
+}
+@keyframes focus-target-pulse { from { outline-color: #ff3b3b; } to { outline-color: #ff9a9a; } }
+@media (prefers-reduced-motion: reduce) { .unit-card.focus-target { animation: none; } }
 
 /* Veterancy badge — BAS-gauche, hors carte.
    ⚠️ Il occupait le coin haut-gauche, que la valeur en matériel lui a pris : les

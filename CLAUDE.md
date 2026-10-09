@@ -1417,6 +1417,8 @@ Dans ce pool, `findAttackTarget` (`PathFinder.ts`) choisit : les cibles avec **L
 
 Pour le **déplacement**, les candidats sont triés par **Chebyshev** croissante et l'unité essaie chaque cible dans l'ordre ; en dernier recours `stepTowardOrNearest` la rapproche par la case libre voisine la plus proche.
 
+**Cible montrée au tap** : `CombatManager` pose `unit.combat_target_uid` (cible poursuivie en phase 3, frappée en phase 4). ⚠️ Affichage seulement, aucune règle ne le lit ; un uid et non une référence (pas de cycle entre unités). En combat, le tap sur une unité ouvre son tooltip **et** `Scene3D.setCombatFocus` (cadre blanc sur l'unité, rouge 🎯 sur sa cible, rafraîchi à chaque step) ; la bulle se pose du côté opposé à la cible (`TooltipAnchor.prefer`). Le focus suit le tooltip : il tombe quand celui-ci se ferme.
+
 **Portée** : distance de **Manhattan** (`|dx| + |dy|`, 4 directions, pas de diagonales) — `isInAttackRange(a, t) → manhattan <= a.range`.
 
 **Ligne de vue** (`PathFinder.ts`, Bresenham sur les deux collections de cases bloquées) :

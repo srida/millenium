@@ -267,6 +267,7 @@ export class Scene3D {
   // que déclarer la liste des cases.
   _blockedProps = new Map<string, () => void>();
   _selectedPos: Position | null = null;
+  _focusUid: number | null = null;
   // Case SURVOLÉE pendant un glisser de carte — cf. `setHoverCell`.
   _hoverCell: string | null = null;
   _combatMode = false;
@@ -1092,6 +1093,37 @@ export class Scene3D {
     this._refreshTileColors();
   }
 
+  /**
+   * L'unité dont on montre la cible en combat (tap sur une unité). Son cadre
+   * passe au blanc, celui de sa cible (`combat_target_uid`, posé par
+   * `CombatManager`) au rouge. `null` retire les deux.
+   *
+   * ⚠️ La cible change d'un tick à l'autre : `refreshCombatFocus` est rappelé à
+   * chaque step par `GameController`, la scène ne s'abonne à rien.
+   */
+  setCombatFocus(unit: Unit | null): void {
+    this._focusUid = unit ? unit.uid : null;
+    this.refreshCombatFocus();
+  }
+
+  /** Boîte à l'écran de la cible actuelle de `unit`, ou `null`. */
+  combatTargetRect(unit: Unit): DOMRect | null {
+    const uid = unit.combat_target_uid;
+    const e = uid != null ? this.unitObjs.get(uid) : undefined;
+    return e && e.unit.isAlive() ? e.el.getBoundingClientRect() : null;
+  }
+
+  refreshCombatFocus(): void {
+    const src = this._focusUid != null ? this.unitObjs.get(this._focusUid) : undefined;
+    const live = !!src && src.unit.isAlive();
+    const targetUid = live ? src!.unit.combat_target_uid : null;
+    for (const e of this.unitObjs.values()) {
+      e.el.classList.toggle('focus-source', live && e === src);
+      e.el.classList.toggle('focus-target', targetUid != null && e.unit.uid === targetUid && e.unit.isAlive());
+    }
+    this._invalidate();
+  }
+
   setSelectedPos(pos: Position | null): void {
     this._selectedPos = pos ? { ...pos } : null;
     this._refreshTileColors();
@@ -1131,6 +1163,7 @@ export class Scene3D {
   }
 
   exitCombatMode(): void {
+    this.setCombatFocus(null);
     this._resize();
     this._combatMode = false;
     // Les statuts persistants ne sont resynchronisés qu'à chaque tick de combat

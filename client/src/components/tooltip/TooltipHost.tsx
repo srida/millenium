@@ -50,7 +50,9 @@ export default function TooltipHost() {
     const a = tooltip.anchor;
     let left = a.left + a.width / 2 - w / 2;
     left = Math.max(8, Math.min(left, window.innerWidth - w - 8));
-    let top = a.top - h - 8 > 0 ? a.top - h - 8 : a.bottom + 8;
+    const fitsAbove = a.top - h - 8 > 0;
+    const fitsBelow = a.bottom + 8 + h < window.innerHeight;
+    let top = (a.prefer === 'below' ? !fitsBelow && fitsAbove : fitsAbove) ? a.top - h - 8 : a.bottom + 8;
     top = Math.max(8, Math.min(top, window.innerHeight - h - 8));
     setPos({ left, top });
   }, [tooltip]);

@@ -279,6 +279,11 @@ export class Unit {
    *  PLUS BAS tier de sa carte. Dérivé de la carte, donc identique des deux
    *  côtés en PvP sans voyager. */
   energy_cost: number;
+  /** `uid` de la cible que l'unité poursuit ou frappe, posé par `CombatManager`
+   *  à chaque décision. ⚠️ AFFICHAGE seulement (cible montrée au tap) : aucune
+   *  règle ne le lit. Un uid et non une référence, pour ne pas créer de cycle
+   *  entre unités. */
+  combat_target_uid: number | null;
 
   constructor(card: Card, side: Side) {
     this.uid = _nextUid++;
@@ -288,6 +293,7 @@ export class Unit {
     this.tier = primaryTier(card);
     this.energy_cost = energyCost(card);
     this.attributes = card.attributes || [];
+    this.combat_target_uid = null;
 
     // ⚠️ `card.id` est ajouté UNE fois, en tête, et filtré des entrées
     // déclarées pour ne pas se doubler si la donnée le répète par erreur —
@@ -452,6 +458,7 @@ export class Unit {
   resetCombatClocks(): void {
     this.attack_timer = 0;
     this.move_timer = 0;
+    this.combat_target_uid = null;
   }
 
   /**

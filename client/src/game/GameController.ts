@@ -473,7 +473,13 @@ export class GameController {
       return;
     }
     if (this.session.phase !== Phase.PREPARATION) {
-      useUiStore.getState().showTooltip({ kind: 'unit', unit }, rect);
+      // En combat, le tap montre aussi la cible de l'unité, tant que son
+      // tooltip reste ouvert (cf. `_watchCombatFocus`) — et la bulle se pose
+      // du côté opposé à la cible, pour ne pas la recouvrir.
+      const t = this.animator ? this.scene?.combatTargetRect(unit) : null;
+      const prefer = t && t.top + t.height / 2 < rect.top ? 'below' : 'above';
+      useUiStore.getState().showTooltip({ kind: 'unit', unit }, { ...rect, prefer });
+      if (this.animator) this._watchCombatFocus(unit);
       return;
     }
     // Tour engagé : le plateau se CONSULTE, il ne se joue plus.
@@ -773,6 +779,7 @@ export class GameController {
       onStep: (events: any[]) => {
         this._recorder?.capture(combat, events);
         this._noteCombatEvents(events);
+        if (this._focusUnsub) this.scene?.refreshCombatFocus();
         this._combatRemaining = combatSecondsLeft(combat.remainingTicks());
         this.sync({ combatActive: true, combatRemaining: this._combatRemaining });
       },
@@ -983,6 +990,7 @@ export class GameController {
     // appelle board.clearBlockedCells de son côté).
     this.scene?.setBlockedCells([]);
     this.scene?.setTerrainBackground(null);
+    this._clearCombatFocus();
     this.scene?.exitCombatMode();
     // ⚠️ La partie a pu se solder PENDANT l'outro : le menu ☰ reste atteignable
     // sous la barre de combat, et en duel c'est le serveur qui tranche. Le
@@ -1395,7 +1403,31 @@ export class GameController {
     useGameStore.getState().applySnapshot(snapshot);
   }
 
+  /**
+   * Montre la cible de `unit` et la retire dès que son tooltip se ferme (tap
+   * ailleurs, autre unité, fin de combat) — le tooltip est le seul état « cette
+   * unité est sélectionnée » qui existe en combat.
+   */
+  private _focusUnsub: (() => void) | null = null;
+  private _watchCombatFocus(unit: Unit): void {
+    this._focusUnsub?.();
+    this.scene?.setCombatFocus(unit);
+    this._focusUnsub = useUiStore.subscribe(s => {
+      const t = s.tooltip?.content as { kind?: string; unit?: Unit } | undefined;
+      if (t?.kind === 'unit' && t.unit === unit) return;
+      this._clearCombatFocus();
+    });
+  }
+
+  private _clearCombatFocus(): void {
+    if (!this._focusUnsub) return;
+    this._focusUnsub();
+    this._focusUnsub = null;
+    this.scene?.setCombatFocus(null);
+  }
+
   dispose(): void {
+    this._clearCombatFocus();
     if (this._errorTimer) clearTimeout(this._errorTimer);
     if (this._revealTimer) clearTimeout(this._revealTimer);
     if (this._alertTimer) clearTimeout(this._alertTimer);
