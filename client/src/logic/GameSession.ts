@@ -1021,6 +1021,7 @@ export class GameSession {
     this.gameState.startCombat(playerUnits.length, this.enemyUnits.length);
 
     const attributeManager = new AttributeManager(this.deps.attributeList, playerUnits, this.enemyUnits, this._tokenSpawner);
+    const presents = new Set([...playerUnits, ...this.enemyUnits]);
     attributeManager.applyStartOfCombat();
 
     // ⚠️ TOUS les effets du terrain, pas seulement le premier : `effects` est
@@ -1031,6 +1032,11 @@ export class GameSession {
       pvp: this.deps.mode === 'pvp',
       invoquerToken: this._tokenSpawner,
     });
+    // Les tokens invoqués par un attribut ou le terrain ci-dessus n'étaient pas
+    // au décompte : leurs rôles et mots-clés sont posés à part.
+    for (const u of [...playerUnits, ...this.enemyUnits]) {
+      if (u.is_token && !presents.has(u)) attributeManager.applyTokenStatuses(u);
+    }
 
     const combat = new CombatManager(this.board, playerUnits, this.enemyUnits, attributeManager, this.deps.tokenDb ?? null);
     this._combat = combat;

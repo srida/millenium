@@ -1082,6 +1082,7 @@ export class CombatManager {
     token.is_token = true;
     this.board.placeUnit(token, destination);
     this._allies(unit).push(token);
+    this.attributeManager?.applyTokenStatuses?.(token);
 
     events.push({ type: 'power', unit, targets: [token], power_id: 'POWER_SUMMON_TOKEN', extra: { to: { ...destination } } });
     return true;

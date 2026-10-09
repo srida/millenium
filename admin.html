@@ -2172,6 +2172,13 @@ function cardRoles(c) {
   const cat = EFX?.ROLE_CATEGORY || 'Role';
   return (c.attributes || []).map(id => attributes.find(a => a.id === id)).filter(a => a && a.categorie === cat);
 }
+function roleAttributes() {
+  const cat = EFX?.ROLE_CATEGORY || 'Role';
+  return attributes.filter(a => a.categorie === cat);
+}
+function isRoleAttr(id) {
+  return attributes.find(a => a.id === id)?.categorie === (EFX?.ROLE_CATEGORY || 'Role');
+}
 function roleBadge(c) {
   const roles = cardRoles(c);
   if (roles.length !== 1) {
@@ -3577,6 +3584,12 @@ function openTokenKeywordPickModal() {
     }
     renderTokenDetail();
   }, { onlyCategory: EFX.MOT_CLE_CATEGORY, title: 'Ajouter un mot-clé' });
+}
+
+// Le <select> écrit tout de suite dans le brouillon : un ajout de mot-clé
+// re-rend la fiche et effacerait sinon un rôle choisi mais pas enregistré.
+function setTokenRole(role) {
+  selectedToken.attributes = [...(selectedToken.attributes || []).filter(aid => !isRoleAttr(aid)), ...(role ? [role] : [])];
 }
 
 function removeTokenKeyword(aid) {
@@ -6036,9 +6049,17 @@ function renderTokenDetail() {
       ${counterSliderHtml('tk-aspeed', 'Vit. attaque', t.stats?.attack_rate)}
     </div>
 
+    <div class="section-title">Rôle</div>
+    <div class="field">
+      <select id="tk-role" onchange="setTokenRole(this.value)">
+        <option value="">Aucun (se comporte en Fantassin)</option>
+        ${roleAttributes().map(a => `<option value="${a.id}" ${(t.attributes || []).includes(a.id) ? 'selected' : ''}>${esc(`${a.icon || ''} ${a.name}`)}</option>`).join('')}
+      </select>
+    </div>
+
     <div class="section-title">Mots-clés</div>
     <div class="attr-chips" id="tk-keyword-chips">
-      ${(t.attributes || []).map(aid => `
+      ${(t.attributes || []).filter(aid => !isRoleAttr(aid)).map(aid => `
         <span class="attr-chip" onclick="removeTokenKeyword('${aid}')">
           ${getAttrName(aid)} <span class="remove">×</span>
         </span>
@@ -6094,6 +6115,9 @@ function _collectTokenFields() {
     },
     power: tokenPowerFromForm(),
   };
+  // Un seul rôle : celui du <select> remplace tout rôle déjà porté.
+  const role = document.getElementById('tk-role')?.value || '';
+  out.attributes = [...(selectedToken.attributes || []).filter(aid => !isRoleAttr(aid)), ...(role ? [role] : [])];
   delete out._has_illustration;
   return out;
 }

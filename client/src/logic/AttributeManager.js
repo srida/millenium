@@ -232,6 +232,30 @@ export class AttributeManager {
     for (const { unite, stat, valeur } of trace.ecritures) this._recordBonus(unite, stat, valeur);
   }
 
+  /**
+   * Un token né EN COMBAT (pouvoir, attribut ou terrain) n'était pas compté au
+   * début du combat : ses rôles et mots-clés — des paliers à 1 — lui sont
+   * appliqués ici, à lui seul.
+   *
+   * ⚠️ Rôles et mots-clés SEULEMENT : un archétype ordinaire ne se recompte pas
+   * en plein combat (ses seuils sont verrouillés au début).
+   */
+  applyTokenStatuses(token) {
+    const actifs = new Map();
+    for (const id of token.attributes) {
+      const cat = this._attributeMap[id]?.categorie;
+      if (cat !== ROLE_CATEGORY && cat !== MOT_CLE_CATEGORY) continue;
+      const r = this._activeThreshold(id, [token]);
+      if (r) actifs.set(id, r.threshold.count);
+    }
+    if (!actifs.size) return;
+    const other = token.side === 'player' ? this.enemyUnits : this.playerUnits;
+    const trace = executer(this._effetsDesPaliers(actifs), 'debut_combat', {
+      unitesAlliees: [token], unitesEnnemies: other, ressources: ressourcesVides(), neutralisees: [],
+    });
+    for (const { unite, stat, valeur } of trace.ecritures) this._recordBonus(unite, stat, valeur);
+  }
+
   // ── During combat — triggered on death ──
 
   /**
