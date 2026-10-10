@@ -43,12 +43,13 @@ export const SHOPPING_REROLL_COST_ENERGY = 1;
 /**
  * Les prix de la BOUTIQUE de la Phase Shopping, en ⚡ de réserve. Une magie se
  * paie selon sa rareté (Commune 1, Rare 2, Légendaire 3) ; une carte selon son
- * rôle, à l'image du Draft où le lien se paie et le pari se récompense.
+ * emplacement : un Tier 1 du deck 1, une carte du sac de pioche du tour 2, une
+ * carte liée à ce que le joueur a en jeu 3.
  */
 export const MAGIE_ENERGY_PRICE: Readonly<Record<1 | 2 | 3, number>> = Object.freeze({ 1: 1, 2: 2, 3: 3 });
-export const CARD_ENERGY_PRICE: Readonly<Record<'link' | 'buildable' | 'bet', number>> =
-  Object.freeze({ link: 3, buildable: 2, bet: 1 });
-/** Cartes proposées par la boutique : une par rôle (lien, passe-partout, pari). */
+export const CARD_ENERGY_PRICE: Readonly<Record<'tier1' | 'pool' | 'link', number>> =
+  Object.freeze({ tier1: 1, pool: 2, link: 3 });
+/** Cartes proposées par la boutique : une par emplacement (Tier 1, sac du tour, lien). */
 export const SHOP_CARD_COUNT = 3;
 
 /**

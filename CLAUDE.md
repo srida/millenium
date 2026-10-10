@@ -1444,10 +1444,10 @@ Aucune case bloquée → LOS toujours `true` (court-circuit). Une unité sans LO
 | Article | Prix |
 |---|---|
 | Magie | `MAGIE_ENERGY_PRICE` : rareté 1/2/3 → 1/2/3 ⚡ |
-| Carte (`SHOP_CARD_COUNT` = 3) | `CARD_ENERGY_PRICE` : lien 3 · passe-partout 2 · pari 1 |
+| Carte (`SHOP_CARD_COUNT` = 3) | `CARD_ENERGY_PRICE` : Tier 1 1 · pioche du tour 2 · lien 3 |
 | Reroll (toute la boutique) | `SHOPPING_REROLL_COST_ENERGY` = 1 ⚡ |
 
-- **Cartes** : `Draft.roleOffer` (le tirage de la carte de plus du Draft, extrait tel quel), jugé contre main + plateau + cimetière. Pool : **tout le catalogue** illustré (`deps.getAllCards`, filtre `_has_illustration` comme le Draft ; absent → le deck, cas de la simulation) aux tiers du tour **suivant**, sans Unique déjà tirée ni carte déjà montrée (`_shownCardIds`). Un rôle de repli prend le prix du rôle qu'il a réellement. Achetée → **en main**.
+- **Cartes** : trois emplacements, tous tirés du **deck** (sans Unique déjà tirée ni carte déjà montrée, `_shownCardIds`) : un **Tier 1**, une carte du **sac de pioche du tour en cours** (`_roundPool`, celui de `swap_card`), une carte **liée** à main + plateau + cimetière (`Draft.linkTests` : recette d'abord, attribut à défaut). ⚠️ Tirés lien → Tier 1 → sac (le plus contraint d'abord), montrés par prix ; un emplacement sans candidate reste **vide**, aucun repli. Achetée → **en main**.
 - ⚠️ **Une magie se paie À L'APPLICATION** (`chargeMagie` juste avant chaque `applyMagie…`) : le ciblage reste annulable gratuitement. Son `cost_hp` s'applique en plus.
 - `HoldConfirmButton` a un ton `currency="energy"` (or, comme le HUD).
 

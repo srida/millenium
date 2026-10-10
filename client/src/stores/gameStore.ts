@@ -43,7 +43,7 @@ export interface ShopMagieEntry {
 /** Une carte à l'étal (cf. `GameSession.ShopCardOffer`). */
 export interface ShopCardEntry {
   card: import('../logic/types.js').Card;
-  kind: 'link' | 'buildable' | 'bet';
+  kind: 'tier1' | 'pool' | 'link';
   price: number;
   affordable: boolean;
 }

@@ -443,6 +443,28 @@ export function offerFor(
 export interface RoleSlot { card: Card; kind: 'link' | 'buildable' | 'bet'; fallback: boolean }
 
 /**
+ * Ce que « lié » veut dire, pour l'offre à rôles du Draft comme pour la
+ * boutique de la Phase Shopping : `idLinked` — une recette de la carte nomme
+ * une carte de référence, ou l'inverse ; `attrLinked`, le lien plus lâche —
+ * elle porte un attribut qu'une référence exige, ou exige un attribut qu'une
+ * référence porte.
+ */
+export function linkTests(
+  refIds: readonly string[],
+  refCards: readonly Card[],
+  cov: ReturnType<typeof coverageOf>,
+): { idLinked: (c: Card) => boolean; attrLinked: (c: Card) => boolean } {
+  const inRef = new Set(refIds);
+  const namedByRef = new Set(refCards.flatMap(c => [...namedIds(c)]));
+  const attrsWanted = new Set(refCards.flatMap(requiredAttrs));
+  return {
+    idLinked: c => namedByRef.has(c.id) || [...namedIds(c)].some(id => inRef.has(id)),
+    attrLinked: c => (c.attributes ?? []).some(a => attrsWanted.has(a))
+      || requiredAttrs(c).some(a => cov.attrs.has(a)),
+  };
+}
+
+/**
  * Trois rôles jugés contre un ensemble de cartes de RÉFÉRENCE (le deck drafté,
  * ou ce que le joueur a en jeu à la Phase Shopping) :
  *
@@ -463,13 +485,8 @@ export function roleOffer(
   eligible: readonly Card[],
   rand: () => number,
 ): RoleSlot[] {
-  const inRef = new Set(refIds);
-  const namedByRef = new Set(refCards.flatMap(c => [...namedIds(c)]));
-  const attrsWanted = new Set(refCards.flatMap(requiredAttrs));
   const playable = (c: Card) => isSummonable(c, cov.ids, cov.attrs);
-  const idLinked = (c: Card) => namedByRef.has(c.id) || [...namedIds(c)].some(id => inRef.has(id));
-  const attrLinked = (c: Card) => (c.attributes ?? []).some(a => attrsWanted.has(a))
-    || requiredAttrs(c).some(a => cov.attrs.has(a));
+  const { idLinked, attrLinked } = linkTests(refIds, refCards, cov);
 
   const buildable = eligible.filter(playable);
   const links = eligible.filter(idLinked);

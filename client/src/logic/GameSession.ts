@@ -47,7 +47,7 @@ import type { IndexMotsCles, AttributMotCle } from './Keywords.js';
 import { indexPlacementKeywords, placementKeyword } from './KeywordPlacement.js';
 import type { PlacementKeyword } from './KeywordPlacement.js';
 import { pickMagies, resolveGuaranteedMagies, isMagieRelevant, rarityOf } from './MagieOffer.js';
-import { roleOffer } from './Draft.js';
+import { linkTests } from './Draft.js';
 import { coverageOf } from './DeckCoverage.js';
 import type { MagieOfferContext } from './MagieOffer.js';
 import type { BonusSourceEntry, Card, Position, BoardDef, AttributeDef, DrawSummary, Magie, RoundWinner } from './types.js';
@@ -57,8 +57,8 @@ const HAND_SIZE = 5;
 /** Une carte à l'étal de la boutique de la Phase Shopping. */
 export interface ShopCardOffer {
   card: Card;
-  /** Son rôle face à ce que le joueur a en jeu : lien, passe-partout, pari. */
-  kind: 'link' | 'buildable' | 'bet';
+  /** Son emplacement : un Tier 1, une carte du sac du tour, une carte liée. */
+  kind: 'tier1' | 'pool' | 'link';
   /** Son prix en ⚡ de réserve (`CARD_ENERGY_PRICE`). */
   price: number;
 }
@@ -128,10 +128,6 @@ export interface GameSessionDeps {
    *  (`logic/MagieOffer.ts`), avec le `rand` semé de la partie. La couche data
    *  fournit, elle ne décide plus. */
   getAllMagies: () => Magie[];
-  /** Catalogue COMPLET des cartes, réserve de la boutique de Phase Shopping
-   *  (CardDatabase.getAllCards). Absent (simulation, tests) : la boutique
-   *  retombe sur le deck du joueur. */
-  getAllCards?: () => Card[];
   /** 'ai' (défaut) : EnemyAI place l'adversaire. 'pvp' : l'adversaire est un
    *  humain distant — le placement ennemi et le terrain sont gérés en externe
    *  (PvpController/PvpOpponentProvider), pas ici. */
@@ -1388,7 +1384,7 @@ export class GameSession {
   canRerollShopping(): boolean {
     return this._shoppingCount > 0
       && this.canPayEnergy(SHOPPING_REROLL_COST_ENERGY)
-      && (this._rerollCandidates(this._offerContext()).length > 0 || this._shopCardPool().length > 0);
+      && (this._rerollCandidates(this._offerContext()).length > 0 || this._shopSlotPools().some(([, pool]) => pool.length > 0));
   }
 
   /**
@@ -1498,43 +1494,58 @@ export class GameSession {
   }
 
   /**
-   * Ce que la boutique peut proposer en cartes : tout le CATALOGUE (les cartes
-   * illustrées, comme le Draft) aux tiers du tour QUI VIENT, moins les Uniques
-   * déjà tirées et ce que la phase a déjà montré. Sans catalogue fourni, le
-   * deck du joueur.
+   * Les cartes du DECK que la boutique peut encore montrer : sans les Uniques
+   * déjà tirées ni ce que la phase a déjà montré (un reroll propose du neuf).
    */
-  private _shopCardPool(): Card[] {
-    const tiers = new Set(tiersForRound(this.gameState.round + 1));
-    return this._shopReserve()
-      .filter(c => tiersOf(c).some(t => tiers.has(t))
-        && !this._uniqueDrawn.has(c.id) && !this._shownCardIds.has(c.id))
+  private _shopReserve(): Card[] {
+    return this._deckCards()
+      .filter(c => !this._uniqueDrawn.has(c.id) && !this._shownCardIds.has(c.id))
       .sort((x, y) => x.id.localeCompare(y.id));
   }
 
-  private _shopReserve(): Card[] {
-    const all = this.deps.getAllCards?.();
-    if (!all?.length) return this._deckCards();
-    const withArt = all.filter(c => c._has_illustration);
-    return withArt.length ? withArt : all;
-  }
-
   /**
-   * Les trois cartes de la boutique — l'offre à trois rôles du Draft
-   * (`Draft.roleOffer`), jugée contre ce que le joueur a EN JEU (main,
-   * plateau, cimetière) : un lien avec ses cartes, une carte qu'il peut poser,
-   * un pari. Un rôle de repli prend le prix du rôle qu'il a réellement.
+   * Les candidates des trois emplacements, toutes tirées du deck du joueur,
+   * dans l'ordre du TIRAGE — le plus contraint d'abord, pour qu'un emplacement
+   * large ne lui prenne pas sa seule candidate :
+   * - `link` : une carte liée à ce que le joueur a EN JEU (main, plateau,
+   *   cimetière) — par une recette d'abord, à défaut par un attribut
+   *   (`Draft.linkTests`, la règle de l'offre à rôles du Draft) ;
+   * - `tier1` : une carte de Tier 1 ;
+   * - `pool` : une carte du sac de pioche du tour (`_roundPool`, celui de
+   *   l'échangeur).
+   * Un emplacement sans candidate reste vide : il n'y a pas de repli.
    */
-  private _drawShopCards(): ShopCardOffer[] {
-    const pool = this._shopCardPool();
-    if (!pool.length) return [];
+  private _shopSlotPools(): [ShopCardOffer['kind'], Card[]][] {
+    const reserve = this._shopReserve();
+    const inPool = new Set(this._roundPool().map(c => c.id));
     const cardOf = (u: Unit) => this.deps.cardDb.getCard(u.card_id);
     const ref = _distinctCards([
       ...this.hand,
       ...[...this.getPlayerUnits(), ...this.graveyard].map(cardOf).filter((c): c is Card => !!c),
     ]);
-    const slots = roleOffer(ref.map(c => c.id), ref, coverageOf(ref), pool, this._rand).slice(0, SHOP_CARD_COUNT);
-    for (const sl of slots) this._shownCardIds.add(sl.card.id);
-    return slots.map(sl => ({ card: sl.card, kind: sl.kind, price: CARD_ENERGY_PRICE[sl.kind] }));
+    const { idLinked, attrLinked } = linkTests(ref.map(c => c.id), ref, coverageOf(ref));
+    const byId = reserve.filter(idLinked);
+    return [
+      ['link', byId.length ? byId : reserve.filter(attrLinked)],
+      ['tier1', reserve.filter(c => tiersOf(c).includes(1))],
+      ['pool', reserve.filter(c => inPool.has(c.id))],
+    ];
+  }
+
+  /** Les trois cartes de la boutique, une par emplacement, jamais deux fois la
+   *  même, montrées du moins cher au plus cher. */
+  private _drawShopCards(): ShopCardOffer[] {
+    const out: ShopCardOffer[] = [];
+    const used = new Set<string>();
+    for (const [kind, pool] of this._shopSlotPools()) {
+      const fresh = pool.filter(c => !used.has(c.id));
+      if (!fresh.length) continue;
+      const card = fresh[Math.floor(this._rand() * fresh.length)];
+      used.add(card.id);
+      this._shownCardIds.add(card.id);
+      out.push({ card, kind, price: CARD_ENERGY_PRICE[kind] });
+    }
+    return out.sort((x, y) => x.price - y.price).slice(0, SHOP_CARD_COUNT);
   }
 
   /**
@@ -1772,8 +1783,12 @@ export class GameSession {
    * échangée — échanger une carte contre elle-même ne serait pas un échange.
    */
   private _swapPool(card: Card | null | undefined): Card[] {
-    return poolForRound(this.deps.cardsByTier, this.gameState.round, this._uniqueDrawn)
-      .filter(c => c.id !== card?.id);
+    return this._roundPool().filter(c => c.id !== card?.id);
+  }
+
+  /** Le sac de pioche du tour en cours, Uniques déjà tirées exclues. */
+  private _roundPool(): Card[] {
+    return poolForRound(this.deps.cardsByTier, this.gameState.round, this._uniqueDrawn);
   }
 
   private _tierShiftPool(card: Card | null | undefined, shift: number): Card[] {

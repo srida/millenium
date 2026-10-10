@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 // La boutique de la Phase Shopping — des magies (prix selon la rareté) et trois
-// cartes (prix selon le rôle), payées en ⚡ de réserve, achetées une à une ;
+// cartes du deck (prix selon l'emplacement), payées en ⚡ de réserve, achetées une à une ;
 // et son reroll à 1 ⚡ (`GameSession.openShop` / `chargeMagie` /
 // `buyShopCard` / `rerollShop`).
 //
@@ -49,7 +49,7 @@ describe('Boutique — prix', () => {
   });
 
   it('une carte coûte selon son rôle : le lien se paie, le pari se récompense', () => {
-    expect(CARD_ENERGY_PRICE).toEqual({ link: 3, buildable: 2, bet: 1 });
+    expect(CARD_ENERGY_PRICE).toEqual({ tier1: 1, pool: 2, link: 3 });
   });
 });
 
@@ -100,36 +100,41 @@ describe('Boutique — magies', () => {
 });
 
 describe('Boutique — cartes', () => {
-  // Un deck où les trois rôles existent : A est jouable, B nomme A (lien),
-  // C exige une carte absente (pari).
-  const A = makeCard({ id: 'A', summon_conditions: [] });
-  const B = makeCard({ id: 'B', summon_conditions: [{ materials: 1, requires: ['A'] }] as any });
-  const C = makeCard({ id: 'C', summon_conditions: [{ materials: 1, requires: ['ZZZ'] }] as any });
-  const D = makeCard({ id: 'D', summon_conditions: [] });
-
-  it('trois cartes du deck, une par rôle, au prix de leur rôle', () => {
-    const session = makeSession([], {}, [A, B, C, D]);
+  // Tour 3 : le sac de pioche porte les tiers 1–3. A (T1) est en main, B (T3)
+  // nomme A (lien), C (T2) est une carte du sac, X (T4) n'est rien de tout ça.
+  const A = makeCard({ id: 'A', tier: 1, summon_conditions: [] });
+  const B = makeCard({ id: 'B', tier: 3, summon_conditions: [{ materials: 1, requires: ['A'] }] as any });
+  const C = makeCard({ id: 'C', tier: 2, summon_conditions: [] });
+  const X = makeCard({ id: 'X', tier: 4, summon_conditions: [] });
+  const deck = { cardsByTier: { 1: [A], 2: [C], 3: [B], 4: [X] } as any };
+  const shopAt = (round: number, cards = [A, B, C, X]) => {
+    const session = makeSession([], deck, cards);
+    session.gameState.round = round;
     session.hand = [{ ...A }];
-    const { cards } = session.openShop();
-    expect(cards).toHaveLength(3);
-    const byKind = Object.fromEntries(cards.map(c => [c.kind, c]));
-    expect(byKind.link.card.id).toMatch(/^[AB]$/);
-    expect(byKind.bet.card.id).toBe('C');
-    for (const c of cards) expect(c.price).toBe(CARD_ENERGY_PRICE[c.kind]);
+    return session;
+  };
+
+  it('trois cartes du deck : un Tier 1 à 1 ⚡, une du sac du tour à 2 ⚡, une liée à 3 ⚡', () => {
+    const { cards } = shopAt(3).openShop();
+    expect(cards.map(c => [c.kind, c.card.id, c.price])).toEqual([
+      ['tier1', 'A', 1], ['pool', 'C', 2], ['link', 'B', 3],
+    ]);
   });
 
-  it('avec un catalogue, les cartes viennent du CATALOGUE illustré, pas du deck', () => {
-    const X = makeCard({ id: 'X', summon_conditions: [], _has_illustration: true } as any);
-    const Y = makeCard({ id: 'Y', summon_conditions: [], _has_illustration: true } as any);
-    const Z = makeCard({ id: 'Z', summon_conditions: [], _has_illustration: true } as any);
-    const NOART = makeCard({ id: 'NOART', summon_conditions: [] });
-    const session = makeSession([], { getAllCards: () => [X, Y, Z, NOART] as any }, [A]);
-    const { cards } = session.openShop();
-    expect(cards.map(c => c.card.id).sort()).toEqual(['X', 'Y', 'Z']);
+  it('sans carte liée en jeu, l\'emplacement du lien reste vide', () => {
+    const session = shopAt(3);
+    session.hand = [];
+    expect(session.openShop().cards.map(c => c.kind)).toEqual(['tier1', 'pool']);
+  });
+
+  it('le sac est celui du tour en cours : au tour 1, un Tier 2 n\'y est pas', () => {
+    const session = shopAt(1, [A, C]);
+    session.hand = [];
+    expect(session.openShop().cards.map(c => c.card.id)).toEqual(['A']);
   });
 
   it('une carte achetée rejoint la main (un objet neuf) et quitte l\'étal', () => {
-    const session = makeSession([], {}, [A, B, C, D]);
+    const session = shopAt(3);
     session.openShop();
     const before = session.hand.length;
     const offer = session.shopCards()[0];
@@ -142,18 +147,12 @@ describe('Boutique — cartes', () => {
   });
 
   it('un achat impayable ne débite rien et ne touche pas la main', () => {
-    const session = makeSession([], {}, [A, B, C, D]);
+    const session = shopAt(3);
     session.gameState.player_energy_reserve = 0;
     session.openShop();
     expect(session.buyShopCard(0)).toBeNull();
-    expect(session.hand).toHaveLength(0);
+    expect(session.hand).toHaveLength(1);
     expect(session.shopCards()).toHaveLength(3);
-  });
-
-  it('ne propose que les tiers du tour qui vient', () => {
-    const T3 = makeCard({ id: 'T3', tier: 3, summon_conditions: [] });
-    const session = makeSession([], { cardsByTier: { 1: [A] as any, 3: [T3] as any } }, [A, T3]);
-    expect(session.openShop().cards.map(c => c.card.id)).toEqual(['A']);   // tour 1 → tiers 1–2
   });
 });
 

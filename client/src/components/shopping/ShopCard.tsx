@@ -1,16 +1,16 @@
 // Une carte à l'étal de la boutique de la Phase Shopping : la carte telle
-// qu'elle se jouera, son rôle face à ce que le joueur a en jeu, son prix en ⚡.
+// qu'elle se jouera, son emplacement (Tier 1, pioche du tour, lien), son prix en ⚡.
 // Le tap l'achète (relâché, pour laisser l'appui long ouvrir l'infobulle) ;
 // rien n'est décidé ici, l'achat passe par `GameController.buyShopCard`.
 import Card3D, { cardVisualProps } from '../ui/Card3D.js';
 import UiIcon from '../ui/UiIcon.js';
 import type { ShopCardEntry } from '../../stores/gameStore.js';
 
-/** Le rôle, dit comme la carte de plus du Draft. */
+/** L'emplacement, dit au joueur. */
 const KIND_LABEL: Record<ShopCardEntry['kind'], { text: string; tone: string }> = {
+  tier1: { text: 'Tier 1', tone: 'text-white/60' },
+  pool: { text: 'Pioche du tour', tone: 'text-white/60' },
   link: { text: 'Lien avec tes cartes', tone: 'text-success' },
-  buildable: { text: 'Passe-partout', tone: 'text-white/60' },
-  bet: { text: 'Pari : matériaux absents', tone: 'text-gold' },
 };
 
 export default function ShopCard({ entry, onBuy }: { entry: ShopCardEntry; onBuy: () => void }) {
