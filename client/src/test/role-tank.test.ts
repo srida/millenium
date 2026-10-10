@@ -81,6 +81,29 @@ describe('La ligne du Tank', () => {
     expect(allie.position.row).toBeGreaterThanOrEqual(t.position.row);
   });
 
+  it('deux Tanks sur la même rangée avancent tous les deux', () => {
+    const board = makeBoard();
+    const t1 = spawn(board, carte('TANK1', { movement_rate: 100 }), 'player', { col: 1, row: 1 });
+    const t2 = spawn(board, carte('TANK2', { movement_rate: 100 }), 'player', { col: 3, row: 1 });
+    t1.move_policy = 'tank';
+    t2.move_policy = 'tank';
+    const e = spawn(board, carte('E'), 'enemy', { col: 2, row: 10 });
+    joue(board, [t1, t2], [e], 40);
+    expect(t1.position.row).toBeGreaterThan(1);
+    expect(t2.position.row).toBeGreaterThan(1);
+  });
+
+  it('un Tank en retrait n\'est pas retenu par un Tank plus avancé', () => {
+    const board = makeBoard();
+    const devant = spawn(board, carte('TANK1'), 'player', { col: 2, row: 2 });
+    const derriere = spawn(board, carte('TANK2', { movement_rate: 100 }), 'player', { col: 0, row: 0 });
+    devant.move_policy = 'tank';
+    derriere.move_policy = 'tank';
+    const e = spawn(board, carte('E'), 'enemy', { col: 0, row: 10 });
+    joue(board, [devant, derriere], [e], 40);
+    expect(derriere.position.row).toBeGreaterThan(devant.position.row);
+  });
+
   it('se remet à zéro au début du combat suivant', () => {
     const { t } = scene();
     t.tank_engaged = true;
@@ -114,52 +137,38 @@ describe('Les rôles livrés', () => {
   });
 });
 
-describe('La ligne de l\'Archer', () => {
-  /** Un allié lent en rangée 2, un Archer rapide au fond, un ennemi loin. */
-  function sceneArcher({ archer = true, camp = 'player' as 'player' | 'enemy' } = {}) {
+describe('L\'Archer hors de portée', () => {
+  /** Trois alliés immobiles sur la rangée de devant, un Archer derrière, un ennemi loin. */
+  function sceneArcher(camp: 'player' | 'enemy' = 'player') {
     const board = makeBoard();
     const r = (row: number) => (camp === 'player' ? row : 10 - row);
-    const front = spawn(board, carte('FRONT'), camp, { col: 2, row: r(2) });
-    const a = spawn(board, carte('ARCHER', { movement_rate: 100 }), camp, { col: 0, row: r(0) });
-    if (archer) a.target_policy = 'plus_loin_a_portee';
-    const autre = camp === 'player' ? 'enemy' : 'player';
-    const e = spawn(board, carte('E'), autre, { col: 4, row: r(10) });
-    return { board, front, a, e, camp };
-  }
-  const profondeur = (u: any, camp: string) => (camp === 'player' ? u.position.row : 10 - u.position.row);
-
-  it('un Archer reste une rangée derrière l\'allié d\'un autre rôle le plus avancé', () => {
-    const { board, front, a, e } = sceneArcher();
-    joue(board, [front, a], [e], 40);
-    expect(a.position.row).toBe(front.position.row - 1);
-  });
-
-  it('témoin : sans rôle d\'Archer, la même unité dépasse', () => {
-    const { board, front, a, e } = sceneArcher({ archer: false });
-    joue(board, [front, a], [e], 40);
-    expect(a.position.row).toBeGreaterThan(front.position.row);
-  });
-
-  it('les autres Archers ne fixent pas la ligne', () => {
-    const { board, front, a, e } = sceneArcher();
-    const a2 = spawn(board, carte('ARCHER2'), 'player', { col: 4, row: 3 });
-    a2.target_policy = 'plus_loin_a_portee';
-    joue(board, [front, a, a2], [e], 40);
-    expect(a.position.row).toBe(front.position.row - 1);
-  });
-
-  it('seul avec d\'autres Archers, il avance librement', () => {
-    const board = makeBoard();
-    const a = spawn(board, carte('ARCHER', { movement_rate: 100 }), 'player', { col: 0, row: 0 });
+    const front = [1, 2, 3].map(col => spawn(board, carte(`FRONT${col}`), camp, { col, row: r(2) }));
+    const a = spawn(board, carte('ARCHER', { range: 3, movement_rate: 100 }), camp, { col: 2, row: r(1) });
     a.target_policy = 'plus_loin_a_portee';
-    const e = spawn(board, carte('E'), 'enemy', { col: 4, row: 10 });
-    joue(board, [a], [e], 40);
-    expect(a.position.row).toBeGreaterThan(1);
+    const autre = camp === 'player' ? 'enemy' : 'player';
+    const e = spawn(board, carte('E'), autre, { col: 2, row: r(10) });
+    e.is_immobile = true; // la cible ne vient pas à lui : seule la marche de l'Archer compte
+    return { board, front, a, e };
+  }
+
+  it('avance derrière une rangée alliée et s\'arrête à sa portée maximale', () => {
+    const { board, front, a, e } = sceneArcher();
+    joue(board, [...front, a], [e], 80);
+    expect(Math.abs(a.position.row - e.position.row) + Math.abs(a.position.col - e.position.col)).toBe(3);
   });
 
   it('vaut pour le camp ennemi, dans son sens de marche', () => {
-    const { board, front, a, e, camp } = sceneArcher({ camp: 'enemy' });
-    joue(board, [e], [front, a], 40);
-    expect(profondeur(a, camp)).toBe(profondeur(front, camp) - 1);
+    const { board, front, a, e } = sceneArcher('enemy');
+    joue(board, [e], [...front, a], 80);
+    expect(Math.abs(a.position.row - e.position.row) + Math.abs(a.position.col - e.position.col)).toBe(3);
+  });
+
+  it('à portée, il ne bouge pas', () => {
+    const board = makeBoard();
+    const a = spawn(board, carte('ARCHER', { range: 14, movement_rate: 100 }), 'player', { col: 2, row: 0 });
+    a.target_policy = 'plus_loin_a_portee';
+    const e = spawn(board, carte('E'), 'enemy', { col: 2, row: 10 });
+    joue(board, [a], [e], 40);
+    expect(a.position).toEqual({ col: 2, row: 0 });
   });
 });

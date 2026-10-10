@@ -1211,9 +1211,9 @@ Troisième catégorie **mécanique** après `Tiers` et `Invocation` : un mot-cl�
 - `Unit.tank_engaged` passe à vrai après une action en phase 4 et dans `takeDamage` (bouclier compris) ; remis à zéro par `resetKeywordStatuses`.
 - ⚠️ La profondeur se mesure **dans le sens de marche du camp** (`_forwardDepth`) : en rangée brute, le rôle B divergerait (verrouillé par `pvp-determinism.test.ts` et `role-tank.test.ts`).
 - Ne bloque que la marche (phase 3, repli, pas de Soutien) : téléportation et poussée passent. Une unité déjà au-delà ne recule pas, elle ne peut que se déplacer latéralement.
-- Le Tank fixe la ligne, il n'y est pas soumis.
+- ⚠️ **Aucun Tank n'y est soumis**, ni celui qui fixe la ligne ni un autre.
 
-**La ligne de l'Archer** (même garde, `_beyondTankLine`) : un Archer (`target_policy = 'plus_loin_a_portee'`) ne marche jamais à la rangée de l'allié vivant le plus avancé d'un **autre** rôle, ni au-delà — il reste au moins une rangée derrière. Les autres Archers ne fixent pas cette ligne ; seuls avec des Archers, ils avancent librement. Avec un Tank non engagé, la plus restrictive des deux lignes l'emporte. Même mesure dans le sens de marche du camp, mêmes exceptions (téléportation, poussée). Verrouillé par `role-tank.test.ts`.
+**L'Archer n'a pas de ligne** : hors de portée, il marche vers sa cible et s'arrête au premier pas qui la met à portée (donc à sa portée maximale), même devant ses alliés. Verrouillé par `role-tank.test.ts`.
 
 **Règles communes aux politiques** :
 
