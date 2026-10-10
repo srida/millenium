@@ -54,6 +54,10 @@ export default function TooltipHost() {
     const fitsBelow = a.bottom + 8 + h < window.innerHeight;
     let top = (a.prefer === 'below' ? !fitsBelow && fitsAbove : fitsAbove) ? a.top - h - 8 : a.bottom + 8;
     top = Math.max(8, Math.min(top, window.innerHeight - h - 8));
+    if (a.prefer === 'right') {
+      left = Math.min(a.left + a.width + 10, window.innerWidth - w - 8);
+      top = Math.max(8, Math.min(a.top - 4, window.innerHeight - h - 8));
+    }
     setPos({ left, top });
   }, [tooltip]);
 

@@ -17,7 +17,7 @@ export interface CatalogEntry {
 function Tile({ entry, content }: { entry: CatalogEntry; content: TooltipContent }) {
   const showTooltip = useUiStore(s => s.showTooltip);
   const ref = useRef<HTMLButtonElement>(null);
-  // Case lue sur un `ref` : `usePressSquash` diffère l'appel (cf. TerrainChip).
+  // Case lue sur un `ref` : `usePressSquash` diffère l'appel (cf. BonusRail).
   const { handlers } = usePressSquash<HTMLButtonElement>((e) => {
     e.stopPropagation();
     const r = ref.current?.getBoundingClientRect();

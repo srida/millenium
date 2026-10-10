@@ -358,7 +358,7 @@ describe('Attributs livrés — invariants du catalogue', () => {
   });
 
   // Un attribut à paliers dont le `timing` est `none` n'a aucune passe : il est
-  // écrit, éditable, annoncé au SynergyPanel — et ne fera jamais rien.
+  // écrit, éditable, annoncé à la liste de bonus — et ne fera jamais rien.
   // Mutation : passer un attribut à effets en `timing: 'none'` → ROUGE.
   it('aucun attribut porteur d\'effets n\'est en timing « none »', () => {
     const descriptifs = AVEC_PALIERS

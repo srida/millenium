@@ -30,7 +30,7 @@ import { useEmoteStore } from '../stores/emoteStore.js';
 import EmoteLayer from '../components/emotes/EmoteLayer.js';
 import Board3DCanvas from '../components/board/Board3DCanvas.js';
 import Hud from '../components/hud/Hud.js';
-import SynergyPanel from '../components/hud/SynergyPanel.js';
+import BonusRail from '../components/hud/BonusRail.js';
 import PhaseControls from '../components/hud/PhaseControls.js';
 import GameMenu from '../components/hud/GameMenu.js';
 import HandBar from '../components/hand/HandBar.js';
@@ -154,7 +154,7 @@ export default function GameScreenPvp() {
         enemyName={opponentName}
         onDone={() => controller.begin()}
       />
-      <SynergyPanel />
+      <BonusRail />
       <GraveyardTray />
       <HandBar />
       <PhaseControls pvp />

@@ -1,50 +1,14 @@
 // Contrôles de phase : en préparation (compteur d'unités, timer 60s, options,
-// bouton PRÊT) ; en combat (terrain, timer restant, vitesse ×1/×2/×4, options,
-// pause). Le menu d'options lui-même est rendu par GameMenu, qui lit `menuOpen`.
-import { useRef } from 'react';
+// bouton PRÊT) ; en combat (timer restant, vitesse ×1/×2/×4, options, pause).
+// Le terrain n'y figure plus : il ouvre la liste de bonus (`BonusRail`). Le menu d'options lui-même est rendu par GameMenu, qui lit `menuOpen`.
 import { useGameStore } from '../../stores/gameStore.js';
-import { useUiStore } from '../../stores/uiStore.js';
-import type { BoardDef } from '../../logic/types.js';
-import { Button, Illustration, usePressSquash } from '../ui/primitives.js';
+import { Button, usePressSquash } from '../ui/primitives.js';
 import UiIcon from '../ui/UiIcon.js';
 import HoldConfirmButton from '../ui/HoldConfirmButton.js';
 import { useWebLayout } from '../system/useWebLayout.js';
 import * as Audio from '../../audio/AudioManager.js';
 import PhaseClock from './PhaseClock.js';
 import { useTimerLowSound } from './useTimerLowSound.js';
-
-// Terrain du combat en cours : tap → tooltip (nom + effet). Les cases bloquées
-// qu'il impose sont rendues par Scene3D, ce chip dit d'où elles viennent.
-//
-// Le terrain s'annonce par son ILLUSTRATION (la vignette carrée du dossier
-// d'illustrations, celle du tooltip) ; 🗺️ n'est que le repli tant qu'aucune
-// image n'a été importée — même règle que `AttrIcon` pour les attributs. Un
-// pictogramme générique ne distingue pas deux terrains, une image si.
-function TerrainChip({ board }: { board: BoardDef }) {
-  const showTooltip = useUiStore(s => s.showTooltip);
-  const ref = useRef<HTMLButtonElement>(null);
-  // ⚠️ La case est lue sur un `ref`, pas sur `e.currentTarget` : `usePressSquash`
-  // différe l'appel de `SQUASH_DELAY_MS`, et un événement synthétique React ne
-  // garantit pas de rester valide passé le tour d'exécution de son dispatch.
-  const { handlers } = usePressSquash<HTMLButtonElement>((e) => {
-    e.stopPropagation();
-    const r = ref.current?.getBoundingClientRect();
-    if (!r) return;
-    showTooltip({ kind: 'terrain', board }, { left: r.left, top: r.top, bottom: r.bottom, width: r.width, height: r.height });
-  }, false);
-  return (
-    <button
-      ref={ref}
-      className="flex min-h-tap min-w-[2.75rem] max-w-[8rem] shrink items-center gap-1.5 rounded-md border border-line bg-surface/80 px-2 text-xs text-white/80 active:opacity-80"
-      {...handlers}
-    >
-      {board._has_illustration
-        ? <Illustration id={board.id} className="h-5 w-5 rounded" />
-        : <UiIcon id="UI_TERRAIN" className="h-5 w-5" />}
-      <span className="truncate">{board.name}</span>
-    </button>
-  );
-}
 
 // Grille de repérage ▦ — partagée par les barres de préparation et de combat.
 function GridButton({ active, onToggle }: { active: boolean; onToggle: () => void }) {
@@ -125,7 +89,7 @@ function MenuButton() {
 export default function PhaseControls({ pvp = false }: { pvp?: boolean }) {
   const {
     controller, combatActive, prepRemaining, combatRemaining,
-    speed, showGrid, paused, boardTerrain, canUndo, canMulligan, mulliganCost, pvpReady,
+    speed, showGrid, paused, canUndo, canMulligan, mulliganCost, pvpReady,
   } = useGameStore();
   const web = useWebLayout();
   // Un seul chrono visible à la fois : celui de la phase en cours.
@@ -143,9 +107,8 @@ export default function PhaseControls({ pvp = false }: { pvp?: boolean }) {
   // installée — home indicator iOS, barre de navigation gestuelle Android.
   const classname_footer2 = 'pointer-events-auto absolute inset-x-0 bottom-0 z-20 flex items-center gap-2 p-2 pb-[max(0.5rem,env(safe-area-inset-bottom))]' + (web ? ' px-22' : '');
 
-  // Barre de combat : dense sur un écran de 375 px (timer, terrain, vitesses,
-  // options, pause) — d'où les paddings serrés et les `shrink-0`, sans quoi le
-  // chip terrain est écrasé et le label Pause passe à la ligne. En PvP, vitesse
+  // Barre de combat : dense sur un écran de 375 px (timer, vitesses, options,
+  // pause) — d'où les paddings serrés et les `shrink-0`. En PvP, vitesse
   // et pause ne sont pas réseau — un joueur qui ralentit/pause chez lui ne fait
   // que désynchroniser sa propre vue de l'adversaire qui attend, donc les deux
   // sont retirés plutôt que de laisser un contrôle trompeur.
@@ -159,7 +122,6 @@ export default function PhaseControls({ pvp = false }: { pvp?: boolean }) {
         >
           {combatRemaining}s
         </PhaseClock>
-        {boardTerrain && <TerrainChip board={boardTerrain} />}
         {!pvp && (
           <div className="flex shrink-0 overflow-hidden rounded-lg border border-line">
             {[1, 2, 4].map(s => (
@@ -192,8 +154,6 @@ export default function PhaseControls({ pvp = false }: { pvp?: boolean }) {
       >
         {prepRemaining}s
       </PhaseClock>
-      {/* Même chip terrain et même bouton de grille qu'en combat. */}
-      {boardTerrain && <TerrainChip board={boardTerrain} />}
       <div className="flex-1" />
       <GridButton active={showGrid} onToggle={() => controller.toggleGrid()} />
       {/* `visible`, pas un montage conditionnel : `canMulligan` retombe à

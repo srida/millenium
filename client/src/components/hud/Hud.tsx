@@ -1,13 +1,13 @@
 // Barre HUD haute : PV joueur/ennemi (max 1000), indicateur de manche et,
-// dessous, l'énergie du tour (en préparation),
+// la jauge d'énergie du tour (en préparation, `EnergyGauge`),
 // multiplicateurs de dégâts (affichés pendant le combat), identité des deux
 // camps (avatar + pseudo/nom de deck, résolus par l'écran appelant).
-import UiIcon from '../ui/UiIcon.js';
+import EnergyGauge from './EnergyGauge.js';
 import { useGameStore } from '../../stores/gameStore.js';
 import { useAuthStore } from '../../stores/authStore.js';
 import { Avatar } from '../ui/primitives.js';
 import HpBar, { useHpTransition } from './HpBar.js';
-import { useWebLayout } from '../system/useWebLayout.js';
+import { useWebLayout, useTabletLayout } from '../system/useWebLayout.js';
 import { useEmoteStore } from '../../stores/emoteStore.js';
 
 export interface HudProps {
@@ -23,7 +23,7 @@ export interface HudProps {
 }
 
 export default function Hud({ enemyAvatarSrc = null, enemyAvatarFallback = '?', enemyName = null, onPlayerTap }: HudProps) {
-  const { playerHp, enemyHp, round, playerMultiplier, enemyMultiplier, combatActive, energyLeft, energyBudget, energyReserve } = useGameStore();
+  const { playerHp, enemyHp, round, playerMultiplier, enemyMultiplier, combatActive } = useGameStore();
   // ⚠️ Le chiffre et la jauge comptent sur la MÊME horloge : la transition est
   // tenue ici, une fois par camp, et descend dans les deux (cf. `HpBar`). Deux
   // décomptes indépendants finiraient par ne plus annoncer le même total.
@@ -35,6 +35,7 @@ export default function Hud({ enemyAvatarSrc = null, enemyAvatarFallback = '?', 
   const playerName = user?.username ?? 'Toi';
 
   const web = useWebLayout();
+  const tablet = useTabletLayout();
   // ⚠️ Concaténation par `+`, pas un template literal avec `${}` : la classe
   // `pt-[max(0.5rem,...)]` contient une VIRGULE, et Tailwind ne l'extrait
   // plus dès qu'un `${}` apparaît ailleurs dans le même gabarit — c'est ce qui
@@ -76,20 +77,9 @@ export default function Hud({ enemyAvatarSrc = null, enemyAvatarFallback = '?', 
           <span className="text-sm font-bold tabular-nums">{round} / 5</span>
           <span className="text-[9px] tracking-widest text-white/50">MANCHE</span>
         </div>
-        {/* L'énergie, sous la manche : c'est le budget DU TOUR, et le centre du
-            HUD est ce que l'œil retrouve sans chercher. Préparation seulement.
-            La réserve suit, après un « + » : ce qui n'est pas posé y part au
-            lancement du combat. */}
-        {!combatActive && (
-          <span
-            role="status"
-            aria-label={`Énergie : ${energyLeft} sur ${energyBudget}, réserve ${energyReserve}. Chaque unité posée occupe son tier ; ce qui reste part en réserve.`}
-            className={'mt-1 rounded-md border border-line bg-surface/80 px-2 py-0.5 text-xs font-bold tabular-nums ' + (energyLeft === 0 ? 'text-white/40' : 'text-gold')}
-          >
-            <UiIcon id="UI_ENERGY" className="mr-0.5 h-3.5 w-3.5 align-[-2px]" />{energyLeft}<span className="font-normal text-white/50">/{energyBudget}</span>
-            {energyReserve > 0 && <span className="ml-1 font-semibold text-gold/80">+{energyReserve}</span>}
-          </span>
-        )}
+        {/* L'énergie, sous la manche en paysage : c'est le budget DU TOUR, et
+            le centre du HUD est ce que l'œil retrouve sans chercher. */}
+        {web && <EnergyGauge orientation="horizontal" compact={!tablet} className={tablet ? 'mt-1 w-[320px]' : 'mt-1 w-[240px]'} />}
       </div>
 
       <div className="min-w-0 flex-1">
@@ -106,6 +96,13 @@ export default function Hud({ enemyAvatarSrc = null, enemyAvatarFallback = '?', 
         </div>
         <HpBar side="enemy" value={enemyHp} lag={enemy.lag} delta={enemy.delta} className="mt-1" />
       </div>
+
+      {/* Portrait : la jauge sort du flux, sous la barre de PV — verticale au
+          bord droit sur téléphone (la largeur manque), horizontale centrée sur
+          tablette. `top-full` suit la safe area que le header porte déjà. */}
+      {!web && (tablet
+        ? <EnergyGauge orientation="horizontal" className="absolute left-1/2 top-full w-[calc(100%-1.25rem)] max-w-[520px] -translate-x-1/2" />
+        : <EnergyGauge orientation="vertical" className="absolute right-1.5 top-full mt-2.5" />)}
     </div>
   );
 }

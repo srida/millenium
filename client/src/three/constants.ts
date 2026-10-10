@@ -124,6 +124,17 @@ export function webRailPxFor(containerWidth: number, containerHeight: number): n
   const isTablet = containerWidth >= TABLET_BREAKPOINT_PX && containerHeight >= TABLET_BREAKPOINT_PX;
   return isTablet ? WEB_RAIL_TABLET_PX : WEB_RAIL_PHONE_PX;
 }
+// Portrait : la liste de bonus (bord gauche) et la jauge d'énergie verticale
+// (bord droit, téléphone) recouvrent le bord du plateau — la largeur utile en
+// est amputée des deux côtés. À garder d'accord avec `BonusRail` (tuiles de
+// 38 / 46 px + `left-1.5` / `left-2.5`) et `EnergyGauge` (`w-10` + `right-1.5`).
+export const PORTRAIT_SIDE_PHONE_PX = 48;
+export const PORTRAIT_SIDE_TABLET_PX = 60;
+
+export function portraitSidePxFor(containerWidth: number, containerHeight: number): number {
+  const isTablet = containerWidth >= TABLET_BREAKPOINT_PX && containerHeight >= TABLET_BREAKPOINT_PX;
+  return isTablet ? PORTRAIT_SIDE_TABLET_PX : PORTRAIT_SIDE_PHONE_PX;
+}
 export const PREP_ROW_MARGIN_WEB = 0.8;
 export const PREP_ROW_MARGIN = 1.5;
 // CSS3DObject scales the unit-card DOM by CSS_SCALE, so a screen-visible Npx ring

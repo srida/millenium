@@ -67,8 +67,9 @@ export interface TooltipAnchor {
   width: number;
   height: number;
   /** Côté où poser la bulle quand il y a la place (défaut : au-dessus). En
-   *  combat, le côté opposé à la cible montrée (cf. `GameController.onUnitTap`). */
-  prefer?: 'above' | 'below';
+   *  combat, le côté opposé à la cible montrée (cf. `GameController.onUnitTap`).
+   *  `right` : à droite de l'ancre (colonne de bonus au bord gauche, portrait). */
+  prefer?: 'above' | 'below' | 'right';
 }
 
 export type TooltipContent =

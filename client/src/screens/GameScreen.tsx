@@ -12,7 +12,7 @@ import { useArcadeStore, currentDuel } from '../stores/arcadeStore.js';
 import * as PublicDeckDatabase from '../data/PublicDeckDatabase.js';
 import Board3DCanvas from '../components/board/Board3DCanvas.js';
 import Hud from '../components/hud/Hud.js';
-import SynergyPanel from '../components/hud/SynergyPanel.js';
+import BonusRail from '../components/hud/BonusRail.js';
 import PhaseControls from '../components/hud/PhaseControls.js';
 import GameMenu from '../components/hud/GameMenu.js';
 import HandBar from '../components/hand/HandBar.js';
@@ -114,7 +114,7 @@ export default function GameScreen() {
       <Board3DCanvas controller={controller} />
       <Hud enemyAvatarSrc={enemyAvatarSrc} enemyName={enemyName} />
       <DuelIntro enemyAvatarSrc={enemyAvatarSrc} enemyName={enemyName} onDone={() => controller.begin()} />
-      <SynergyPanel />
+      <BonusRail />
       <GraveyardTray />
       <HandBar />
       <PhaseControls />
