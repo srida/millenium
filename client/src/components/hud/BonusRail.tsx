@@ -15,7 +15,7 @@ import AttrIcon from '../ui/AttrIcon.js';
 import UiIcon from '../ui/UiIcon.js';
 import { Illustration, usePressSquash } from '../ui/primitives.js';
 import * as Audio from '../../audio/AudioManager.js';
-import { isNearThreshold, isShownSynergy } from './synergyFilter.js';
+import { isNearThreshold, isShownSynergy, orderShownSynergies } from './synergyFilter.js';
 
 // ⚠️ Classes en constantes (virgules dans `max(...)`/`calc(...)`, cf. Hud).
 const POS_PORTRAIT = 'left-1.5 top-[max(4.75rem,calc(env(safe-area-inset-top)+4.25rem))] flex-col';
@@ -97,7 +97,7 @@ export default function BonusRail() {
   const web = useWebLayout();
   const tablet = useTabletLayout();
   if (combatActive) return null;
-  const shown = synergies.filter(isShownSynergy);
+  const shown = orderShownSynergies(synergies.filter(isShownSynergy));
   if (!boardTerrain && shown.length === 0) return null;
 
   const portrait = !web;

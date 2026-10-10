@@ -4,7 +4,7 @@
 // ⚠️ Éprouvés dans les deux sens : la mutation attendue est nommée par cas.
 import { describe, it, expect } from 'vitest';
 import { gaugeModel, RESERVE_CELLS_MAX } from '../components/hud/energyGauge.js';
-import { isShownSynergy, isNearThreshold } from '../components/hud/synergyFilter.js';
+import { isShownSynergy, isNearThreshold, orderShownSynergies } from '../components/hud/synergyFilter.js';
 import type { SynergyEntry } from '../stores/gameStore.js';
 
 describe('gaugeModel', () => {
@@ -45,5 +45,19 @@ describe('isShownSynergy', () => {
   it('« à une près » ne qualifie pas un palier déjà atteint', () => {
     expect(isNearThreshold(syn(3, 4, true))).toBe(false);
     expect(isNearThreshold(syn(1, 2, false))).toBe(true);
+  });
+});
+
+describe('orderShownSynergies', () => {
+  const named = (id: string, active: boolean): SynergyEntry => ({ ...syn(2, 3, active), attr: { id, name: id } });
+  // Mutation : tri retiré (ordre reçu rendu tel quel) → ROUGE.
+  it('met les paliers atteints en tête, en gardant l\'ordre de chaque groupe', () => {
+    const list = [named('a', false), named('b', true), named('c', false), named('d', true)];
+    expect(orderShownSynergies(list).map(s => s.attr.id)).toEqual(['b', 'd', 'a', 'c']);
+  });
+  it('ne mute pas la liste reçue', () => {
+    const list = [named('a', false), named('b', true)];
+    orderShownSynergies(list);
+    expect(list.map(s => s.attr.id)).toEqual(['a', 'b']);
   });
 });

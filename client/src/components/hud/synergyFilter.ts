@@ -12,3 +12,9 @@ export function isNearThreshold(s: SynergyEntry): boolean {
 export function isShownSynergy(s: SynergyEntry): boolean {
   return !!s.activeThreshold || isNearThreshold(s);
 }
+
+// Les attributs au palier passent en tête, ceux à une unité du suivant après.
+// Tri stable : à l'intérieur de chaque groupe, l'ordre reçu est conservé.
+export function orderShownSynergies(list: readonly SynergyEntry[]): SynergyEntry[] {
+  return [...list.filter(s => !!s.activeThreshold), ...list.filter(s => !s.activeThreshold)];
+}
