@@ -1447,7 +1447,7 @@ Aucune case bloquée → LOS toujours `true` (court-circuit). Une unité sans LO
 | Carte (`SHOP_CARD_COUNT` = 3) | `CARD_ENERGY_PRICE` : lien 3 · passe-partout 2 · pari 1 |
 | Reroll (toute la boutique) | `SHOPPING_REROLL_COST_ENERGY` = 1 ⚡ |
 
-- **Cartes** : `Draft.roleOffer` (le tirage de la carte de plus du Draft, extrait tel quel), jugé contre main + plateau + cimetière. Pool : le deck aux tiers du tour **suivant**, sans Unique déjà tirée ni carte déjà montrée (`_shownCardIds`). Un rôle de repli prend le prix du rôle qu'il a réellement. Achetée → **en main**.
+- **Cartes** : `Draft.roleOffer` (le tirage de la carte de plus du Draft, extrait tel quel), jugé contre main + plateau + cimetière. Pool : **tout le catalogue** illustré (`deps.getAllCards`, filtre `_has_illustration` comme le Draft ; absent → le deck, cas de la simulation) aux tiers du tour **suivant**, sans Unique déjà tirée ni carte déjà montrée (`_shownCardIds`). Un rôle de repli prend le prix du rôle qu'il a réellement. Achetée → **en main**.
 - ⚠️ **Une magie se paie À L'APPLICATION** (`chargeMagie` juste avant chaque `applyMagie…`) : le ciblage reste annulable gratuitement. Son `cost_hp` s'applique en plus.
 - `HoldConfirmButton` a un ton `currency="energy"` (or, comme le HUD).
 

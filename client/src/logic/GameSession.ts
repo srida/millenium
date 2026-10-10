@@ -128,6 +128,10 @@ export interface GameSessionDeps {
    *  (`logic/MagieOffer.ts`), avec le `rand` semé de la partie. La couche data
    *  fournit, elle ne décide plus. */
   getAllMagies: () => Magie[];
+  /** Catalogue COMPLET des cartes, réserve de la boutique de Phase Shopping
+   *  (CardDatabase.getAllCards). Absent (simulation, tests) : la boutique
+   *  retombe sur le deck du joueur. */
+  getAllCards?: () => Card[];
   /** 'ai' (défaut) : EnemyAI place l'adversaire. 'pvp' : l'adversaire est un
    *  humain distant — le placement ennemi et le terrain sont gérés en externe
    *  (PvpController/PvpOpponentProvider), pas ici. */
@@ -1494,16 +1498,24 @@ export class GameSession {
   }
 
   /**
-   * Ce que la boutique peut proposer en cartes : les cartes du DECK (la seule
-   * réserve qu'une partie connaisse) aux tiers du tour QUI VIENT, moins les
-   * Uniques déjà tirées et ce que la phase a déjà montré.
+   * Ce que la boutique peut proposer en cartes : tout le CATALOGUE (les cartes
+   * illustrées, comme le Draft) aux tiers du tour QUI VIENT, moins les Uniques
+   * déjà tirées et ce que la phase a déjà montré. Sans catalogue fourni, le
+   * deck du joueur.
    */
   private _shopCardPool(): Card[] {
     const tiers = new Set(tiersForRound(this.gameState.round + 1));
-    return this._deckCards()
+    return this._shopReserve()
       .filter(c => tiersOf(c).some(t => tiers.has(t))
         && !this._uniqueDrawn.has(c.id) && !this._shownCardIds.has(c.id))
       .sort((x, y) => x.id.localeCompare(y.id));
+  }
+
+  private _shopReserve(): Card[] {
+    const all = this.deps.getAllCards?.();
+    if (!all?.length) return this._deckCards();
+    const withArt = all.filter(c => c._has_illustration);
+    return withArt.length ? withArt : all;
   }
 
   /**

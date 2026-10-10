@@ -118,6 +118,16 @@ describe('Boutique — cartes', () => {
     for (const c of cards) expect(c.price).toBe(CARD_ENERGY_PRICE[c.kind]);
   });
 
+  it('avec un catalogue, les cartes viennent du CATALOGUE illustré, pas du deck', () => {
+    const X = makeCard({ id: 'X', summon_conditions: [], _has_illustration: true } as any);
+    const Y = makeCard({ id: 'Y', summon_conditions: [], _has_illustration: true } as any);
+    const Z = makeCard({ id: 'Z', summon_conditions: [], _has_illustration: true } as any);
+    const NOART = makeCard({ id: 'NOART', summon_conditions: [] });
+    const session = makeSession([], { getAllCards: () => [X, Y, Z, NOART] as any }, [A]);
+    const { cards } = session.openShop();
+    expect(cards.map(c => c.card.id).sort()).toEqual(['X', 'Y', 'Z']);
+  });
+
   it('une carte achetée rejoint la main (un objet neuf) et quitte l\'étal', () => {
     const session = makeSession([], {}, [A, B, C, D]);
     session.openShop();

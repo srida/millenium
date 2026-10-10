@@ -172,6 +172,7 @@ export function buildSession(
     cardDb: CardDatabase as any,
     getAllBoards: () => (BoardDatabase as any).getAllBoards(),
     getAllMagies: () => (MagieDatabase as any).getAllMagies(),
+    getAllCards: () => (CardDatabase as any).getAllCards(),
     tokenDb: TokenDatabase as any,
     mode,
     enemyBonus: enemyBonus ?? null,
