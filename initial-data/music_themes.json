@@ -28,10 +28,6 @@
 		"name": "Master Duel 7"
 	},
 	{
-		"id": "THEME_008",
-		"name": "Master Duel 8"
-	},
-	{
 		"id": "THEME_009",
 		"name": "Master Duel 9"
 	},
@@ -45,15 +41,15 @@
 	},
 	{
 		"id": "THEME_012",
-		"name": "L"
+		"name": "Yugioh original 1"
 	},
 	{
 		"id": "THEME_013",
-		"name": "M"
+		"name": "Yugioh original 2"
 	},
 	{
 		"id": "THEME_014",
-		"name": "N"
+		"name": "Yugioh original 3"
 	},
 	{
 		"id": "THEME_015",

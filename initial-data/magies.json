@@ -538,5 +538,14 @@
 		"effect": {
 			"type": "swap_card"
 		}
+	},
+	{
+		"id": "MAGIE_058",
+		"name": "Armure de sakuretsu",
+		"rarity": 2,
+		"effect": {
+			"type": "grant_keyword",
+			"attribute": "ARCH_098"
+		}
 	}
 ]
