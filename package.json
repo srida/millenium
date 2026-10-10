@@ -1,6 +1,6 @@
 {
   "name": "millenium",
-  "version": "0.1.360",
+  "version": "0.1.361",
   "description": "Millenium — auto-battler + card manager",
   "main": "server.js",
   "scripts": {
