@@ -164,7 +164,7 @@ export default function PhaseControls({ pvp = false }: { pvp?: boolean }) {
           lettres poussait PRÊT hors de l'écran en portrait. */}
       <HoldConfirmButton
         icon={<UiIcon id="UI_MULLIGAN" className="h-5 w-5" />}
-        label={`${mulliganCost}⚡`}
+        showPrice
         actionLabel="faire un mulligan"
         title="Mulligan : remettre ta main dans le deck et repiocher"
         cost={mulliganCost}

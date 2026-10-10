@@ -14,4 +14,8 @@ describe('Récapitulatif — réserve', () => {
     expect(reserveLines({ reserveBanked: 0, reserveGain: 0, reserveGainReason: null })).toEqual([]);
     expect(reserveLines({ reserveBanked: 0, reserveGain: 1, reserveGainReason: 'loss' })).toEqual([{ text: 'Défaite', value: 1 }]);
   });
+
+  it('se tait sur le dernier round : la réserve ne paiera plus rien', () => {
+    expect(reserveLines({ reserveBanked: 2, reserveGain: 3, reserveGainReason: 'win_streak', isGameOver: true })).toEqual([]);
+  });
 });

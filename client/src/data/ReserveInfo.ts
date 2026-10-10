@@ -12,10 +12,13 @@ const GAIN_TEXT: Record<ReserveGainReason, (n: number) => string> = {
  * Les lignes du récapitulatif, dans l'ordre où l'énergie est arrivée :
  * l'énergie non posée (au lancement du combat), puis la série (à la fin).
  * ⚠️ Un montant nul ne s'affiche pas : « +0 ⚡ » ne dit rien.
+ * ⚠️ Rien sur le DERNIER round (`isGameOver`) : la réserve ne paiera plus rien.
  */
 export function reserveLines(r: {
   reserveBanked: number; reserveGain: number; reserveGainReason: ReserveGainReason | null;
+  isGameOver?: boolean;
 }): { text: string; value: number }[] {
+  if (r.isGameOver) return [];
   const out: { text: string; value: number }[] = [];
   if (r.reserveBanked > 0) out.push({ text: 'Énergie non posée', value: r.reserveBanked });
   if (r.reserveGain > 0 && r.reserveGainReason) {

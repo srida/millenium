@@ -60,10 +60,11 @@ const TONE_STYLE: Record<Tone, ToneStyle> = {
 
 export default function HoldConfirmButton({
   icon, label, cost, onConfirm, fullWidth = false, visible = true, disabled = false,
-  currency, actionLabel, title, className = '',
+  currency, actionLabel, title, showPrice = false, className = '',
 }: {
   icon?: ReactNode;
-  label: string;
+  /** Vide : le bouton n'est qu'une icône et un prix (mulligan). */
+  label?: string;
   cost: number;
   onConfirm: () => void | Promise<unknown>;
   /** `true` : le bouton occupe toute la largeur de son conteneur flex (reroll,
@@ -90,6 +91,9 @@ export default function HoldConfirmButton({
    *  désactivé (« Pas assez de golds »), le geste lui-même n'ayant aucune
    *  confirmation où l'écrire. */
   title?: string;
+  /** Affiche le prix DANS le bouton, chiffre + icône illustrée de la monnaie
+   *  (mulligan, reroll) — jamais un glyphe ⚡ écrit à la main. */
+  showPrice?: boolean;
   className?: string;
 }) {
   const [progress, setProgress] = useState(0);
@@ -161,7 +165,7 @@ export default function HoldConfirmButton({
           type="button"
           disabled={disabled}
           title={title}
-          aria-label={`Maintenir pour ${actionLabel ?? label.toLowerCase()}, moins ${toastText.replace('−', '')}`}
+          aria-label={`Maintenir pour ${actionLabel ?? (label ?? '').toLowerCase()}, moins ${toastText.replace('−', '')}`}
           onPointerDown={(e) => { e.stopPropagation(); if (disabled) return; stopCharge(); raf.current = requestAnimationFrame(tick); }}
           onPointerUp={(e) => { e.stopPropagation(); cancelCharge(); }}
           onPointerLeave={(e) => { e.stopPropagation(); cancelCharge(); }}
@@ -175,7 +179,13 @@ export default function HoldConfirmButton({
           />
           <span className="relative z-10 inline-flex items-center gap-1">
             {icon && <span className="text-base leading-none">{icon}</span>}
-            <span>{label}</span>
+            {label && <span>{label}</span>}
+            {showPrice && (
+              <span className="inline-flex items-center gap-0.5 tabular-nums">
+                {fmt.format(cost)}
+                {tone.icon && <UiIcon id={tone.icon} className="h-3.5 w-3.5" />}
+              </span>
+            )}
           </span>
         </button>
       )}

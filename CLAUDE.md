@@ -683,7 +683,8 @@ Bouton **↺** de `PhaseControls`. Tout est dans `GameSession.undoPreparation()`
 
 - Nul et timeout rompent les deux séries et ne rapportent rien (`creditRoundOutcome`, appelé par `applyEndOfCombat`, qui rend `reserveGain`/`reserveGainReason`).
 - `_payEnergy` débite **la réserve d'abord**, puis le budget du tour (`_energySpent`, soustrait par `energyBudget`). `energyAvailable` n'ajoute le reste du tour qu'en `PREPARATION`.
-- Récapitulatif : `Overlays.ReserveLine`, lignes de `data/ReserveInfo.reserveLines`.
+- Récapitulatif : `Overlays.ReserveLine`, lignes de `data/ReserveInfo.reserveLines` — rien au dernier round (`isGameOver`).
+- Prix en ⚡ dans un bouton (mulligan, reroll) : `HoldConfirmButton showPrice` (chiffre + icône `UI_ENERGY`), jamais le glyphe.
 - Rien côté PvP ni IA : la réserve ne voyage pas et l'IA n'en a pas.
 
 ### Mulligan — le seul geste qui DÉPLACE le point de retour

@@ -130,8 +130,8 @@ export default function ShoppingLayer() {
           qu'on choisisse de rerouler ou de renoncer. Le reroll n'a plus de
           confirmation modale (contrairement à l'ancien mulligan) : le bouton
           se maintient (`HoldConfirmButton`), la charge qui le remplit EST la
-          confirmation, et le prix ne s'affiche qu'au moment où il est
-          débité. `visible`, pas un montage conditionnel : un pool épuisé par
+          confirmation, et le prix s'affiche dans le bouton. `visible`, pas un
+          montage conditionnel : un pool épuisé par
           CE reroll ferait retomber `canReroll` dans le même tick que le
           toast s'arme (cf. le composant). Sans rien à montrer, « Passer »
           prend toute la largeur. */}
@@ -139,7 +139,9 @@ export default function ShoppingLayer() {
         <HoldConfirmButton
           icon={<UiIcon id="UI_REROLL" className="h-5 w-5" />}
           label="Re-roll"
+          actionLabel="rerouler la boutique"
           cost={shopping.rerollCost}
+          showPrice
           currency="energy"
           onConfirm={() => controller.rerollShopping()}
           fullWidth
