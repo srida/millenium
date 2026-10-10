@@ -66,7 +66,7 @@ export const GAME_STEPS: GameStepDef[] = [
   {
     id: 'mulligan',
     title: 'Ta main ne te plaît pas ?',
-    text: "Au premier tour seulement, le bouton 🔄 remet ta main dans le deck et t'en repioche autant — pour 50 PV, une seule fois par partie. À saisir avant de poser quoi que ce soit : après, il disparaît.",
+    text: "Le bouton 🔄 remet ta main dans le deck et t'en repioche autant, pour 2 ⚡ (ta réserve d'abord, sinon l'énergie du tour), une fois par tour. À saisir avant de poser quoi que ce soit : après, il disparaît.",
     blocking: true,
     // ⚠️ `!s.canMulligan` fait partie du `done`, pas seulement du `visible` :
     // le bouton s'efface dès que le joueur mulligane ou pose une unité, et une
@@ -122,8 +122,8 @@ export const GAME_STEPS: GameStepDef[] = [
   },
   {
     id: 'shopping',
-    title: 'Choisis une magie',
-    text: 'Après chaque combat, une magie parmi trois. Les bonus de statistiques sont permanents.',
+    title: 'La boutique',
+    text: "Après chaque combat, dépense ta réserve ⚡ : des magies (1 à 3 ⚡ selon la rareté) et trois cartes de ton deck, qui rejoignent ta main. Achète autant d'articles que ta réserve le permet, puis passe.",
     // ⚠️ À TAP depuis que la phase porte deux gestes à expliquer : sans lui,
     // l'étape suivante (le reroll) ne serait jamais atteinte pendant la seule
     // Phase Shopping que le script traverse — elle se franchit au tour 2, quand
@@ -137,10 +137,10 @@ export const GAME_STEPS: GameStepDef[] = [
   {
     id: 'shopping_reroll',
     title: 'Ou paie pour voir autre chose',
-    text: "Aucune des trois ne t'arrange ? 🎲 en tire trois autres pour 50 PV — jamais les mêmes, et les écartées ne reviendront pas. Autant de fois que tes PV le supportent.",
+    text: "Rien ne t'arrange ? 🎲 retire toute la boutique pour 1 ⚡ : jamais les mêmes magies, et les écartées ne reviendront pas.",
     blocking: true,
-    // Même filet que l'étape du mulligan : le bouton peut ne pas être là (PV
-    // trop bas, catalogue épuisé), et une étape invisible qu'on ne franchit pas
+    // Même filet que l'étape du mulligan : le bouton peut ne pas être là
+    // (réserve vide, catalogue épuisé), et une étape invisible qu'on ne franchit pas
     // bloquerait tout le script derrière elle.
     done: (s, seen) => seen.has('shopping_reroll') || !s.shopping || !s.canRerollShopping || s.round > 1,
     visible: (s) => s.shopping && s.canRerollShopping,

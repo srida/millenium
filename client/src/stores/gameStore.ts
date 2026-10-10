@@ -4,7 +4,7 @@ import type { Unit } from '../logic/Unit.js';
 import type { PhaseValue } from '../logic/GameState.js';
 import type { GameController } from '../game/GameController.js';
 import type { EndRoundResult } from '../logic/GameSession.js';
-import { MULLIGAN_COST_HP } from '../logic/GameState.js';
+import { MULLIGAN_COST_ENERGY } from '../logic/GameState.js';
 import { SHOPPING_DURATION_S } from '../game/timings.js';
 import type { UiIconId } from '../components/ui/UiIcon.js';
 
@@ -31,8 +31,33 @@ export interface SynergyEntry {
   nextThreshold: { count: number } | null;
 }
 
+/** Une magie à l'étal, avec son prix et ce qui empêche de l'acheter. */
+export interface ShopMagieEntry {
+  magie: import('../logic/types.js').Magie;
+  /** Prix en ⚡ de réserve (selon la rareté). */
+  price: number;
+  /** Achetable maintenant (⚡ et contrecoup en PV). */
+  affordable: boolean;
+}
+
+/** Une carte à l'étal (cf. `GameSession.ShopCardOffer`). */
+export interface ShopCardEntry {
+  card: import('../logic/types.js').Card;
+  kind: 'link' | 'buildable' | 'bet';
+  price: number;
+  affordable: boolean;
+}
+
+/**
+ * La Phase Shopping est une BOUTIQUE : des magies et des cartes payées en ⚡
+ * de réserve, achetées une à une, chacune appliquée aussitôt, jusqu'à
+ * « Passer ». L'état est republié après chaque achat.
+ */
 export interface ShoppingState {
-  magies: import('../logic/types.js').Magie[];
+  magies: ShopMagieEntry[];
+  cards: ShopCardEntry[];
+  /** La réserve du joueur, ce qui paie la boutique. */
+  reserve: number;
   awaitingTarget: 'unit' | 'graveyard' | 'hand' | null;
   /**
    * Ciblage de MAIN : les index de `session.hand` que cette magie peut servir
@@ -47,16 +72,16 @@ export interface ShoppingState {
   handTargets: number[] | null;
   banner: string | null;
   /**
-   * Le reroll de l'offre est-il proposé ? Faux quand le joueur n'a pas les PV,
+   * Le reroll de l'offre est-il proposé ? Faux quand la réserve ne suffit pas,
    * quand le catalogue n'a plus rien de pertinent à montrer qu'il n'ait déjà vu
    * cette phase, et pendant un ciblage.
    *
-   * ⚠️ FIGÉ à la publication de l'offre, pas relu à chaque rendu : la règle vit
-   * dans `GameSession.canRerollShopping()` et balaie le catalogue de magies —
-   * cf. `GameController._shoppingChoice`.
+   * Recalculé à chaque publication (ouverture, achat, reroll), jamais à chaque
+   * rendu : la règle balaie le catalogue de magies — cf.
+   * `GameController._shoppingChoice`.
    */
   canReroll: boolean;
-  /** Le prix du reroll en PV, pour que le bouton l'annonce sans le recopier. */
+  /** Le prix du reroll en ⚡, pour que le bouton l'annonce sans le recopier. */
   rerollCost: number;
   /**
    * Ce que l'offre CONTIENT, à annoncer une fois — `shopping_bonus` (magies
@@ -163,14 +188,17 @@ export interface GameSnapshot {
    *  « Tout annuler » de la barre de préparation s'affiche. */
   canUndo: boolean;
   /** Le mulligan est proposé → le bouton 🔄 de la barre de préparation
-   *  s'affiche. Vrai au tour 1 seulement, tant que rien n'a été posé ni déplacé
-   *  et que le mulligan n'a pas déjà été joué (cf. `GameSession.canMulligan`).
+   *  s'affiche. Une fois par tour, tant que rien n'a été posé ni déplacé et que
+   *  l'énergie suffit (cf. `GameSession.canMulligan`).
    *  ⚠️ Il s'exclut donc de `canUndo` : les deux ne sont jamais vrais ensemble,
    *  et le 🔄 cède sa place au ↺ dès la première invocation. */
   canMulligan: boolean;
-  /** Le prix du mulligan en PV, pour que la confirmation l'annonce sans le
+  /** Le prix du mulligan en ⚡, pour que le bouton l'annonce sans le
    *  recopier. */
   mulliganCost: number;
+  /** La réserve d'énergie du joueur (énergie non posée des tours d'avant,
+   *  séries), qui paie mulligan, reroll et boutique. */
+  energyReserve: number;
   /** Le budget d'invocation du tour (cf. `logic/SummonBudget`) et ce qu'il en
    *  reste. Une carte coûte son tier. */
   energyBudget: number;
@@ -227,7 +255,7 @@ export interface GameSnapshot {
 export const EMPTY_SNAPSHOT: GameSnapshot = {
   round: 1, phase: 'preparation', playerHp: 1000, enemyHp: 1000,
   playerMultiplier: 1, enemyMultiplier: 1, placedCount: 0, canUndo: false,
-  canMulligan: false, mulliganCost: MULLIGAN_COST_HP, energyBudget: 3, energyLeft: 3,
+  canMulligan: false, mulliganCost: MULLIGAN_COST_ENERGY, energyReserve: 0, energyBudget: 3, energyLeft: 3,
   hand: [], graveyard: [], synergies: [], invocationBanner: null, errorFlash: null,
   boardTerrain: null, terrainAlert: null, roundIntro: null, drawPopup: null,
   combatActive: false, combatOutro: null, phaseWipe: null, combatRemaining: 60, speed: 2, showGrid: false, paused: false,

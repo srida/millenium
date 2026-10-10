@@ -1,6 +1,6 @@
-// Un geste payé en PV, à MAINTENIR plutôt qu'un tap suivi d'une confirmation
+// Un geste payé, à MAINTENIR plutôt qu'un tap suivi d'une confirmation
 // modale : le reroll de la Phase Shopping et le mulligan de la barre de
-// préparation. La charge qui remplit le bouton EST la confirmation — le prix
+// préparation, payés en ⚡ de réserve (`currency="energy"`). La charge qui remplit le bouton EST la confirmation — le prix
 // ne s'affiche qu'au moment où il est débité, en toast au-dessus du bouton,
 // jamais écrit sur le bouton lui-même.
 //
@@ -40,7 +40,7 @@ const HOLD_MS = 600;
 const TOAST_VISIBLE_MS = 900;
 const TOAST_FADE_MS = 300;
 
-type Tone = 'danger' | 'gold' | 'gems';
+type Tone = 'danger' | 'gold' | 'gems' | 'energy';
 
 interface ToneStyle {
   surface: string;
@@ -55,6 +55,7 @@ const TONE_STYLE: Record<Tone, ToneStyle> = {
   danger: { surface: SURFACE_DANGER, text: 'text-danger', toast: 'bg-danger text-white', unit: 'PV', icon: null },
   gold: { surface: SURFACE_GOLD, text: 'text-gold', toast: 'bg-gold text-black', unit: CURRENCY.gold.unit, icon: CURRENCY.gold.icon },
   gems: { surface: SURFACE_VIOLET, text: 'text-violet', toast: 'bg-violet text-white', unit: CURRENCY.gems.unit, icon: CURRENCY.gems.icon },
+  energy: { surface: SURFACE_GOLD, text: 'text-gold', toast: 'bg-gold text-black', unit: 'énergie', icon: 'UI_ENERGY' },
 };
 
 export default function HoldConfirmButton({
@@ -78,8 +79,8 @@ export default function HoldConfirmButton({
   /** Posé UNIQUEMENT pour un achat de boutique : bascule la tonalité (surface,
    *  texte, toast) sur la couleur de cette monnaie plutôt que le rouge PV, et
    *  déclenche `shop_buy` au lieu de rien. Omis, le bouton reste le geste payé
-   *  en PV d'origine (mulligan, reroll). */
-  currency?: CurrencyKey;
+   *  en PV d'origine. */
+  currency?: CurrencyKey | 'energy';
   /** Le verbe employé dans le nom accessible (« Maintenir pour ACHETER,
    *  moins… ») — `label` en minuscules par défaut (« mulligan », « re-roll »),
    *  qui ne dit pas grand-chose pour un bouton dont le libellé n'est qu'un
@@ -97,7 +98,7 @@ export default function HoldConfirmButton({
   const startedAt = useRef<number | null>(null);
   const toastTimers = useRef<number[]>([]);
 
-  const tone = TONE_STYLE[currency === 'gold' ? 'gold' : currency === 'gems' ? 'gems' : 'danger'];
+  const tone = TONE_STYLE[currency ?? 'danger'];
   // Texte pur pour l'aria-label (un glyphe d'icône ne se prononce pas de façon
   // fiable) ; nœud avec icône pour le toast visuel, lui `aria-hidden`.
   const toastText = `−${fmt.format(cost)} ${tone.unit}`;
@@ -119,12 +120,12 @@ export default function HoldConfirmButton({
       stopCharge();
       setProgress(0);
       onConfirm();
-      // ⚠️ `currency` seul déclenche `shop_buy` : le geste payé en PV
-      // (mulligan/reroll) joue déjà SON son dédié depuis l'action elle-même
+      // ⚠️ Une monnaie de BOUTIQUE seule déclenche `shop_buy` : le geste payé en
+      // ⚡ (mulligan/reroll) joue déjà SON son dédié depuis l'action elle-même
       // (`GameController.mulligan()` / `rerollShoppingMagies()` →
       // `Audio.playSfx('mulligan_reroll')`), pas depuis le bouton — le
       // sonner ici aussi le ferait sonner deux fois.
-      if (currency) Audio.playSfx('shop_buy');
+      if (currency && currency !== 'energy') Audio.playSfx('shop_buy');
       toastTimers.current.forEach(id => window.clearTimeout(id));
       setToastPhase('in');
       toastTimers.current = [

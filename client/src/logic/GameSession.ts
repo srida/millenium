@@ -11,7 +11,8 @@ import { Board } from './Board.js';
 import { Unit } from './Unit.js';
 import {
   GameState, Phase, PLAYER_HP_CAP,
-  MULLIGAN_COST_HP, MULLIGAN_ROUND, SHOPPING_REROLL_COST_HP,
+  MULLIGAN_COST_ENERGY, SHOPPING_REROLL_COST_ENERGY,
+  MAGIE_ENERGY_PRICE, CARD_ENERGY_PRICE, SHOP_CARD_COUNT,
 } from './GameState.js';
 import { EnemyAI } from './EnemyAI.js';
 import { AttributeManager } from './AttributeManager.js';
@@ -45,11 +46,22 @@ import { indexeMotsCles, porteMotCle, catalogueDeclare } from './Keywords.js';
 import type { IndexMotsCles, AttributMotCle } from './Keywords.js';
 import { indexPlacementKeywords, placementKeyword } from './KeywordPlacement.js';
 import type { PlacementKeyword } from './KeywordPlacement.js';
-import { pickMagies, resolveGuaranteedMagies, isMagieRelevant } from './MagieOffer.js';
+import { pickMagies, resolveGuaranteedMagies, isMagieRelevant, rarityOf } from './MagieOffer.js';
+import { roleOffer } from './Draft.js';
+import { coverageOf } from './DeckCoverage.js';
 import type { MagieOfferContext } from './MagieOffer.js';
 import type { BonusSourceEntry, Card, Position, BoardDef, AttributeDef, DrawSummary, Magie, RoundWinner } from './types.js';
 
 const HAND_SIZE = 5;
+
+/** Une carte à l'étal de la boutique de la Phase Shopping. */
+export interface ShopCardOffer {
+  card: Card;
+  /** Son rôle face à ce que le joueur a en jeu : lien, passe-partout, pari. */
+  kind: 'link' | 'buildable' | 'bet';
+  /** Son prix en ⚡ de réserve (`CARD_ENERGY_PRICE`). */
+  price: number;
+}
 
 /** Sans doublon d'id, dans l'ordre de première apparition. */
 function _distinctCards(cards: readonly Card[]): Card[] {
@@ -202,6 +214,13 @@ export interface EndRoundResult {
    * silencieusement perdues du plateau. Vide dans l'immense majorité des parties.
    */
   overflowUnits: { name: string; side: 'player' | 'enemy' }[];
+  /** L'énergie non posée, versée en réserve au lancement du combat. */
+  reserveBanked: number;
+  /** Ce que la série du joueur rapporte en réserve ce round (0 sinon). */
+  reserveGain: number;
+  reserveGainReason: import('./GameState.js').ReserveGainReason | null;
+  /** La réserve après ce round. */
+  reserveTotal: number;
 }
 
 /**
@@ -238,7 +257,6 @@ interface PrepSnapshot {
    * `veterancy_points` et l'`uid` restent des RÉFÉRENCES intactes.
    */
   bonus: { unit: Unit; stats: Record<string, number> }[];
-  /** L'énergie déjà dépensée à l'ouverture du tour (0, sauf mulligan). */
 }
 
 export interface StartCombatResult {
@@ -436,6 +454,9 @@ export class GameSession {
   // ── Préparation ────────────────────────────────────────────────────────
 
   startPreparation(): DrawSummary {
+    // Un tour neuf : son budget est entier, son mulligan disponible.
+    this._energySpent = 0;
+    this._mulliganUsed = false;
     // Nettoie le terrain du combat précédent
     this.board.clearBlockedCells();
 
@@ -493,77 +514,90 @@ export class GameSession {
 
   // ── Mulligan (bouton 🔄 de la barre de préparation) ──────────────────────
 
-  /**
-   * Le mulligan a-t-il déjà été joué ? **Une fois par PARTIE**, et non une fois
-   * par tour : sans ce verrou, le tour 1 devient une pompe qui échange des PV
-   * contre des pioches jusqu'à trouver la main voulue.
-   */
+  /** Le mulligan a-t-il déjà été joué CE TOUR ? Remis à zéro par
+   *  `startPreparation()` : un par tour, pas un par partie — c'est le prix en
+   *  ⚡ qui le borne, plus un verrou de partie. */
   private _mulliganUsed = false;
 
   /**
    * Le joueur peut-il remettre sa main et repiocher ?
    *
-   * ⚠️ **Le tour doit être INTACT** (`!canUndoPreparation()`), et ce n'est pas
-   * une restriction de confort : le mulligan n'est pas annulable (il débite des
-   * PV, que `undoPreparation` ne rend pas), donc il DÉPLACE le point de retour.
-   * Le déplacer sur un tour où le joueur a déjà posé lui confisquerait
-   * l'annulation de ses invocations ; ne pas le déplacer lui rendrait, d'un ↺,
-   * la main d'avant sans lui rendre ses 50 PV. Exiger un tour intact est la
-   * seule lecture où les deux règles restent vraies — et c'est aussi le geste
-   * ordinaire d'un mulligan : on le joue avant d'agir.
-   *
-   * ⚠️ L'ordre des tests est délibéré : les trois premiers sont des scalaires,
-   * `canUndoPreparation()` (qui balaie main, cimetière et plateau) ne tourne
-   * donc qu'au tour 1, une fois le mulligan encore disponible.
+   * ⚠️ **Le tour doit être INTACT** (`!canUndoPreparation()`) : le mulligan
+   * n'est pas annulable (il débite de l'énergie, que `undoPreparation` ne rend
+   * pas), donc il DÉPLACE le point de retour. Le déplacer sur un tour où le
+   * joueur a déjà posé lui confisquerait l'annulation de ses invocations.
    */
   canMulligan(): boolean {
     return this.gameState.phase === Phase.PREPARATION
-      && this.gameState.round === MULLIGAN_ROUND
       && !this._mulliganUsed
       && this.hand.length > 0
-      && this.gameState.player_hp > MULLIGAN_COST_HP
+      && this.canPayEnergy(MULLIGAN_COST_ENERGY)
       && !this.canUndoPreparation();
   }
 
   /** Le prix du mulligan, pour que l'écran l'annonce sans le recopier. */
-  mulliganCostHp(): number { return MULLIGAN_COST_HP; }
+  mulliganCost(): number { return MULLIGAN_COST_ENERGY; }
 
   /**
    * Remet la main dans le deck et en repioche autant. Rend `false` — sans rien
    * débiter — quand le geste n'est pas disponible.
    *
    * ⚠️ On repioche **autant de cartes qu'on en rend**, jamais `HAND_SIZE` en
-   * dur : au tour 1 la main vaut exactement 5 (les bonus de pioche et les
-   * garanties sont des effets de FIN de combat, il n'y en a pas encore), donc
-   * les deux lectures coïncident — mais celle-ci reste vraie le jour où l'une
-   * d'elles arriverait plus tôt, là où un 5 en dur donnerait ou volerait
-   * silencieusement une carte.
+   * dur : la main s'accumule d'un tour à l'autre.
    *
-   * ⚠️ Le deck n'est pas une pile qu'on épuise (`drawHand` tire avec remise dans
-   * le pool du tour) : « remettre sa main dans son deck » n'a donc rien à
-   * défaire, et la nouvelle main peut parfaitement recroiser une carte rendue.
-   *
-   * ⚠️ `prepId` n'est PAS incrémenté : c'est le même tour de préparation. Il
-   * sert de repère d'identité à la couche app (marque d'événements de missions,
-   * verrou d'engagement PvP) — le bouger ici rendrait périmées deux marques
-   * parfaitement valides.
+   * ⚠️ `prepId` n'est PAS incrémenté : c'est le même tour de préparation.
    */
   mulligan(): boolean {
     if (!this.canMulligan()) return false;
     this._mulliganUsed = true;
-    this.gameState.player_hp -= MULLIGAN_COST_HP;
+    this._payEnergy(MULLIGAN_COST_ENERGY);
     const count = this.hand.length;
     // ⚠️ Le mulligan REND la main au deck : une Unique qu'on tenait encore
-    // redevient donc piochable — sinon le geste la brûlerait sans jamais
-    // l'avoir jouée. `_forgetUniqueDraws` avant le tirage, jamais après.
+    // redevient donc piochable. `_forgetUniqueDraws` avant le tirage.
     this._forgetUniqueDraws(this.hand);
     const drawn = drawHand(this.deps.cardsByTier, this.gameState.round, count, this._rand, this._uniqueDrawn);
     this.hand = drawn;
     this._recordUniqueDraws(drawn);
-    // Le point de retour AVANCE : la main d'avant n'existe plus, et les PV
-    // dépensés ne se rendent pas. Même doctrine que la Phase Shopping, qui a
-    // lieu avant la capture — ce qui est payé n'est jamais annulable.
+    // Le point de retour AVANCE : ce qui est payé n'est jamais annulable.
     this._prepSnapshot = this._capturePreparation();
+    return true;
+  }
+
+  // ── Réserve d'énergie ────────────────────────────────────────────────────
+
+  /**
+   * L'énergie du budget du tour déjà DÉPENSÉE en gestes (mulligan), remise à
+   * zéro par `startPreparation()`. Elle ne revient pas au plateau : dépenser au
+   * tour 1 son budget pour un mulligan, c'est poser moins.
+   */
+  private _energySpent = 0;
+
+  /** Ce que le dernier lancement de combat a versé en réserve (récapitulatif). */
+  private _reserveBanked = 0;
+
+  /** La réserve du joueur — l'énergie non posée des tours précédents, plus les
+   *  séries. */
+  energyReserve(): number { return this.gameState.player_energy_reserve; }
+
+  /** Ce qu'un geste peut dépenser maintenant : la réserve, plus — en
+   *  préparation — ce qui reste du budget du tour. */
+  energyAvailable(): number {
+    const turn = this.gameState.phase === Phase.PREPARATION ? this.energyLeft() : 0;
+    return this.gameState.player_energy_reserve + turn;
+  }
+
+  canPayEnergy(cost: number): boolean { return cost <= this.energyAvailable(); }
+
+  /**
+   * Débite un geste : la RÉSERVE d'abord, le budget du tour ensuite. Le joueur
+   * garde ainsi sa place au plateau tant que sa réserve suffit. Rend `false`
+   * sans rien débiter si les deux ne suffisent pas.
+   */
+  private _payEnergy(cost: number): boolean {
+    if (!this.canPayEnergy(cost)) return false;
+    const fromReserve = Math.min(cost, this.gameState.player_energy_reserve);
+    this.gameState.player_energy_reserve -= fromReserve;
+    this._energySpent += cost - fromReserve;
     return true;
   }
 
@@ -638,7 +672,9 @@ export class GameSession {
   // ── Budget d'invocation (énergie) ────────────────────────────────────────
 
   /** Le budget du tour en cours, plus l'énergie gagnée pour la partie (`energy_bonus`). */
-  energyBudget(): number { return budgetForRound(this.gameState.round) + this.gameState.player_energy_bonus; }
+  energyBudget(): number {
+    return budgetForRound(this.gameState.round) + this.gameState.player_energy_bonus - this._energySpent;
+  }
 
   /** Ce que le plateau occupe déjà : chaque unité vivante du joueur, survivantes
    *  comprises. Structurel — « Tout annuler » et le mulligan n'ont rien à rendre. */
@@ -959,6 +995,14 @@ export class GameSession {
   startCombat(agreedBoard?: BoardDef | null): StartCombatResult {
     // Le tour est engagé : il n'y a plus rien à annuler.
     this._prepSnapshot = null;
+    // ⚠️ L'énergie NON POSÉE part en réserve, et c'est le seul moment où elle
+    // le fait : avant le placement de l'IA (qui ne touche pas au camp joueur)
+    // et pendant que la phase dit encore PRÉPARATION.
+    this._reserveBanked = 0;
+    if (this.gameState.phase === Phase.PREPARATION) {
+      this._reserveBanked = this.energyLeft();
+      this.gameState.player_energy_reserve += this._reserveBanked;
+    }
     // L'IA joue en dernier : son placement consomme encore le cimetière ennemi
     // du round précédent, il doit donc précéder la purge des cimetières.
     this._placeEnemyUnits();
@@ -1018,7 +1062,7 @@ export class GameSession {
     for (const u of playerUnits) { u.resetCombatClocks(); u.resetKeywordStatuses(); }
     for (const u of this.enemyUnits) { u.resetCombatClocks(); u.resetKeywordStatuses(); }
 
-    this.gameState.startCombat(playerUnits.length, this.enemyUnits.length);
+    this.gameState.startCombat();
 
     const attributeManager = new AttributeManager(this.deps.attributeList, playerUnits, this.enemyUnits, this._tokenSpawner);
     const presents = new Set([...playerUnits, ...this.enemyUnits]);
@@ -1164,7 +1208,7 @@ export class GameSession {
       enemySurvivors: enemySurvivors.map(u => ({ name: u.name, atk: u.atk })),
       playerMultiplier: combatOutcome.playerMultiplier,
       enemyMultiplier: combatOutcome.enemyMultiplier,
-      // Le multiplicateur de base (`gameState.player_multiplier`, unités × tour)
+      // Le multiplicateur de base (`gameState.player_multiplier`, facteur de tour)
       // n'est pas touché par `applyEndOfCombat` : l'écart est donc exactement ce
       // que les bonus ont ajouté.
       playerMultiplierBonus: combatOutcome.playerMultiplier > 0
@@ -1182,6 +1226,10 @@ export class GameSession {
         ...playerOverflow.map(u => ({ name: u.name, side: 'player' as const })),
         ...enemyOverflow.map(u => ({ name: u.name, side: 'enemy' as const })),
       ],
+      reserveBanked: this._reserveBanked,
+      reserveGain: combatOutcome.reserveGain,
+      reserveGainReason: combatOutcome.reserveGainReason,
+      reserveTotal: this.gameState.player_energy_reserve,
     };
   }
 
@@ -1317,7 +1365,7 @@ export class GameSession {
   private _shoppingCount = 0;
 
   /** Le prix du reroll, pour que l'écran l'annonce sans le recopier. */
-  shoppingRerollCostHp(): number { return SHOPPING_REROLL_COST_HP; }
+  shoppingRerollCost(): number { return SHOPPING_REROLL_COST_ENERGY; }
 
   /**
    * Ce qu'un reroll pourrait encore montrer : pertinent dans l'état courant, et
@@ -1325,7 +1373,7 @@ export class GameSession {
    *
    * ⚠️ La pertinence est testée ICI et pas seulement à l'intérieur de
    * `pickMagies` : sans elle, `canRerollShopping` promettrait un reroll que le
-   * tirage rendrait vide — le joueur paierait 50 PV pour une offre à zéro carte.
+   * tirage rendrait vide.
    */
   private _rerollCandidates(ctx: MagieOfferContext): Magie[] {
     return this.deps.getAllMagies()
@@ -1335,42 +1383,146 @@ export class GameSession {
   /** Le joueur peut-il payer un reroll, et reste-t-il quelque chose à montrer ? */
   canRerollShopping(): boolean {
     return this._shoppingCount > 0
-      && this.gameState.player_hp > SHOPPING_REROLL_COST_HP
-      && this._rerollCandidates(this._offerContext()).length > 0;
+      && this.canPayEnergy(SHOPPING_REROLL_COST_ENERGY)
+      && (this._rerollCandidates(this._offerContext()).length > 0 || this._shopCardPool().length > 0);
   }
 
   /**
-   * Rejette l'offre en cours et en tire une neuve. Rend `null` — sans rien
-   * débiter — quand le geste n'est pas disponible.
+   * Rejette TOUTE l'offre en cours (magies et cartes) et en tire une neuve.
+   * Rend `false` — sans rien débiter — quand le geste n'est pas disponible.
    *
-   * ⚠️ **Rien de ce qui a été consommé à l'ouverture n'est rejoué** :
-   * `player_extra_shopping_magies` et `player_guaranteed_magies` ont été vidés
-   * par `getShoppingMagies` et ne se re-tirent pas. Le reroll n'est donc qu'un
-   * `pickMagies` — la magie GARANTIE que le joueur écarte est bel et bien
-   * perdue, et c'est pour ça que l'info de l'offre cesse de l'annoncer.
+   * ⚠️ **Rien de ce qui a été consommé à l'ouverture n'est rejoué** : ni
+   * `player_extra_shopping_magies` ni `player_guaranteed_magies`. La magie
+   * GARANTIE que le joueur écarte est perdue.
    *
-   * ⚠️ La taille visée est celle de la phase (`_shoppingCount`), pas 3 en dur :
-   * un `shopping_bonus` payé ce tour-là ne doit pas s'évaporer au premier
-   * reroll. Le pool restant peut en revanche rendre l'offre plus courte — même
-   * règle que l'offre d'ouverture, qui n'a jamais eu de repli non plus.
-   *
-   * ⚠️ Répétable tant que les PV et le pool suivent : chaque reroll rétrécit le
-   * pool et la barre de vie, le geste se borne donc tout seul — il n'y a aucun
-   * compteur à tenir.
+   * ⚠️ La taille visée est celle de la phase (`_shoppingCount`), pas 3 en dur,
+   * et elle ne rétrécit pas avec les achats : un reroll après deux achats
+   * remontre une offre pleine. C'est un geste payé, il se borne par la réserve
+   * et par le pool (chaque reroll écarte ce qu'il a déjà montré).
    */
-  rerollShoppingMagies(): Magie[] | null {
-    if (this._shoppingCount <= 0) return null;
-    if (this.gameState.player_hp <= SHOPPING_REROLL_COST_HP) return null;
+  rerollShop(): boolean {
+    if (!this.canRerollShopping()) return false;
+    this._payEnergy(SHOPPING_REROLL_COST_ENERGY);
     const ctx = this._offerContext();
-    const candidates = this._rerollCandidates(ctx);
-    if (!candidates.length) return null;
-    this.gameState.player_hp -= SHOPPING_REROLL_COST_HP;
-    const offer = pickMagies(candidates, ctx, this._shoppingCount, this._rand);
+    const offer = pickMagies(this._rerollCandidates(ctx), ctx, this._shoppingCount, this._rand);
     for (const m of offer) this._shownMagieIds.add(m.id);
-    // L'extra reste vrai (l'offre garde sa taille), la garantie ne l'est plus :
-    // la magie qu'elle avait placée vient d'être jetée.
+    this._shopMagies = offer;
+    this._shopCards = this._drawShopCards();
+    // L'extra reste vrai (l'offre garde sa taille), la garantie ne l'est plus.
     this._lastShoppingBonusInfo = { extra: this._lastShoppingBonusInfo.extra, guaranteedCount: 0 };
-    return offer;
+    return true;
+  }
+
+  // ── Boutique de la Phase Shopping ────────────────────────────────────────
+  //
+  // Des magies (prix selon la rareté) et trois cartes (prix selon le rôle),
+  // payées en ⚡ de réserve. Le joueur achète un article à la fois, l'article
+  // est appliqué aussitôt, puis il revient à la boutique — jusqu'à « Passer ».
+  //
+  // ⚠️ Pas de synchro PvP : la réserve, la main et l'offre sont locales, et ce
+  // qu'un achat change sur le plateau voyage déjà dans `round:board_ready`.
+
+  private _shopMagies: Magie[] = [];
+  private _shopCards: ShopCardOffer[] = [];
+  private _shownCardIds = new Set<string>();
+
+  /**
+   * Ouvre la boutique : l'offre de magies (`getShoppingMagies`, qui consomme
+   * les bonus et garanties de magies) et trois cartes. Une boutique vide (ni
+   * magie ni carte) fait sauter la phase.
+   */
+  openShop(): { magies: Magie[]; cards: ShopCardOffer[] } {
+    this._shopMagies = this.getShoppingMagies();
+    this._shownCardIds = new Set();
+    this._shopCards = this._drawShopCards();
+    return { magies: this.shopMagies(), cards: this.shopCards() };
+  }
+
+  /** Ferme la boutique : plus rien à acheter ni à reroller. */
+  closeShop(): void {
+    this._shopMagies = [];
+    this._shopCards = [];
+    this._shoppingCount = 0;
+  }
+
+  shopMagies(): Magie[] { return [...this._shopMagies]; }
+  shopCards(): ShopCardOffer[] { return [...this._shopCards]; }
+
+  /** Le prix d'une magie en ⚡, selon sa rareté. */
+  magiePrice(magie: Magie): number { return MAGIE_ENERGY_PRICE[rarityOf(magie as any)]; }
+
+  /** Cette magie est-elle à l'étal, et le joueur peut-il la payer (⚡ et
+   *  contrecoup en PV) ? */
+  canBuyMagie(magie: Magie): boolean {
+    return this._shopMagies.includes(magie)
+      && this.canPayEnergy(this.magiePrice(magie))
+      && this.canAffordMagie(magie);
+  }
+
+  /**
+   * Encaisse une magie de l'étal : débite son prix et la retire de l'offre.
+   * Appelé par la couche app JUSTE AVANT l'application (après le ciblage, qui
+   * reste annulable sans rien payer). Rend `false` sans rien débiter si
+   * l'achat n'est pas possible.
+   */
+  chargeMagie(magie: Magie): boolean {
+    if (!this.canBuyMagie(magie)) return false;
+    this._payEnergy(this.magiePrice(magie));
+    this._shopMagies = this._shopMagies.filter(m => m !== magie);
+    return true;
+  }
+
+  canBuyShopCard(index: number): boolean {
+    const offer = this._shopCards[index];
+    return !!offer && this.canPayEnergy(offer.price);
+  }
+
+  /**
+   * Achète la carte de l'étal à cet index : débite son prix, la pose EN MAIN
+   * (un objet neuf, jamais la référence du deck) et la retire de l'offre.
+   * Rend la carte, ou `null` sans rien débiter.
+   */
+  buyShopCard(index: number): Card | null {
+    if (!this.canBuyShopCard(index)) return null;
+    const offer = this._shopCards[index];
+    this._payEnergy(offer.price);
+    const card = { ...offer.card };
+    this.hand.push(card);
+    this._recordUniqueDraws([card]);
+    this._shopCards = this._shopCards.filter((_, i) => i !== index);
+    return card;
+  }
+
+  /**
+   * Ce que la boutique peut proposer en cartes : les cartes du DECK (la seule
+   * réserve qu'une partie connaisse) aux tiers du tour QUI VIENT, moins les
+   * Uniques déjà tirées et ce que la phase a déjà montré.
+   */
+  private _shopCardPool(): Card[] {
+    const tiers = new Set(tiersForRound(this.gameState.round + 1));
+    return this._deckCards()
+      .filter(c => tiersOf(c).some(t => tiers.has(t))
+        && !this._uniqueDrawn.has(c.id) && !this._shownCardIds.has(c.id))
+      .sort((x, y) => x.id.localeCompare(y.id));
+  }
+
+  /**
+   * Les trois cartes de la boutique — l'offre à trois rôles du Draft
+   * (`Draft.roleOffer`), jugée contre ce que le joueur a EN JEU (main,
+   * plateau, cimetière) : un lien avec ses cartes, une carte qu'il peut poser,
+   * un pari. Un rôle de repli prend le prix du rôle qu'il a réellement.
+   */
+  private _drawShopCards(): ShopCardOffer[] {
+    const pool = this._shopCardPool();
+    if (!pool.length) return [];
+    const cardOf = (u: Unit) => this.deps.cardDb.getCard(u.card_id);
+    const ref = _distinctCards([
+      ...this.hand,
+      ...[...this.getPlayerUnits(), ...this.graveyard].map(cardOf).filter((c): c is Card => !!c),
+    ]);
+    const slots = roleOffer(ref.map(c => c.id), ref, coverageOf(ref), pool, this._rand).slice(0, SHOP_CARD_COUNT);
+    for (const sl of slots) this._shownCardIds.add(sl.card.id);
+    return slots.map(sl => ({ card: sl.card, kind: sl.kind, price: CARD_ENERGY_PRICE[sl.kind] }));
   }
 
   /**
@@ -1976,6 +2128,7 @@ export class GameSession {
    *  nouveau tour, ou `null` si la partie est finie — il n'y a alors rien à
    *  annoncer. */
   startNextRound(): DrawSummary | null {
+    this.closeShop();
     this.gameState.nextRound();
     if (this.gameState.phase === Phase.GAME_OVER) return null;
     return this.startPreparation();

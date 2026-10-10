@@ -5,20 +5,12 @@ import { tiersForRound } from '../logic/Draw.js';
 import { applyBoardEffects } from '../logic/BoardEffect.js';
 
 describe('GameState — multiplicateurs', () => {
-  it.each([
-    [5, 1.0], [6, 1.0], [4, 1.2], [3, 1.5], [2, 2.0], [1, 3.0], [0, 3.0],
-  ])('%i unités → ×%d', (count, expected) => {
-    const gs = new (GameState as any)();
-    gs.startCombat(count, 5);
-    expect(gs.player_unit_multiplier).toBe(expected);
-  });
-
-  it('le multiplicateur final inclut le facteur de tour (unit_mult × roundFactor)', () => {
+  it('le multiplicateur de base est le seul facteur de tour, quel que soit le plateau', () => {
     const gs = new (GameState as any)();
     gs.round = 4;
-    gs.startCombat(3, 5);
-    expect(gs.player_multiplier).toBe(1.5 * 2.5);
-    expect(gs.enemy_multiplier).toBe(1.0 * 2.5);
+    gs.startCombat();
+    expect(gs.player_multiplier).toBe(2.5);
+    expect(gs.enemy_multiplier).toBe(2.5);
   });
 
   it('le facteur de tour va de ×1 à ×3 par pas de 0,5', () => {
@@ -26,10 +18,51 @@ describe('GameState — multiplicateurs', () => {
   });
 });
 
+describe('GameState — séries et réserve', () => {
+  const run = (winners: string[]) => {
+    const gs = new (GameState as any)();
+    const gains = winners.map(w => gs.creditRoundOutcome(w).gain);
+    return { gs, gains };
+  };
+
+  it('victoires : rien à la première, +2 à la deuxième, +3 ensuite', () => {
+    const { gs, gains } = run(['player', 'player', 'player', 'player']);
+    expect(gains).toEqual([0, 2, 3, 3]);
+    expect(gs.player_energy_reserve).toBe(8);
+  });
+
+  it('défaites : +1 puis +2 ensuite', () => {
+    const { gs, gains } = run(['enemy', 'enemy', 'enemy']);
+    expect(gains).toEqual([1, 2, 2]);
+    expect(gs.player_energy_reserve).toBe(5);
+  });
+
+  it('rompre une série remet son compteur à zéro', () => {
+    const { gains } = run(['player', 'player', 'enemy', 'player', 'player']);
+    expect(gains).toEqual([0, 2, 1, 0, 2]);
+  });
+
+  it('un nul ou un timeout rompt les deux séries et ne rapporte rien', () => {
+    const { gs, gains } = run(['enemy', 'timeout', 'enemy', 'draw', 'player']);
+    expect(gains).toEqual([1, 0, 1, 0, 0]);
+    expect(gs.player_win_streak).toBe(1);
+    expect(gs.player_loss_streak).toBe(0);
+  });
+
+  it('applyEndOfCombat verse la série et rend sa raison', () => {
+    const gs = new (GameState as any)();
+    gs.startCombat();
+    const out = gs.applyEndOfCombat('enemy', 0, 10);
+    expect(out.reserveGain).toBe(1);
+    expect(out.reserveGainReason).toBe('loss');
+    expect(gs.player_energy_reserve).toBe(1);
+  });
+});
+
 describe('GameState — fin de combat', () => {
   it('victoire joueur : seuls les HP ennemis baissent', () => {
     const gs = new (GameState as any)();
-    gs.startCombat(5, 5);
+    gs.startCombat();
     gs.applyEndOfCombat('player', 40, 25);
     expect(gs.enemy_hp).toBe(1000 - 40);
     expect(gs.player_hp).toBe(1000);
@@ -39,29 +72,29 @@ describe('GameState — fin de combat', () => {
   it('timeout : les deux camps prennent des dégâts', () => {
     const gs = new (GameState as any)();
     gs.round = 2;
-    gs.startCombat(3, 4); // player ×1.5×1.5=2.25, enemy ×1.2×1.5=1.8
-    gs.applyEndOfCombat('timeout', 10, 10);
-    expect(gs.enemy_hp).toBe(1000 - Math.round(10 * 2.25));
-    expect(gs.player_hp).toBe(1000 - Math.round(10 * 1.8));
+    gs.startCombat(); // ×1,5 des deux côtés, quel que soit le plateau
+    gs.applyEndOfCombat('timeout', 10, 20);
+    expect(gs.enemy_hp).toBe(1000 - Math.round(10 * 1.5));
+    expect(gs.player_hp).toBe(1000 - Math.round(20 * 1.5));
   });
 
   it('damage_multiplier_bonus (attribut) s\'ajoute au multiplicateur joueur', () => {
     const gs = new (GameState as any)();
-    gs.startCombat(5, 5);
+    gs.startCombat();
     gs.applyEndOfCombat('player', 20, 0, { damage_multiplier_bonus: 0.5 });
     expect(gs.enemy_hp).toBe(1000 - Math.round(20 * 1.5));
   });
 
   it('les HP sont clampés à 0', () => {
     const gs = new (GameState as any)();
-    gs.startCombat(1, 5); // ×3
-    gs.applyEndOfCombat('player', 500, 0);
+    gs.startCombat();
+    gs.applyEndOfCombat('player', 1500, 0);
     expect(gs.enemy_hp).toBe(0);
   });
 
   it('accumule extra draws, guaranteed draws et shopping bonus', () => {
     const gs = new (GameState as any)();
-    gs.startCombat(5, 5);
+    gs.startCombat();
     gs.applyEndOfCombat('player', 0, 0, {
       draw_bonus: 2,
       guaranteed_draws: [{ category: 'fusion', attribute: null }],
@@ -78,7 +111,7 @@ describe('GameState — fin de combat', () => {
   // vérifier).
   it('player_hp_bonus (attribut) crédite player_hp et le rend avec sa provenance', () => {
     const gs = new (GameState as any)();
-    gs.startCombat(5, 5);
+    gs.startCombat();
     const out = gs.applyEndOfCombat('draw', 0, 0, {
       player_hp_bonus: 30,
       player_hp_sources: [{ kind: 'attribut', ref: 'ARCH_X', value: 30 }],
@@ -91,7 +124,7 @@ describe('GameState — fin de combat', () => {
   it('player_hp_bonus négatif (attribut) inflige et se clampe à 0', () => {
     const gs = new (GameState as any)();
     gs.player_hp = 20;
-    gs.startCombat(5, 5);
+    gs.startCombat();
     gs.applyEndOfCombat('draw', 0, 0, {
       player_hp_bonus: -50,
       player_hp_sources: [{ kind: 'attribut', ref: 'ARCH_X', value: -50 }],
@@ -112,7 +145,7 @@ describe('GameState — fin de combat', () => {
       { gameState: gs } as any
     );
     expect(gs.player_hp).toBe(910);
-    gs.startCombat(5, 5);
+    gs.startCombat();
     const out = gs.applyEndOfCombat('draw', 0, 0, {
       player_hp_bonus: 5,
       player_hp_sources: [{ kind: 'attribut', ref: 'ARCH_X', value: 5 }],
@@ -132,11 +165,11 @@ describe('GameState — fin de combat', () => {
   // Mutation : retirer le bloc `enemyHpBonus` d'`applyEndOfCombat` → ROUGE.
   it('verse enemy_hp_bonus (attribut adverse) dans enemy_hp, écrêté', () => {
     const gs = new (GameState as any)();
-    gs.startCombat(5, 5);
+    gs.startCombat();
     gs.enemy_hp = 700;
     gs.applyEndOfCombat('draw', 0, 0, { enemy_hp_bonus: -40 });
     expect(gs.enemy_hp).toBe(660);
-    gs.startCombat(5, 5);
+    gs.startCombat();
     gs.applyEndOfCombat('draw', 0, 0, { enemy_hp_bonus: 500 });
     expect(gs.enemy_hp).toBe(1000);
     expect(gs.player_hp).toBe(1000);
@@ -149,7 +182,7 @@ describe('GameState — fin de combat', () => {
     const gs = new (GameState as any)();
     gs.enemy_damage_multiplier_bonus = 1.5;
     gs.enemy_multiplier_sources = [{ kind: 'magie', ref: 'MAGIC_X', value: 1.5 }];
-    gs.startCombat(5, 5);
+    gs.startCombat();
     const out = gs.applyEndOfCombat('enemy', 0, 100, {
       enemy_damage_multiplier_bonus: 0.5,
       enemy_damage_multiplier_sources: [{ kind: 'attribut', ref: 'ARCH_X', value: 0.5 }],
@@ -167,7 +200,7 @@ describe('GameState — fin de combat', () => {
   // deux côtés, contrairement au Shopping (exclusivement joueur).
   it('accumule enemy_extra_draws et enemy_guaranteed_draws', () => {
     const gs = new (GameState as any)();
-    gs.startCombat(5, 5);
+    gs.startCombat();
     gs.applyEndOfCombat('player', 0, 0, {
       enemy_draw_bonus: 3,
       enemy_guaranteed_draws: [{ category: 'sacrifice', attribute: null }],
@@ -183,7 +216,7 @@ describe('GameState — fin de combat', () => {
 describe('GameState — tours et fin de partie', () => {
   it('nextRound incrémente et reset les multiplicateurs', () => {
     const gs = new (GameState as any)();
-    gs.startCombat(2, 2);
+    gs.startCombat();
     gs.applyEndOfCombat('player', 10, 0);
     expect(gs.nextRound()).toBe(Phase.PREPARATION);
     expect(gs.round).toBe(2);

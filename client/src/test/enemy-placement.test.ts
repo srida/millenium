@@ -34,17 +34,12 @@ describe('Placement de l\'IA (solo)', () => {
     expect(session.enemyUnits).toHaveLength(0);
   });
 
-  it('startCombat place l\'IA avant de figer le multiplicateur', () => {
+  it('startCombat place l\'IA', () => {
     const session = makeSession();
     session.startPreparation();
     const { enemyUnits } = session.startCombat();
     expect(enemyUnits.length).toBeGreaterThan(0);
     expect(session.getEnemyUnits()).toHaveLength(enemyUnits.length);
-    // Le multiplicateur ennemi tient compte des unités fraîchement posées :
-    // preuve que le placement précède bien gameState.startCombat (un board vide
-    // donnerait ×3.0).
-    const expected: Record<number, number> = { 1: 3.0, 2: 2.0, 3: 1.5, 4: 1.2, 5: 1.0 };
-    expect(session.gameState.enemy_unit_multiplier).toBe(expected[Math.min(5, enemyUnits.length)]);
   });
 
   it('en PvP, startCombat ne place rien (adversaire humain distant)', () => {

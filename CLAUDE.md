@@ -584,10 +584,10 @@ node scripts/build-bot-decks.js [--write|--check]
 
 **5 tours. PV des joueurs : 1000.** Chaque tour :
 
-1. **Préparation** (`PREP_DURATION = 60` s — placement, chrono tenu par l'écran React, lance le combat à 0 ; **mulligan 🔄 au tour 1**)
+1. **Préparation** (`PREP_DURATION = 60` s — placement, chrono tenu par l'écran React, lance le combat à 0 ; **mulligan à 2 ⚡**)
 2. **Combat** (auto-résolu, animé, coupé à 60 s de temps réel)
 3. **Fin de combat** (dégâts aux PV, nettoyage)
-4. **Phase Shopping** (sauf dernier tour) — une magie parmi 3 (+ `shopping_bonus`), **reroll 🎲**, 45 s en PvP
+4. **Phase Shopping** (sauf dernier tour) — boutique de 3 magies + 3 cartes payées en énergie de réserve, **reroll 🎲 1 ⚡**, 45 s en PvP
 5. Tour suivant
 
 Fin de partie : tour 5 terminé, un joueur à 0 PV, ou abandon par le menu.
@@ -667,24 +667,38 @@ Bouton **↺** de `PhaseControls`. Tout est dans `GameSession.undoPreparation()`
 - **Les deux camps** : `EnemyAI.placeFromHand(..., budget)` part de `budget − boardEnergy(son camp)` et refuse en `over_budget` (glosé dans `aiLabRun.REASON_LABELS` et `AI_REASONS` d'`admin.html`). ⚠️ L'IA ne compte pas d'avance ce que des matériaux lui rendraient (une tentative mute le plateau) : elle est plus prudente que le joueur. `MatchSimulator` et le Labo IA passent `budgetForRound`. `budget = Infinity` (défaut) = ancien comportement.
 - Rien côté PvP : chaque client tient son propre budget.
 - **`energy_bonus`** (magie Réaction en chaîne, ou attribut) : `player_energy_bonus` / `enemy_energy_bonus`, **cumulables, sans plafond**, ajoutés au budget de chaque tour (`GameSession.energyBudget`, `_placeEnemyUnits`).
-- Affichage : icône `UI_ENERGY` (seul PNG de `UiIcon`) + `restant/budget` dans le `Hud`, sous le numéro de manche, en préparation seulement.
+- Affichage : icône `UI_ENERGY` (seul PNG de `UiIcon`) + `restant/budget` dans le `Hud`, sous le numéro de manche, en préparation seulement ; `+N` à côté = la réserve.
+
+### Réserve d'énergie (joueur seulement)
+
+`gameState.player_energy_reserve` : monnaie du mulligan, du reroll et de la boutique.
+
+| Source | Gain |
+|---|---|
+| Énergie du tour non posée | banquée par `startCombat` (`budget − energyUsed − dépensé`) |
+| Série de victoires (`WIN_STREAK_RESERVE`) | 0, +2, puis +3 |
+| Série de défaites (`LOSS_STREAK_RESERVE`) | +1, puis +2 |
+
+- Nul et timeout rompent les deux séries et ne rapportent rien (`creditRoundOutcome`, appelé par `applyEndOfCombat`, qui rend `reserveGain`/`reserveGainReason`).
+- `_payEnergy` débite **la réserve d'abord**, puis le budget du tour (`_energySpent`, soustrait par `energyBudget`). `energyAvailable` n'ajoute le reste du tour qu'en `PREPARATION`.
+- Récapitulatif : `Overlays.ReserveLine`, lignes de `data/ReserveInfo.reserveLines`.
+- Rien côté PvP ni IA : la réserve ne voyage pas et l'IA n'en a pas.
 
 ### Mulligan — le seul geste qui DÉPLACE le point de retour
 
-Bouton **🔄** de `PhaseControls`, au **tour 1** : remet la main dans le deck et en repioche autant, contre **`MULLIGAN_COST_HP` = 50 PV** (`GameState.ts`, avec `SHOPPING_REROLL_COST_HP` et `MULLIGAN_ROUND`). Tout est dans `GameSession.canMulligan()` / `mulligan()`.
+Bouton `UI_MULLIGAN` + prix de `PhaseControls`, **à chaque tour** : remet la main dans le deck et en repioche autant, contre **`MULLIGAN_COST_ENERGY` = 2 ⚡** (`GameState.ts`). Tout est dans `GameSession.canMulligan()` / `mulligan()` / `mulliganCost()`.
 
 | Règle | Valeur |
 |---|---|
-| Tour | **1 seulement** (`MULLIGAN_ROUND`) |
-| Fréquence | **une fois par partie** (`_mulliganUsed`) |
-| Prix | 50 PV, comparaison **stricte** (`player_hp > cost`) — payer laisse toujours 1 PV |
+| Fréquence | **une fois par tour** (`_mulliganUsed`, remis à zéro par `startPreparation`) |
+| Prix | 2 ⚡, réserve d'abord puis budget du tour (`canPayEnergy`) |
 | Disponibilité | main non vide **et tour INTACT** (`!canUndoPreparation()`) |
 
-- ⚠️ **Le tour doit être intact, et c'est ce qui rend les deux règles compatibles** : le mulligan n'est pas annulable (il débite des PV, que `undoPreparation` ne rend pas), il **re-capture donc le `_prepSnapshot`**. Le déplacer sur un tour déjà joué confisquerait l'annulation des invocations ; ne pas le déplacer rendrait la main d'avant sans rendre les PV. Même doctrine que la Phase Shopping, qui a lieu **avant** la capture.
-- **Corollaire visible** : 🔄 et ↺ ne sont **jamais** à l'écran ensemble — le premier cède sa place au second à la première invocation.
+- ⚠️ **Le tour doit être intact, et c'est ce qui rend les deux règles compatibles** : le mulligan n'est pas annulable (il débite de l'énergie, que `undoPreparation` ne rend pas), il **re-capture donc le `_prepSnapshot`**. Le déplacer sur un tour déjà joué confisquerait l'annulation des invocations ; ne pas le déplacer rendrait la main d'avant sans rendre l'énergie. Même doctrine que la Phase Shopping, qui a lieu **avant** la capture.
+- **Corollaire visible** : mulligan et ↺ ne sont **jamais** à l'écran ensemble — le premier cède sa place au second à la première invocation.
 - ⚠️ **`prepId` n'est PAS incrémenté** : c'est le même tour. Le bouger périmerait la marque d'événements de missions et le verrou d'engagement PvP, tous deux parfaitement valides.
-- ⚠️ **On repioche `hand.length`, jamais `HAND_SIZE` en dur** : au tour 1 les deux coïncident (bonus de pioche et garanties sont des effets de **fin** de combat), la première reste vraie si l'un d'eux arrivait plus tôt.
-- **Rien côté PvP** : `player_hp` voyage déjà et la main n'entre pas dans `round:board_ready`. `GameController.canMulligan()` ajoute le seul garde-fou applicatif, `_committedPrepId`, exactement comme pour ↺.
+- ⚠️ **On repioche `hand.length`, jamais `HAND_SIZE` en dur** : la main s'accumule d'un tour à l'autre.
+- **Rien côté PvP** : la main n'entre pas dans `round:board_ready`. `GameController.canMulligan()` ajoute le seul garde-fou applicatif, `_committedPrepId`, exactement comme pour ↺.
 - **Rien côté serveur, rien côté missions** : un tour intact n'a pu mettre aucun `summon_performed` en file.
 
 ## Pioche (`Draw.drawHand`)
@@ -723,23 +737,13 @@ La main est **conservée entre les tours** (taille illimitée) ; les cartes non 
 
 ## Multiplicateur de dégâts
 
-Calculé au lancement du combat, **indépendamment pour chaque côté** :
-
-| Unités sur le terrain | Multiplicateur |
-|---|---|
-| ≥ 5 | 1.0 |
-| 4 | 1.2 |
-| 3 | 1.5 |
-| 2 | 2.0 |
-| 0–1 | 3.0 |
+Identique pour les deux côtés : **seul le facteur de tour**, plus de composante « nombre d'unités ».
 
 ```js
-multiplicateur_final = multiplier(unitCount) × roundFactor(round)   // ×1, ×1,5, ×2, ×2,5, ×3
+multiplicateur = roundFactor(round)   // ×1, ×1,5, ×2, ×2,5, ×3
 ```
 
-`roundFactor` (`GameState.ts`) = `1 + 0,5 × (round − 1)`. Il valait le numéro du tour : le tour 5 pesait un tiers de la partie.
-
-`gameState.startCombat(playerUnitCount, enemyUnitCount)` calcule `player_multiplier` / `enemy_multiplier` ; `player_unit_multiplier` garde la composante « nombre d'unités » seule, pour l'affichage du détail. L'effet d'attribut `end_of_combat` `damage_multiplier_bonus` s'y **ajoute** (côté joueur).
+`roundFactor` (`GameState.ts`) = `1 + 0,5 × (round − 1)`. `gameState.startCombat()` ne prend plus d'argument. L'effet d'attribut `end_of_combat` `damage_multiplier_bonus` s'y **ajoute**.
 
 ⚠️ **Le récapitulatif de round DÉTAILLE la part bonus ET la NOMME** (`ATQ × (base +bonus) = dégâts`, puis « 🧬 Rage de Vaincre +1,5 » en dessous — `Overlays.DamageLine`) : un facteur qui passe de ×2 à ×3,5 était un chiffre sans cause.
 - `EndRoundResult.playerMultiplierBonus` / `enemyMultiplierBonus` se **soustraient** au multiplicateur de base, ils ne somment pas les sources — sinon une quatrième source câblée sans passer par là ferait annoncer une somme qui ne fait pas son total.
@@ -1435,6 +1439,18 @@ Aucune case bloquée → LOS toujours `true` (court-circuit). Une unité sans LO
 
 ## Phase Shopping et magies
 
+**La phase est une boutique** : 3 magies + 3 cartes, payées en **énergie de réserve**, achetées **une à une** jusqu'à « Passer » (`GameSession.openShop` / `closeShop`, `GameController._backToShop` après chaque achat).
+
+| Article | Prix |
+|---|---|
+| Magie | `MAGIE_ENERGY_PRICE` : rareté 1/2/3 → 1/2/3 ⚡ |
+| Carte (`SHOP_CARD_COUNT` = 3) | `CARD_ENERGY_PRICE` : lien 3 · passe-partout 2 · pari 1 |
+| Reroll (toute la boutique) | `SHOPPING_REROLL_COST_ENERGY` = 1 ⚡ |
+
+- **Cartes** : `Draft.roleOffer` (le tirage de la carte de plus du Draft, extrait tel quel), jugé contre main + plateau + cimetière. Pool : le deck aux tiers du tour **suivant**, sans Unique déjà tirée ni carte déjà montrée (`_shownCardIds`). Un rôle de repli prend le prix du rôle qu'il a réellement. Achetée → **en main**.
+- ⚠️ **Une magie se paie À L'APPLICATION** (`chargeMagie` juste avant chaque `applyMagie…`) : le ciblage reste annulable gratuitement. Son `cost_hp` s'applique en plus.
+- `HoldConfirmButton` a un ton `currency="energy"` (or, comme le HUD).
+
 Après le combat, 3 magies proposées (+ `player_extra_shopping_magies`, accumulé par l'attribut `shopping_bonus` et consommé au tirage). L'offre est **filtrée par pertinence** puis **tirée pondérée par rareté, sans remise**, dans le flux `rand` **semé** de la partie (`logic/MagieOffer.ts`).
 
 **Sautée** si `gameState.isGameOver()`, ou si l'offre est **vide** → `_startShopping` fait `_proceedNextRound()`.
@@ -1455,19 +1471,19 @@ dismissEndRound() → _startShopping() → chooseMagie(magie) → skipShopping()
 // components/shopping/ShoppingLayer.tsx — rendu
 ```
 
-### Reroll de l'offre (bouton 🎲)
+### Reroll de la boutique (bouton 🎲)
 
-Contre **`SHOPPING_REROLL_COST_HP` = 50 PV** (`GameState.ts`), l'offre est jetée et re-tirée : `GameSession.canRerollShopping()` / `rerollShoppingMagies()`.
+Contre **1 ⚡**, magies et cartes sont jetées et re-tirées à pleine taille : `GameSession.canRerollShopping()` / `rerollShop()`.
 
 - ⚠️ **Le registre `_shownMagieIds` est ce qui rend le mot « nouvelles » VRAI** : un reroll ne peut jamais reproposer ce que le joueur vient d'écarter. Il est **affecté** (pas ajouté) par `getShoppingMagies`, donc chaque phase repart de zéro — rien à purger.
-- ⚠️ **Répétable, et il se borne tout seul** : chaque reroll rétrécit le pool restant et la barre de vie. Aucun compteur à tenir.
+- ⚠️ **Répétable, et il se borne tout seul** : chaque reroll rétrécit le pool restant et la réserve. Aucun compteur à tenir.
 - ⚠️ **La taille visée est celle de la PHASE (`_shoppingCount` = `3 + extra`)**, pas 3 en dur : un `shopping_bonus` ne doit pas s'évaporer au premier reroll. Le pool restant peut rendre l'offre plus courte — même règle que l'offre d'ouverture, qui n'a jamais eu de repli non plus.
 - ⚠️ **Rien de consommé à l'ouverture n'est rejoué** : `player_extra_shopping_magies` et `player_guaranteed_magies` sont déjà vidés. Le reroll n'est qu'un `pickMagies` — une magie **garantie** que le joueur jette est perdue, d'où le `guaranteedCount: 0` remis dans `_lastShoppingBonusInfo` (l'`extra`, lui, reste vrai : l'offre garde sa taille).
-- ⚠️ **La pertinence est testée dans `_rerollCandidates`, pas seulement dans `pickMagies`** : sans elle, `canRerollShopping` promettrait un reroll que le tirage rendrait vide — 50 PV pour zéro carte.
+- ⚠️ **La pertinence est testée dans `_rerollCandidates`, pas seulement dans `pickMagies`** : sans elle, `canRerollShopping` promettrait un reroll que le tirage rendrait vide — 1 ⚡ pour zéro carte.
 - **`ShoppingState.canReroll` est FIGÉ à la publication de l'offre**, jamais relu à chaque `sync` : rien ne peut le changer pendant qu'une offre est à l'écran, et la règle balaie le catalogue de magies. Les trois états « écran de choix » passent par une fabrique unique, `GameController._shoppingChoice()` (`_shoppingTargeting()` pour le ciblage, où `canReroll` est faux).
-- **Rien côté PvP** : `player_hp` voyage déjà, et le shopping n'est de toute façon pas synchronisé.
+- **Rien côté PvP** : le shopping n'est pas synchronisé.
 
-⚠️ **Le mulligan et le reroll sont les deux seuls gestes payés en PV**, et ils partagent leur confirmation (`components/ui/ConfirmHpCost.tsx`) : prix, PV restants, deux boutons. Ce n'est **pas** la doctrine de la modale de magies, qui n'a volontairement aucune confirmation (le contrecoup se lit sur la carte choisie, une magie impayable est verrouillée) — ici le tap est à un pouce de PRÊT ou des magies elles-mêmes, et il ne se reprend pas.
+Mulligan, reroll et achats passent par `HoldConfirmButton` : la charge du maintien EST la confirmation.
 
 ### Modèle de données
 
@@ -1947,7 +1963,7 @@ Codex de 12 chapitres + partie guidée + création accompagnée du premier deck.
 - **`ai_win` n'est pas crédité** ; les **missions**, en revanche, ne sont *pas* neutralisées (une partie d'entraînement est une partie solo au regard des garde-fous serveur, et la contourner demanderait de toucher `GameController`).
 - La bulle se pose **au-dessus de la main** en portrait ; pendant les trois modales centrées (récapitulatif, Shopping, fin de partie) elle passe **en haut**.
 - Le script s'arrête au **tour 2**.
-- ⚠️ **Les deux étapes des gestes payés en PV (`mulligan`, `shopping_reroll`) portent leur indisponibilité dans leur `done`, pas seulement dans leur `visible`** : le bouton peut ne pas être à l'écran (déjà joué, PV trop bas, catalogue épuisé), et `advanceGameSteps` s'arrête à la **première** étape non franchie — une étape invisible qu'on ne franchit pas bloquerait tout le script derrière elle. Les deux drapeaux viennent de l'instantané (`canMulligan`, `shopping.canReroll`), jamais d'une règle réimplémentée.
+- ⚠️ **Les deux étapes des gestes payés en énergie (`mulligan`, `shopping_reroll`) portent leur indisponibilité dans leur `done`, pas seulement dans leur `visible`** : le bouton peut ne pas être à l'écran (déjà joué, réserve trop basse, catalogue épuisé), et `advanceGameSteps` s'arrête à la **première** étape non franchie — une étape invisible qu'on ne franchit pas bloquerait tout le script derrière elle. Les deux drapeaux viennent de l'instantané (`canMulligan`, `shopping.canReroll`), jamais d'une règle réimplémentée.
 - ⚠️ L'étape `shopping` est passée **à TAP** : sans elle, `shopping_reroll` ne serait atteinte qu'au tour 2, quand la modale n'est plus à l'écran. Deux étapes à expliquer dans une même phase modale imposent de franchir la première au tap.
 - `DeckCoach` est rendu **dans** `DeckBuilder`, en flux au-dessus du pied de page, et reçoit les valeurs **déjà dérivées à chaque rendu** (`total`, `perTier`, `tierMax`, `name`, `tab`, `valid`) : aucun refactor, **aucune règle réimplémentée**. Il n'a pas d'index d'étape, seulement l'état — un joueur qui retire des cartes revient donc au message précédent.
 

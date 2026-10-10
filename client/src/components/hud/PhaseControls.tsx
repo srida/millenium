@@ -35,7 +35,7 @@ function TerrainChip({ board }: { board: BoardDef }) {
   return (
     <button
       ref={ref}
-      className="flex min-h-tap min-w-[4.5rem] max-w-[8rem] items-center gap-1.5 rounded-md border border-line bg-surface/80 px-2 text-xs text-white/80 active:opacity-80"
+      className="flex min-h-tap min-w-[2.75rem] max-w-[8rem] shrink items-center gap-1.5 rounded-md border border-line bg-surface/80 px-2 text-xs text-white/80 active:opacity-80"
       {...handlers}
     >
       {board._has_illustration
@@ -197,12 +197,18 @@ export default function PhaseControls({ pvp = false }: { pvp?: boolean }) {
       <div className="flex-1" />
       <GridButton active={showGrid} onToggle={() => controller.toggleGrid()} />
       {/* `visible`, pas un montage conditionnel : `canMulligan` retombe à
-          `false` dans le MÊME tick que `onConfirm` (une seule fois par
-          partie) — démonter le composant ici tuerait son toast avant qu'il
-          ne s'affiche (cf. `HoldConfirmButton`). */}
+          `false` dans le MÊME tick que `onConfirm` (une fois par tour) —
+          démonter le composant ici tuerait son toast avant qu'il ne
+          s'affiche (cf. `HoldConfirmButton`). Icône et prix plutôt que le
+          mot : le bouton revient à chaque tour, et « Mulligan » en toutes
+          lettres poussait PRÊT hors de l'écran en portrait. */}
       <HoldConfirmButton
-        label="Mulligan"
+        icon={<UiIcon id="UI_MULLIGAN" className="h-5 w-5" />}
+        label={`${mulliganCost}⚡`}
+        actionLabel="faire un mulligan"
+        title="Mulligan : remettre ta main dans le deck et repiocher"
         cost={mulliganCost}
+        currency="energy"
         onConfirm={() => controller.mulligan()}
         visible={canMulligan}
       />

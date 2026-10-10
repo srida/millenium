@@ -29,18 +29,45 @@ const STARTING_HP = 1000;
 export const PLAYER_HP_CAP = STARTING_HP;
 
 /**
- * Les deux gestes que le joueur PAIE EN PV, et le seul endroit qui les chiffre
- * (`GameSession` les prélève, l'écran les annonce).
+ * Les gestes payés en ÉNERGIE DE RÉSERVE, et le seul endroit qui les
+ * chiffre (`GameSession` les prélève, l'écran les annonce).
  *
- * ⚠️ Ils se paient comme un `cost_hp` de magie, à la règle près qui compte : la
- * comparaison est STRICTE (`player_hp > cost`), donc payer laisse toujours au
- * moins 1 PV. Un geste de confort ne fait jamais perdre la partie.
+ * La réserve, c'est l'énergie que le joueur n'a pas posée : au lancement du
+ * combat, ce qui reste du budget du tour y est versé (`GameSession.startCombat`).
+ * Elle remplace les PV comme monnaie de ces gestes — c'est ce qui donne un prix
+ * à « je pose tout » contre « je garde pour plus tard ».
  */
-export const MULLIGAN_COST_HP = 50;
-export const SHOPPING_REROLL_COST_HP = 50;
+export const MULLIGAN_COST_ENERGY = 2;
+export const SHOPPING_REROLL_COST_ENERGY = 1;
 
-/** Le seul tour où le mulligan est proposé — cf. `GameSession.canMulligan`. */
-export const MULLIGAN_ROUND = 1;
+/**
+ * Les prix de la BOUTIQUE de la Phase Shopping, en ⚡ de réserve. Une magie se
+ * paie selon sa rareté (Commune 1, Rare 2, Légendaire 3) ; une carte selon son
+ * rôle, à l'image du Draft où le lien se paie et le pari se récompense.
+ */
+export const MAGIE_ENERGY_PRICE: Readonly<Record<1 | 2 | 3, number>> = Object.freeze({ 1: 1, 2: 2, 3: 3 });
+export const CARD_ENERGY_PRICE: Readonly<Record<'link' | 'buildable' | 'bet', number>> =
+  Object.freeze({ link: 3, buildable: 2, bet: 1 });
+/** Cartes proposées par la boutique : une par rôle (lien, passe-partout, pari). */
+export const SHOP_CARD_COUNT = 3;
+
+/**
+ * Ce que rapporte une série, versé en réserve à la fin du round
+ * (`GameState.applyEndOfCombat`). Deux voies, toutes deux récompensées : celui
+ * qui gagne tôt enchaîne (série de victoires), celui qui mise sur la fin reste
+ * dans la partie (défaites).
+ *
+ * L'index est la LONGUEUR de la série après ce round, plafonnée à la dernière
+ * case : une victoire seule ne rapporte rien, deux de suite +2, trois et plus
+ * +3 ; une défaite +1, deux de suite et plus +2.
+ *
+ * ⚠️ Un nul ou un timeout ne compte ni comme victoire ni comme défaite : il
+ * rompt les deux séries et ne rapporte rien.
+ */
+export const WIN_STREAK_RESERVE: readonly number[] = [0, 0, 2, 3];
+export const LOSS_STREAK_RESERVE: readonly number[] = [0, 1, 2];
+
+export type ReserveGainReason = 'win_streak' | 'loss' | 'loss_streak';
 
 export class GameState {
   round: number;
@@ -49,11 +76,19 @@ export class GameState {
   player_hp: number;
   enemy_hp: number;
 
+  /** Multiplicateur de base du round : le seul facteur de tour
+   *  (`roundFactor`). Il dépendait aussi du nombre d'unités posées (×3 à une
+   *  unité) ; c'est la réserve d'énergie qui récompense désormais la retenue. */
   player_multiplier: number;
   enemy_multiplier: number;
-  // Unit-count component only (without the round multiplier), kept for UI breakdown
-  player_unit_multiplier: number;
-  enemy_unit_multiplier: number;
+
+  /** Énergie mise de côté, cumulée d'un tour à l'autre — cf.
+   *  `MULLIGAN_COST_ENERGY`. Joueur seulement : l'IA ne fait ni mulligan ni
+   *  Shopping, et en PvP chaque client tient la sienne (rien ne voyage). */
+  player_energy_reserve: number;
+  /** Longueur des séries en cours (une seule des deux est non nulle). */
+  player_win_streak: number;
+  player_loss_streak: number;
 
   // Énergie d'invocation en plus, pour toute la partie (`energy_bonus` :
   // magie ou attribut). S'ajoute au budget du tour (`SummonBudget`).
@@ -132,8 +167,10 @@ export class GameState {
 
     this.player_multiplier = 1.0;
     this.enemy_multiplier  = 1.0;
-    this.player_unit_multiplier = 1.0;
-    this.enemy_unit_multiplier  = 1.0;
+
+    this.player_energy_reserve = 0;
+    this.player_win_streak = 0;
+    this.player_loss_streak = 0;
 
     this.player_energy_bonus = 0;
     this.enemy_energy_bonus  = 0;
@@ -154,20 +191,38 @@ export class GameState {
 
   // ── Phase transitions ──
 
-  startCombat(playerUnitCount: number, enemyUnitCount: number): void {
+  startCombat(): void {
     this.phase = Phase.COMBAT;
-    this.player_unit_multiplier = this._multiplier(playerUnitCount);
-    this.enemy_unit_multiplier  = this._multiplier(enemyUnitCount);
-    this.player_multiplier = this.player_unit_multiplier * roundFactor(this.round);
-    this.enemy_multiplier  = this.enemy_unit_multiplier * roundFactor(this.round);
+    this.player_multiplier = roundFactor(this.round);
+    this.enemy_multiplier  = roundFactor(this.round);
   }
 
-  _multiplier(unitCount: number): number {
-    if (unitCount >= 5) return 1.0;
-    if (unitCount === 4) return 1.2;
-    if (unitCount === 3) return 1.5;
-    if (unitCount === 2) return 2.0;
-    return 3.0; // 0 or 1 unit on the board
+  /**
+   * Avance les séries du joueur d'après le vainqueur du round, et verse ce
+   * qu'elles rapportent en réserve. Rend le gain et sa raison (pour le
+   * récapitulatif), `0`/`null` quand le round ne rapporte rien.
+   */
+  creditRoundOutcome(winner: RoundWinner): { gain: number; reason: ReserveGainReason | null } {
+    if (winner === 'player') {
+      this.player_win_streak++;
+      this.player_loss_streak = 0;
+    } else if (winner === 'enemy') {
+      this.player_loss_streak++;
+      this.player_win_streak = 0;
+    } else {
+      this.player_win_streak = 0;
+      this.player_loss_streak = 0;
+      return { gain: 0, reason: null };
+    }
+    const at = (table: readonly number[], n: number) => table[Math.min(n, table.length - 1)];
+    const gain = winner === 'player'
+      ? at(WIN_STREAK_RESERVE, this.player_win_streak)
+      : at(LOSS_STREAK_RESERVE, this.player_loss_streak);
+    if (gain <= 0) return { gain: 0, reason: null };
+    this.player_energy_reserve += gain;
+    const reason: ReserveGainReason = winner === 'player' ? 'win_streak'
+      : this.player_loss_streak >= 2 ? 'loss_streak' : 'loss';
+    return { gain, reason };
   }
 
   /**
@@ -187,6 +242,7 @@ export class GameState {
     playerDamageDealt: number; enemyDamageDealt: number;
     playerMultiplierSources: BonusSourceEntry[]; enemyMultiplierSources: BonusSourceEntry[];
     playerHpBonus: number; playerHpSources: BonusSourceEntry[];
+    reserveGain: number; reserveGainReason: ReserveGainReason | null;
   } {
     this.phase = Phase.END_ROUND;
 
@@ -290,10 +346,13 @@ export class GameState {
       this.enemy_hp = Math.min(Math.max(0, this.enemy_hp + enemyHpBonus), PLAYER_HP_CAP);
     }
 
+    const outcome = this.creditRoundOutcome(winner);
+
     return {
       playerMultiplier, enemyMultiplier, playerDamageDealt, enemyDamageDealt,
       playerMultiplierSources, enemyMultiplierSources,
       playerHpBonus, playerHpSources,
+      reserveGain: outcome.gain, reserveGainReason: outcome.reason,
     };
   }
 
@@ -310,8 +369,6 @@ export class GameState {
       // Reset per-round multipliers
       this.player_multiplier = 1.0;
       this.enemy_multiplier  = 1.0;
-      this.player_unit_multiplier = 1.0;
-      this.enemy_unit_multiplier  = 1.0;
     }
     return this.phase;
   }
@@ -335,6 +392,7 @@ export class GameState {
       player_multiplier: this.player_multiplier,
       enemy_multiplier: this.enemy_multiplier,
       player_energy_bonus: this.player_energy_bonus,
+      player_energy_reserve: this.player_energy_reserve,
     };
   }
 }

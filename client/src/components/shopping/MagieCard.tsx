@@ -28,8 +28,16 @@ const RARITY_STYLE: Record<MagieRarity, { edge: string; edgeTop: string; chip: s
 };
 
 export default function MagieCard(
-  { magie, affordable = true, onChoose, compact = false }:
-  { magie: Magie; affordable?: boolean; onChoose: (m: Magie) => void; /** Grille en mode web (paysage) : vignette au-dessus, plus dense. Même règle de rareté/coût que la carte en ligne. */ compact?: boolean },
+  { magie, affordable = true, onChoose, compact = false, price = null, lockReason = 'PV insuffisants pour le contrecoup' }:
+  {
+    magie: Magie; affordable?: boolean; onChoose: (m: Magie) => void;
+    /** Grille en mode web (paysage) : vignette au-dessus, plus dense. Même règle de rareté/coût que la carte en ligne. */
+    compact?: boolean;
+    /** Prix en ⚡ de réserve à la boutique ; `null` = pas de prix affiché. */
+    price?: number | null;
+    /** Pourquoi la carte est verrouillée (`affordable` faux). */
+    lockReason?: string;
+  },
 ) {
   const rarity = rarityOf(magie);
   const style = RARITY_STYLE[rarity];
@@ -56,6 +64,11 @@ export default function MagieCard(
               <span className={`rounded-full border px-1.5 py-px text-[8px] font-semibold uppercase tracking-wide ${style.chip}`}>
                 {RARITY_LABELS[rarity]}
               </span>
+              {price != null && (
+                <span className="inline-flex flex-shrink-0 items-center rounded bg-gold/15 px-1.5 py-px text-[8px] font-bold text-gold">
+                  <UiIcon id="UI_ENERGY" className="mr-0.5 h-2.5 w-2.5" />{price}
+                </span>
+              )}
               {cost > 0 && (
                 <span className="flex-shrink-0 rounded bg-red-500/20 px-1.5 py-px text-[8px] font-bold text-red-300">
                   −{cost} PV
@@ -66,7 +79,7 @@ export default function MagieCard(
         </div>
         <div className="text-[10px] leading-tight text-white/60">{(effectLabel as any)(magie, GAME_NAMES)}</div>
         {!affordable && (
-          <div className="text-[9px] font-semibold leading-tight text-red-400">PV insuffisants</div>
+          <div className="text-[9px] font-semibold leading-tight text-red-400">{lockReason}</div>
         )}
       </button>
     );
@@ -104,6 +117,11 @@ export default function MagieCard(
           </span>
           {/* Le contrecoup se lit AVANT de taper : c'est le seul geste du
               shopping qui retire quelque chose au joueur. */}
+          {price != null && (
+            <span className="inline-flex flex-shrink-0 items-center rounded bg-gold/15 px-1.5 py-px text-[9px] font-bold text-gold">
+              <UiIcon id="UI_ENERGY" className="mr-0.5 h-2.5 w-2.5" />{price}
+            </span>
+          )}
           {cost > 0 && (
             <span className="flex-shrink-0 rounded bg-red-500/20 px-1.5 py-px text-[9px] font-bold text-red-300">
               −{cost} PV
@@ -113,7 +131,7 @@ export default function MagieCard(
         <div className="text-[11px] leading-tight text-white/60">{(effectLabel as any)(magie, GAME_NAMES)}</div>
         {!affordable && (
           <div className="mt-0.5 text-[10px] font-semibold leading-tight text-red-400">
-            PV insuffisants pour le contrecoup
+            {lockReason}
           </div>
         )}
       </div>

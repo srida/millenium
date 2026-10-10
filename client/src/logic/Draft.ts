@@ -437,18 +437,69 @@ export function offerFor(
   return out;
 }
 
+/** Un emplacement d'offre à trois rôles, avant tout prix. `fallback` : le rôle
+ *  n'avait plus de candidat et la carte vient du repli — elle ne porte alors
+ *  ni malus ni bonus (Draft), ni le prix de son rôle (Phase Shopping). */
+export interface RoleSlot { card: Card; kind: 'link' | 'buildable' | 'bet'; fallback: boolean }
+
 /**
- * L'offre de la carte de plus, tous tiers : trois rôles, chacun son prix.
+ * Trois rôles jugés contre un ensemble de cartes de RÉFÉRENCE (le deck drafté,
+ * ou ce que le joueur a en jeu à la Phase Shopping) :
  *
- *   - **lien** (malus) : une carte qu'une carte du deck NOMME dans sa recette,
- *     ou dont la recette nomme une carte du deck — jouable de préférence. À
- *     défaut, un lien par attribut (le deck exige un attribut qu'elle porte, ou
- *     elle exige un attribut que le deck porte) ;
- *   - **jouable** : une carte qui se pose avec ce que le deck contient ;
- *   - **pari** (bonus) : une carte dont les matériaux manquent encore.
+ *   - **lien** : une carte qu'une carte de référence NOMME dans sa recette, ou
+ *     dont la recette nomme une carte de référence — jouable de préférence. À
+ *     défaut, un lien par attribut ;
+ *   - **jouable** (passe-partout) : une carte qui se pose avec la référence ;
+ *   - **pari** : une carte dont les matériaux manquent encore.
  *
  * Un rôle sans candidat retombe sur une carte jouable, puis sur n'importe
- * laquelle, et ne porte alors ni malus ni bonus : le prix va avec le rôle.
+ * laquelle (`fallback`). Exactement le tirage de la carte de plus du Draft :
+ * même ordre d'appels à `rand`, donc mêmes offres pour une run en cours.
+ */
+export function roleOffer(
+  refIds: readonly string[],
+  refCards: readonly Card[],
+  cov: ReturnType<typeof coverageOf>,
+  eligible: readonly Card[],
+  rand: () => number,
+): RoleSlot[] {
+  const inRef = new Set(refIds);
+  const namedByRef = new Set(refCards.flatMap(c => [...namedIds(c)]));
+  const attrsWanted = new Set(refCards.flatMap(requiredAttrs));
+  const playable = (c: Card) => isSummonable(c, cov.ids, cov.attrs);
+  const idLinked = (c: Card) => namedByRef.has(c.id) || [...namedIds(c)].some(id => inRef.has(id));
+  const attrLinked = (c: Card) => (c.attributes ?? []).some(a => attrsWanted.has(a))
+    || requiredAttrs(c).some(a => cov.attrs.has(a));
+
+  const buildable = eligible.filter(playable);
+  const links = eligible.filter(idLinked);
+  const linkTiers = [links.filter(playable), links, eligible.filter(c => !idLinked(c) && attrLinked(c))];
+  const bets = eligible.filter(c => !playable(c));
+
+  const used = new Set<string>();
+  const fresh = (list: readonly Card[]) => list.filter(c => !used.has(c.id));
+  const firstFresh = (lists: readonly (readonly Card[])[]) => lists.map(fresh).find(l => l.length > 0) ?? [];
+  const out: RoleSlot[] = [];
+  const push = (card: Card | null, kind: RoleSlot['kind'] | null) => {
+    if (!card) return;
+    used.add(card.id);
+    out.push({ card, kind: kind ?? (playable(card) ? 'buildable' : 'bet'), fallback: kind === null });
+  };
+  const fallback = () => draw(fresh(buildable), rand) ?? draw(fresh(eligible), rand);
+
+  const link = draw(firstFresh(linkTiers), rand);
+  push(link ?? fallback(), link ? 'link' : null);
+  const safe = draw(fresh(buildable.filter(c => !idLinked(c))), rand) ?? draw(fresh(buildable), rand);
+  push(safe ?? draw(fresh(eligible), rand), safe ? 'buildable' : null);
+  const bet = draw(fresh(bets.filter(c => !idLinked(c))), rand) ?? draw(fresh(bets), rand);
+  push(bet ?? fallback(), bet ? 'bet' : null);
+  return out;
+}
+
+/**
+ * L'offre de la carte de plus, tous tiers : les trois rôles de `roleOffer`,
+ * chacun son prix — le lien se paie (malus), le pari se récompense (bonus).
+ * Un rôle de repli ne porte ni malus ni bonus : le prix va avec le rôle.
  */
 function bonusOffer(
   state: Pick<DraftState, 'seed' | 'picks'>,
@@ -458,42 +509,13 @@ function bonusOffer(
   cov: ReturnType<typeof coverageOf>,
   rerolls: number,
 ): OfferSlot[] {
-  const inDeck = new Set(deck);
-  const namedByDeck = new Set(picked.flatMap(c => [...namedIds(c)]));
-  const attrsWanted = new Set(picked.flatMap(requiredAttrs));
-  const playable = (c: Card) => isSummonable(c, cov.ids, cov.attrs);
-  const idLinked = (c: Card) => namedByDeck.has(c.id) || [...namedIds(c)].some(id => inDeck.has(id));
-  const attrLinked = (c: Card) => (c.attributes ?? []).some(a => attrsWanted.has(a))
-    || requiredAttrs(c).some(a => cov.attrs.has(a));
-
-  const buildable = eligible.filter(playable);
-  const links = eligible.filter(idLinked);
-  const linkTiers = [links.filter(playable), links, eligible.filter(c => !idLinked(c) && attrLinked(c))];
-  const bets = eligible.filter(c => !playable(c));
-
   const rand = makeRandom(hashSeed(state.seed, 'bonus', state.picks.length, rerolls));
-  const used = new Set<string>();
-  const fresh = (list: readonly Card[]) => list.filter(c => !used.has(c.id));
-  const firstFresh = (lists: readonly (readonly Card[])[]) => lists.map(fresh).find(l => l.length > 0) ?? [];
-  const out: OfferSlot[] = [];
-  const push = (card: Card | null, kind: OfferKind | null) => {
-    if (!card) return;
-    used.add(card.id);
-    const actual: OfferKind = kind ?? (playable(card) ? 'buildable' : 'bet');
-    const mod = actual === 'link' ? modFor(state.seed, card, 'malus')
+  return roleOffer(deck, picked, cov, eligible, rand).map(({ card, kind, fallback }) => {
+    const mod = fallback ? undefined
+      : kind === 'link' ? modFor(state.seed, card, 'malus')
       : kind === 'bet' ? modFor(state.seed, card, 'bonus') : undefined;
-    out.push({ cards: [card], kind: actual, ...(mod ? { mod } : {}) });
-  };
-  const fallback = () => draw(fresh(buildable), rand) ?? draw(fresh(eligible), rand);
-
-  const link = draw(firstFresh(linkTiers), rand);
-  push(link ?? fallback(), link ? 'link' : null);
-  const safe = draw(fresh(buildable.filter(c => !idLinked(c))), rand) ?? draw(fresh(buildable), rand);
-  push(safe ?? draw(fresh(eligible), rand), safe ? 'buildable' : null);
-  const bet = draw(fresh(bets.filter(c => !idLinked(c))), rand) ?? draw(fresh(bets), rand);
-  // Un pari de repli n'en est pas un : il ne reçoit pas de bonus (`push`).
-  push(bet ?? fallback(), bet ? 'bet' : null);
-  return out;
+    return { cards: [card], kind, ...(mod ? { mod } : {}) };
+  });
 }
 
 /** Les attributs qu'exigent les recettes d'une carte (`ARCH_*`). */

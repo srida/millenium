@@ -38,7 +38,7 @@ function simulateGame(deckA, deckB, { attributeList, cardDb }) {
     const unitsA = board.getLivingUnitsOnSide('player');
     const unitsB = board.getLivingUnitsOnSide('enemy');
 
-    gameState.startCombat(unitsA.length, unitsB.length);
+    gameState.startCombat();
     const attributeManager = new AttributeManager(attributeList, unitsA, unitsB);
     attributeManager.applyStartOfCombat();
 

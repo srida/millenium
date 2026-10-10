@@ -1015,49 +1015,44 @@ export class GameController {
   }
 
   protected _startShopping(): void {
-    const magies = this.session.getShoppingMagies();
-    if (!magies.length) { this._proceedNextRound(); return; }
-    this._shoppingMagies = magies;
+    const { magies, cards } = this.session.openShop();
+    if (!magies.length && !cards.length) { this._proceedNextRound(); return; }
     this._shoppingInfo = this._describeShoppingBonus();
     // ⚠️ L'offre n'est publiée qu'à l'ÉCHÉANCE du volet (`onDone`), pas en même
     // temps que lui : le motif « Lancer de dés » couvre tout l'écran pendant sa
-    // durée, la popup n'a donc rien à révéler avant que les dés ne se soient
-    // posés. Elle est déjà CALCULÉE maintenant (le tirage ne doit pas dépendre
+    // durée. Elle est déjà CALCULÉE maintenant (le tirage ne doit pas dépendre
     // de la durée du volet), seule sa PUBLICATION attend.
     this.sync({ endRound: null });
     this._playPhaseWipe('shopping', SHOPPING_INTRO_MS, () => ({ shopping: this._shoppingChoice() }));
   }
 
   /**
-   * L'état « écran de choix » de la Phase Shopping — celui que trois chemins
-   * publient (ouverture, reroll, annulation d'un ciblage). Une seule fabrique,
-   * pour la même raison que partout ailleurs : trois littéraux finiraient par ne
-   * plus porter les mêmes champs, et c'est le plus récent (`canReroll`) qui en
-   * manquerait.
+   * L'état « étal » de la boutique — publié à l'ouverture, après chaque achat,
+   * au reroll et à l'annulation d'un ciblage. Une seule fabrique : plusieurs
+   * littéraux finiraient par ne plus porter les mêmes champs.
    *
-   * ⚠️ `canReroll` est figé à la publication et non relu à chaque `sync` : rien
-   * ne peut le faire changer pendant qu'une offre est à l'écran (seul le reroll
-   * débite des PV, et il republie), et `GameSession.canRerollShopping` balaie le
-   * catalogue de magies — le rejouer à chaque instantané le ferait tourner à
-   * chaque tap du joueur.
+   * Les prix, l'accessibilité et `canReroll` sont relus à chaque publication :
+   * chaque achat change la réserve.
    */
   private _shoppingChoice(): import('../stores/gameStore.js').ShoppingState {
+    const s = this.session;
     return {
-      magies: this._shoppingMagies,
+      magies: s.shopMagies().map(magie => ({ magie, price: s.magiePrice(magie), affordable: s.canBuyMagie(magie) })),
+      cards: s.shopCards().map((c, i) => ({ ...c, affordable: s.canBuyShopCard(i) })),
+      reserve: s.energyReserve(),
       awaitingTarget: null,
       handTargets: null,
       banner: null,
       info: this._shoppingInfo,
-      canReroll: this.session.canRerollShopping(),
-      rerollCost: this.session.shoppingRerollCostHp(),
+      canReroll: s.canRerollShopping(),
+      rerollCost: s.shoppingRerollCost(),
     };
   }
 
   /**
    * L'état « ciblage » de la Phase Shopping — le jumeau de `_shoppingChoice`.
    * ⚠️ `canReroll: false` : une magie est déjà choisie, il n'y a plus d'offre à
-   * rejeter. C'est une SECONDE garde, `ShoppingLayer` sortant de toute façon par
-   * la branche `awaitingTarget` avant d'arriver au bouton.
+   * rejeter.
    */
   private _shoppingTargeting(
     awaitingTarget: 'unit' | 'graveyard' | 'hand',
@@ -1065,25 +1060,49 @@ export class GameController {
     handTargets: number[] | null = null,
   ): import('../stores/gameStore.js').ShoppingState {
     return {
-      magies: [], awaitingTarget, handTargets, banner, info: null,
-      canReroll: false, rerollCost: this.session.shoppingRerollCostHp(),
+      magies: [], cards: [], reserve: this.session.energyReserve(),
+      awaitingTarget, handTargets, banner, info: null,
+      canReroll: false, rerollCost: this.session.shoppingRerollCost(),
     };
   }
 
   /**
-   * Reroll — jette l'offre en cours et en tire une neuve contre des PV. La
-   * règle vit dans `GameSession.rerollShoppingMagies()` ; le `null` qu'elle rend
-   * est un refus, pas une erreur d'appel (le bouton n'est même pas affiché),
-   * d'où l'absence de message : il n'y a rien à expliquer à un geste qui n'a pas
-   * pu partir.
+   * Retour à l'étal après un achat. La phase ne se clôt d'elle-même que quand
+   * il ne reste RIEN à faire (étal vide et reroll impossible) ; sinon c'est le
+   * joueur qui passe.
+   */
+  private _backToShop(): void {
+    this.scene?.clearHighlight();
+    this.scene?.refresh();
+    const s = this.session;
+    if (!s.shopMagies().length && !s.shopCards().length && !s.canRerollShopping()) {
+      this._proceedNextRound();
+      return;
+    }
+    this.sync({ shopping: this._shoppingChoice() });
+  }
+
+  /**
+   * Reroll — jette toute l'offre (magies et cartes) et en tire une neuve contre
+   * de l'énergie. La règle vit dans `GameSession.rerollShop()` ; un refus est
+   * muet (le bouton n'est pas proposé).
    */
   rerollShopping(): void {
-    const magies = this.session.rerollShoppingMagies();
-    if (!magies?.length) return;
+    if (!this.session.rerollShop()) return;
     Audio.playSfx('mulligan_reroll');
-    this._shoppingMagies = magies;
     this._shoppingInfo = this._describeShoppingBonus();
     this.sync({ shopping: this._shoppingChoice() });
+  }
+
+  /** Achète la carte de l'étal à cet index : elle rejoint la main. */
+  buyShopCard(index: number): void {
+    if (!this.session.canBuyShopCard(index)) {
+      this._flashError("Pas assez d'énergie en réserve");
+      return;
+    }
+    if (!this.session.buyShopCard(index)) return;
+    Audio.playSfx('shopping_choose');
+    this._backToShop();
   }
 
   /**
@@ -1119,6 +1138,10 @@ export class GameController {
       this._flashError('Pas assez de PV pour en payer le contrecoup');
       return;
     }
+    if (!this.session.canBuyMagie(magie)) {
+      this._flashError("Pas assez d'énergie en réserve");
+      return;
+    }
     Audio.playSfx('shopping_choose');
     if (this.session.magieNeedsUnitTarget(magie)) {
       const targets = this.session.magieUnitTargets(magie);
@@ -1142,9 +1165,10 @@ export class GameController {
       this._pendingMagie = magie;
       this.sync({ shopping: this._shoppingTargeting('hand', `${magie.name} — touche une carte de ta main`, handTargets) });
     } else {
+      if (!this.session.chargeMagie(magie)) return;
       this.session.applyGlobalMagie(magie);
       this._noteMagie(magie);
-      this._proceedNextRound();
+      this._backToShop();
     }
   }
 
@@ -1163,7 +1187,6 @@ export class GameController {
   }
 
   private _pendingMagie: Magie | null = null;
-  private _shoppingMagies: Magie[] = [];
   private _shoppingInfo: { icon: UiIconId; text: string }[] | null = null;
 
   // Ciblage magie sur unité board — réutilise onUnitTap via un mode dédié.
@@ -1174,10 +1197,10 @@ export class GameController {
     const magie = this._pendingMagie;
     this._pendingMagie = null;
     this.scene?.clearHighlight();
+    if (!this.session.chargeMagie(magie)) { this._backToShop(); return; }
     this.session.applyMagieOnUnit(magie, unit);
     this._noteMagie(magie);
-    this.scene?.refresh();
-    this._proceedNextRound();
+    this._backToShop();
   }
 
   // Ciblage magie sur une carte de la main (`hand_to_graveyard` la retire,
@@ -1198,10 +1221,10 @@ export class GameController {
     if (!this.session.magieHandTargets(this._pendingMagie).includes(handIdx)) return;
     const magie = this._pendingMagie;
     this._pendingMagie = null;
+    if (!this.session.chargeMagie(magie)) { this._backToShop(); return; }
     this.session.applyMagieOnHandCard(magie, handIdx);
     this._noteMagie(magie);
-    this.scene?.refresh();
-    this._proceedNextRound();
+    this._backToShop();
   }
 
   resolveMagieGraveyardTarget(unit: Unit): void {
@@ -1209,10 +1232,10 @@ export class GameController {
     if (!this.session.graveyard.includes(unit)) return;
     const magie = this._pendingMagie;
     this._pendingMagie = null;
+    if (!this.session.chargeMagie(magie)) { this._backToShop(); return; }
     this.session.applyMagieOnGraveyardUnit(magie, unit);
     this._noteMagie(magie);
-    this.scene?.refresh();
-    this._proceedNextRound();
+    this._backToShop();
   }
 
   get awaitingMagieTarget(): 'unit' | 'graveyard' | 'hand' | null {
@@ -1223,7 +1246,6 @@ export class GameController {
   }
 
   protected _proceedNextRound(): void {
-    this._shoppingMagies = [];
     this._shoppingInfo = null;
     this._pendingMagie = null;
     const draw = this.session.startNextRound();
@@ -1386,7 +1408,8 @@ export class GameController {
         && this._committedPrepId !== this.session.prepId
         && this.session.canUndoPreparation(),
       canMulligan: this.canMulligan(),
-      mulliganCost: this.session.mulliganCostHp(),
+      mulliganCost: this.session.mulliganCost(),
+      energyReserve: this.session.energyReserve(),
       energyBudget: this.session.energyBudget(),
       energyLeft: this.session.energyLeft(),
       hand,

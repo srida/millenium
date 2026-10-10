@@ -14,6 +14,7 @@ import { AnimatedLevelGauge } from '../ui/ProgressionStats.js';
 import { BONUS_SOURCE_ICON } from '../../data/DrawInfo.js';
 import UiIcon, { type UiIconId } from '../ui/UiIcon.js';
 import { bonusSourceName } from '../../data/gameNames.js';
+import { reserveLines } from '../../data/ReserveInfo.js';
 import { END_ROUND_DURATION_S, TERRAIN_ALERT_MS } from '../../game/timings.js';
 import type { EndRoundResult } from '../../logic/GameSession.js';
 import type { BonusSourceEntry } from '../../logic/types.js';
@@ -265,6 +266,7 @@ function DamageBreakdown({ result }: { result: EndRoundResult }) {
         tone="text-enemy"
       />
       <PlayerHpBonusLine bonus={result.playerHpBonus} sources={result.playerHpSources} />
+      <ReserveLine result={result} />
       {survivors.length > 0 && (
         <div className="w-full rounded-lg border border-white/10 bg-white/5 p-2 text-[11px]">
           <div className="mb-1 tracking-widest text-white/40">SURVIVANTS</div>
@@ -285,9 +287,27 @@ function DamageBreakdown({ result }: { result: EndRoundResult }) {
   );
 }
 
+/** Ce que le round a versé en réserve d'énergie, et la réserve qui en résulte.
+ *  Muette quand rien n'y est entré. */
+function ReserveLine({ result }: { result: EndRoundResult }) {
+  const lines = reserveLines(result);
+  if (!lines.length) return null;
+  return (
+    <div className="w-full rounded-lg border border-gold/30 bg-gold/5 p-2 text-[11px]">
+      <div className="mb-1 flex justify-between tracking-widest text-gold/80">
+        <span>RÉSERVE</span>
+        <span className="tabular-nums"><UiIcon id="UI_ENERGY" className="mr-0.5 inline-block h-3 w-3 align-[-2px]" />{result.reserveTotal}</span>
+      </div>
+      {lines.map((l, i) => (
+        <div key={i} className="flex justify-between"><span className="text-white/70">{l.text}</span><span className="tabular-nums font-semibold text-gold">+{l.value}</span></div>
+      ))}
+    </div>
+  );
+}
+
 /**
  * Une ligne de dégâts par camp : ATK cumulée des survivants × multiplicateur
- * (nombre d'unités + tour, cf. « Multiplicateur de dégâts ») = dégâts infligés.
+ * (facteur de tour, cf. « Multiplicateur de dégâts ») = dégâts infligés.
  *
  * ⚠️ `multiplier === 0` veut dire « ce camp n'encaisse pas ce round » (le
  * gagnant net d'une victoire sans `draw`/`timeout`) : la ligne se tait plutôt

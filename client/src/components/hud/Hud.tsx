@@ -23,7 +23,7 @@ export interface HudProps {
 }
 
 export default function Hud({ enemyAvatarSrc = null, enemyAvatarFallback = '?', enemyName = null, onPlayerTap }: HudProps) {
-  const { playerHp, enemyHp, round, playerMultiplier, enemyMultiplier, combatActive, energyLeft, energyBudget } = useGameStore();
+  const { playerHp, enemyHp, round, playerMultiplier, enemyMultiplier, combatActive, energyLeft, energyBudget, energyReserve } = useGameStore();
   // ⚠️ Le chiffre et la jauge comptent sur la MÊME horloge : la transition est
   // tenue ici, une fois par camp, et descend dans les deux (cf. `HpBar`). Deux
   // décomptes indépendants finiraient par ne plus annoncer le même total.
@@ -77,14 +77,17 @@ export default function Hud({ enemyAvatarSrc = null, enemyAvatarFallback = '?', 
           <span className="text-[9px] tracking-widest text-white/50">MANCHE</span>
         </div>
         {/* L'énergie, sous la manche : c'est le budget DU TOUR, et le centre du
-            HUD est ce que l'œil retrouve sans chercher. Préparation seulement. */}
+            HUD est ce que l'œil retrouve sans chercher. Préparation seulement.
+            La réserve suit, après un « + » : ce qui n'est pas posé y part au
+            lancement du combat. */}
         {!combatActive && (
           <span
             role="status"
-            aria-label={`Énergie : ${energyLeft} sur ${energyBudget}. Chaque unité posée occupe son tier.`}
+            aria-label={`Énergie : ${energyLeft} sur ${energyBudget}, réserve ${energyReserve}. Chaque unité posée occupe son tier ; ce qui reste part en réserve.`}
             className={'mt-1 rounded-md border border-line bg-surface/80 px-2 py-0.5 text-xs font-bold tabular-nums ' + (energyLeft === 0 ? 'text-white/40' : 'text-gold')}
           >
             <UiIcon id="UI_ENERGY" className="mr-0.5 h-3.5 w-3.5 align-[-2px]" />{energyLeft}<span className="font-normal text-white/50">/{energyBudget}</span>
+            {energyReserve > 0 && <span className="ml-1 font-semibold text-gold/80">+{energyReserve}</span>}
           </span>
         )}
       </div>

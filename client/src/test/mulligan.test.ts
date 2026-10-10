@@ -1,15 +1,15 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-// Mulligan — au tour 1, remettre sa main dans le deck et en repiocher autant,
-// contre 50 PV (`GameSession.canMulligan` / `mulligan`).
+// Mulligan — remettre sa main dans le deck et en repiocher autant, contre
+// 2 ⚡ (réserve d'abord, budget du tour ensuite), une fois par tour
+// (`GameSession.canMulligan` / `mulligan`).
 //
 // Ce que ces tests éprouvent, et qui ne se voit nulle part à l'écran quand ça
 // casse : le mulligan DÉPLACE le point de retour de « Tout annuler ». Sans ce
-// déplacement, un ↺ rendrait la main d'avant sans rendre les 50 PV — le joueur
-// paierait pour rien, et rien dans l'interface ne le dirait.
+// déplacement, un ↺ rendrait la main d'avant sans rendre l'énergie payée.
 import { describe, it, expect } from 'vitest';
 import { GameSession } from '../logic/GameSession.js';
 import type { GameSessionDeps } from '../logic/GameSession.js';
-import { MULLIGAN_COST_HP } from '../logic/GameState.js';
+import { MULLIGAN_COST_ENERGY } from '../logic/GameState.js';
 import { Unit } from '../logic/Unit.js';
 import { makeCard } from './helpers.js';
 
@@ -40,25 +40,28 @@ describe('Mulligan — disponibilité', () => {
     expect(session.canMulligan()).toBe(true);
   });
 
-  it('une seule fois par PARTIE — le second appel ne débite rien', () => {
+  it('une seule fois par TOUR — le second appel ne débite rien', () => {
     const session = makeSession();
+    session.gameState.player_energy_reserve = 10;
     session.startPreparation();
     expect(session.mulligan()).toBe(true);
     expect(session.canMulligan()).toBe(false);
 
-    const hp = session.gameState.player_hp;
+    const reserve = session.energyReserve();
     const hand = ids(session);
     expect(session.mulligan()).toBe(false);
-    expect(session.gameState.player_hp).toBe(hp);
+    expect(session.energyReserve()).toBe(reserve);
     expect(ids(session)).toEqual(hand);
   });
 
-  it('au tour 1 SEULEMENT — jamais aux tours suivants', () => {
+  it('redevient disponible au tour suivant', () => {
     const session = makeSession();
+    session.gameState.player_energy_reserve = 10;
     session.startPreparation();
+    expect(session.mulligan()).toBe(true);
     session.gameState.round = 2;
-    expect(session.canMulligan()).toBe(false);
-    expect(session.mulligan()).toBe(false);
+    session.startPreparation();
+    expect(session.canMulligan()).toBe(true);
   });
 
   it('se retire dès qu\'une unité est posée — le tour doit être intact', () => {
@@ -82,16 +85,45 @@ describe('Mulligan — disponibilité', () => {
     expect(session.canMulligan()).toBe(false);
   });
 
-  it('exige de survivre au paiement — comparaison STRICTE, comme un contrecoup de magie', () => {
+  it('exige l\'énergie : réserve et budget du tour réunis', () => {
     const session = makeSession();
     session.startPreparation();
-
-    session.gameState.player_hp = MULLIGAN_COST_HP;        // paierait jusqu'à 0
+    session.gameState.player_energy_bonus = -3;  // budget du tour 1 ramené à 0
+    expect(session.energyLeft()).toBe(0);
+    session.gameState.player_energy_reserve = MULLIGAN_COST_ENERGY - 1;
     expect(session.canMulligan()).toBe(false);
-    session.gameState.player_hp = MULLIGAN_COST_HP + 1;    // laisse 1 PV
-    expect(session.canMulligan()).toBe(true);
+    expect(session.mulligan()).toBe(false);
+    expect(session.energyReserve()).toBe(MULLIGAN_COST_ENERGY - 1);
+    session.gameState.player_energy_reserve = MULLIGAN_COST_ENERGY;
     expect(session.mulligan()).toBe(true);
-    expect(session.gameState.player_hp).toBe(1);
+    expect(session.energyReserve()).toBe(0);
+  });
+
+  it('paie la RÉSERVE d\'abord, le budget du tour ensuite', () => {
+    const session = makeSession();
+    session.startPreparation();                  // tour 1 : budget 3
+    session.gameState.player_energy_reserve = 1;
+    expect(session.mulligan()).toBe(true);
+    expect(session.energyReserve()).toBe(0);
+    expect(session.energyBudget()).toBe(2);      // 1 ⚡ pris sur le tour
+  });
+
+  it('le budget du tour entamé se rend au tour suivant', () => {
+    const session = makeSession();
+    session.startPreparation();
+    session.mulligan();
+    expect(session.energyBudget()).toBe(1);
+    session.gameState.round = 2;
+    session.startPreparation();
+    expect(session.energyBudget()).toBe(5);
+  });
+
+  it('ne touche jamais aux PV', () => {
+    const session = makeSession();
+    session.startPreparation();
+    const hp = session.gameState.player_hp;
+    session.mulligan();
+    expect(session.gameState.player_hp).toBe(hp);
   });
 
   it('n\'est pas proposé sur une main vide — il n\'y a rien à rendre', () => {
@@ -107,11 +139,11 @@ describe('Mulligan — ce qu\'il fait', () => {
     const session = makeSession();
     session.startPreparation();
     const before = session.hand.length;
-    const hp = session.gameState.player_hp;
+    const available = session.energyAvailable();
 
     expect(session.mulligan()).toBe(true);
     expect(session.hand).toHaveLength(before);
-    expect(session.gameState.player_hp).toBe(hp - MULLIGAN_COST_HP);
+    expect(session.energyAvailable()).toBe(available - MULLIGAN_COST_ENERGY);
   });
 
   it('repioche la taille RÉELLE de la main, pas 5 en dur', () => {
@@ -147,14 +179,14 @@ describe('Mulligan — ce qu\'il fait', () => {
     expect(session.prepId).toBe(prepId);
   });
 
-  it('⚠️ DÉPLACE le point de retour : ↺ ne rend ni la main d\'avant ni les PV', () => {
+  it('⚠️ DÉPLACE le point de retour : ↺ ne rend ni la main d\'avant ni l\'énergie', () => {
     const session = makeSession();
     session.startPreparation();
     const oldHand = ids(session);
 
     expect(session.mulligan()).toBe(true);
     const newHand = ids(session);
-    const hp = session.gameState.player_hp;
+    const budget = session.energyBudget();
 
     // Rien à annuler juste après : l'état d'après la repioche EST l'ouverture
     // du tour. C'est l'assertion qui tombe si la capture n'est pas rejouée.
@@ -166,6 +198,6 @@ describe('Mulligan — ce qu\'il fait', () => {
     expect(session.undoPreparation()).toBe(true);
     expect(ids(session)).toEqual(newHand);
     expect(ids(session)).not.toEqual(oldHand);
-    expect(session.gameState.player_hp).toBe(hp);
+    expect(session.energyBudget()).toBe(budget);
   });
 });

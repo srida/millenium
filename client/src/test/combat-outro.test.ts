@@ -39,11 +39,11 @@ const { COMBAT_OUTRO_MS, COMBAT_INTRO_MS, SHOPPING_INTRO_MS } = await import('..
  *  alors pas de passage à annoncer. */
 const MAGIE = { id: 'MAGIC_TEST', name: 'Pioche', rarity: 1, effect: { type: 'draw_bonus', value: 1 } };
 
-function makeController(opts: { magies?: any[] } = {}) {
+function makeController(opts: { magies?: any[]; deckless?: boolean } = {}) {
   const cards = [0, 1].map(i => makeCard({ id: `P${i}`, summon_conditions: [], attributes: [] }));
   const byId = new Map(cards.map(c => [c.id, c]));
   const deps: GameSessionDeps = {
-    cardsByTier: { 1: cards as any },
+    cardsByTier: opts.deckless ? {} : { 1: cards as any },
     enemyDeck: { 1: [] },
     attributeList: [],
     cardDb: { getCard: (id: string) => (byId.get(id) as any) ?? null },
@@ -220,7 +220,9 @@ describe('Volets de phase — ce qu\'ils ne retiennent pas', () => {
   // Mutation : volet posé avant la garde de l'offre vide → ROUGE.
   it('une Phase Shopping SAUTÉE n\'annonce rien', () => {
     vi.useFakeTimers();
-    const { session, controller } = makeController();   // aucun catalogue de magies
+    // Ni magie ni carte à proposer : la boutique est vide (la boutique propose
+    // aussi des cartes du deck, d'où le deck vide).
+    const { session, controller } = makeController({ deckless: true });
     session.startPreparation();
     controller._startShopping();
 
