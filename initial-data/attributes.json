@@ -1311,7 +1311,7 @@
 	},
 	{
 		"id": "ARCH_055",
-		"name": "Energie",
+		"name": "Lumière",
 		"icon": "💎",
 		"timing": "start_of_combat",
 		"categorie": "Element",

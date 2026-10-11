@@ -286,10 +286,16 @@
 			{
 				"type": "stat_bonus",
 				"stat": "movement_rate",
-				"value": 7,
+				"value": 6,
 				"target_attributes": [
 					"ARCH_041"
 				]
+			},
+			{
+				"type": "stat_bonus",
+				"stat": "movement_rate",
+				"value": -3,
+				"target_attributes": []
 			}
 		],
 		"blocked_cells": [
@@ -640,7 +646,8 @@
 				"stat": "atk",
 				"value": -10,
 				"target_attributes": [
-					"ARCH_053"
+					"ARCH_053",
+					"ARCH_049"
 				]
 			}
 		],
@@ -677,7 +684,8 @@
 				"value": 10,
 				"target_attributes": [
 					"ARCH_058",
-					"ARCH_080"
+					"ARCH_080",
+					"ARCH_049"
 				]
 			},
 			{
@@ -735,9 +743,17 @@
 			{
 				"type": "stat_bonus",
 				"stat": "hp",
-				"value": 50,
+				"value": 30,
 				"target_attributes": [
 					"ARCH_061"
+				]
+			},
+			{
+				"type": "stat_bonus",
+				"stat": "atk",
+				"value": -5,
+				"target_attributes": [
+					"ARCH_055"
 				]
 			}
 		],

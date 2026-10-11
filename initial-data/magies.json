@@ -42,7 +42,7 @@
 		"name": "Médicament rouge",
 		"effect": {
 			"type": "player_hp_bonus",
-			"value": 200
+			"value": 100
 		},
 		"rarity": 2
 	},
@@ -94,7 +94,7 @@
 		"name": "Médicament bleu",
 		"effect": {
 			"type": "player_hp_bonus",
-			"value": 100
+			"value": 50
 		},
 		"rarity": 1
 	},
@@ -259,7 +259,7 @@
 			"type": "draw_bonus",
 			"value": 3
 		},
-		"cost_hp": 200
+		"cost_hp": 100
 	},
 	{
 		"id": "MAGIE_030",
@@ -267,10 +267,10 @@
 		"rarity": 2,
 		"effect": {
 			"type": "stat_bonus",
-			"value": 30,
-			"stat": "atk"
+			"stat": "atk",
+			"value": 30
 		},
-		"cost_hp": 100
+		"cost_hp": 50
 	},
 	{
 		"id": "MAGIE_031",
@@ -398,7 +398,7 @@
 			"type": "revive",
 			"value": 50
 		},
-		"cost_hp": 50
+		"cost_hp": 25
 	},
 	{
 		"id": "MAGIE_044",
@@ -425,7 +425,7 @@
 	{
 		"id": "MAGIE_046",
 		"name": "Doppleganger",
-		"rarity": 2,
+		"rarity": 1,
 		"effect": {
 			"type": "duplicate_unit",
 			"value": 1
@@ -434,7 +434,7 @@
 	{
 		"id": "MAGIE_047",
 		"name": "Multiplication",
-		"rarity": 2,
+		"rarity": 1,
 		"effect": {
 			"type": "duplicate_card",
 			"value": 1

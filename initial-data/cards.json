@@ -526,17 +526,18 @@
 		"stats": {
 			"atk": 8,
 			"hp": 300,
-			"range": 1,
-			"attack_rate": 90,
-			"movement_rate": 92
+			"movement_rate": 92,
+			"attack_rate": 88,
+			"range": 2
 		},
 		"power": {
 			"id": "POWER_HEAL",
-			"value": 50,
-			"power_rate": 43
+			"power_rate": 43,
+			"value": 50
 		},
 		"summon_conditions": [],
-		"material_value": 1
+		"material_value": 1,
+		"represented_ids": []
 	},
 	{
 		"id": "CORE_019",
@@ -1019,7 +1020,7 @@
 			"hp": 95,
 			"movement_rate": 92,
 			"attack_rate": 95,
-			"range": 1
+			"range": 2
 		},
 		"power": {},
 		"summon_conditions": [],
@@ -1333,14 +1334,15 @@
 			"ARCH_055",
 			"ARCH_090",
 			"ARCH_091",
-			"ARCH_107"
+			"ARCH_107",
+			"ARCH_052"
 		],
 		"stats": {
 			"atk": 15,
 			"hp": 190,
 			"movement_rate": 99,
 			"attack_rate": 87,
-			"range": 1
+			"range": 2
 		},
 		"power": {},
 		"summon_conditions": [],
@@ -2362,7 +2364,7 @@
 			"hp": 95,
 			"movement_rate": 92,
 			"attack_rate": 94,
-			"range": 1
+			"range": 2
 		},
 		"power": {},
 		"summon_conditions": [],
@@ -2524,23 +2526,24 @@
 			"ARCH_050",
 			"ARCH_090",
 			"ARCH_091",
-			"ARCH_111"
+			"ARCH_110"
 		],
 		"stats": {
 			"atk": 3,
 			"hp": 300,
-			"range": 1,
+			"movement_rate": 86,
 			"attack_rate": 94,
-			"movement_rate": 86
+			"range": 1
 		},
 		"power": {
 			"id": "POWER_HEAL",
-			"value": 20,
-			"power_rate": 36
+			"power_rate": 36,
+			"value": 20
 		},
 		"summon_conditions": [],
 		"material_value": 1,
-		"set": "SET_014"
+		"set": "SET_014",
+		"represented_ids": []
 	},
 	{
 		"id": "CORE_086",
@@ -3958,14 +3961,14 @@
 		"stats": {
 			"atk": 18,
 			"hp": 230,
-			"range": 1,
+			"movement_rate": 92,
 			"attack_rate": 90,
-			"movement_rate": 92
+			"range": 2
 		},
 		"power": {
 			"id": "POWER_HEAL",
-			"value": 50,
-			"power_rate": 50
+			"power_rate": 50,
+			"value": 50
 		},
 		"summon_conditions": [
 			{
@@ -4333,9 +4336,9 @@
 		"stats": {
 			"atk": 8,
 			"hp": 110,
-			"range": 1,
+			"movement_rate": 86,
 			"attack_rate": 96,
-			"movement_rate": 86
+			"range": 3
 		},
 		"power": {
 			"id": "POWER_PARALYSIS",
@@ -5970,14 +5973,15 @@
 			"ARCH_049",
 			"ARCH_090",
 			"ARCH_091",
-			"ARCH_111"
+			"ARCH_111",
+			"ARCH_052"
 		],
 		"stats": {
 			"atk": 12,
 			"hp": 120,
 			"movement_rate": 92,
 			"attack_rate": 94,
-			"range": 1
+			"range": 2
 		},
 		"power": {},
 		"summon_conditions": [],
@@ -6625,7 +6629,7 @@
 			"hp": 180,
 			"movement_rate": 92,
 			"attack_rate": 90,
-			"range": 1
+			"range": 3
 		},
 		"power": {
 			"id": "POWER_CONFUSION",
@@ -6662,7 +6666,7 @@
 			"hp": 360,
 			"movement_rate": 86,
 			"attack_rate": 92,
-			"range": 1
+			"range": 3
 		},
 		"power": {
 			"id": "POWER_CONFUSION",
@@ -7016,9 +7020,9 @@
 		"stats": {
 			"atk": 22,
 			"hp": 240,
-			"range": 1,
+			"movement_rate": 99,
 			"attack_rate": 90,
-			"movement_rate": 99
+			"range": 2
 		},
 		"power": {
 			"id": "POWER_DEBUFF",
@@ -7026,11 +7030,13 @@
 		},
 		"summon_conditions": [
 			{
-				"materials": 1
+				"materials": 1,
+				"requires": []
 			}
 		],
 		"material_value": 1,
-		"set": "SET_016"
+		"set": "SET_016",
+		"represented_ids": []
 	},
 	{
 		"id": "BAKURA_009",
@@ -9099,14 +9105,14 @@
 		"stats": {
 			"atk": 23,
 			"hp": 335,
-			"range": 1,
+			"movement_rate": 92,
 			"attack_rate": 90,
-			"movement_rate": 92
+			"range": 2
 		},
 		"power": {
 			"id": "POWER_HEAL",
-			"value": 30,
-			"power_rate": 23
+			"power_rate": 23,
+			"value": 30
 		},
 		"summon_conditions": [
 			{
@@ -9177,9 +9183,9 @@
 		"stats": {
 			"atk": 23,
 			"hp": 335,
-			"range": 1,
+			"movement_rate": 92,
 			"attack_rate": 90,
-			"movement_rate": 92
+			"range": 2
 		},
 		"power": {
 			"id": "POWER_PARALYSIS",
@@ -9242,14 +9248,15 @@
 		"stats": {
 			"atk": 12,
 			"hp": 290,
-			"range": 1,
+			"movement_rate": 92,
 			"attack_rate": 88,
-			"movement_rate": 92
+			"range": 2
 		},
 		"power": {
-			"id": "POWER_PARALYSIS",
-			"power_rate": 30,
-			"duration": 70
+			"id": "POWER_WEAKEN",
+			"power_rate": 23,
+			"value": 5,
+			"duration": 77
 		},
 		"summon_conditions": [],
 		"material_value": 1,
@@ -9585,9 +9592,9 @@
 		"stats": {
 			"atk": 30,
 			"hp": 480,
-			"range": 1,
+			"movement_rate": 99,
 			"attack_rate": 87,
-			"movement_rate": 99
+			"range": 3
 		},
 		"power": {
 			"id": "POWER_BLOCK",
@@ -9788,19 +9795,19 @@
 			"ARCH_056",
 			"ARCH_086",
 			"ARCH_093",
-			"ARCH_111"
+			"ARCH_110"
 		],
 		"stats": {
 			"atk": 25,
 			"hp": 250,
-			"range": 1,
+			"movement_rate": 99,
 			"attack_rate": 92,
-			"movement_rate": 99
+			"range": 1
 		},
 		"power": {
 			"id": "POWER_HEAL",
-			"value": 40,
-			"power_rate": 50
+			"power_rate": 50,
+			"value": 40
 		},
 		"summon_conditions": [
 			{
@@ -9812,7 +9819,8 @@
 			}
 		],
 		"material_value": 2,
-		"set": "SET_016"
+		"set": "SET_016",
+		"represented_ids": []
 	},
 	{
 		"id": "EXTRA_067",
@@ -10014,14 +10022,14 @@
 		"stats": {
 			"atk": 30,
 			"hp": 335,
-			"range": 1,
+			"movement_rate": 99,
 			"attack_rate": 92,
-			"movement_rate": 99
+			"range": 2
 		},
 		"power": {
 			"id": "POWER_HEAL",
-			"value": 40,
-			"power_rate": 23
+			"power_rate": 23,
+			"value": 40
 		},
 		"summon_conditions": [
 			{
@@ -10054,14 +10062,14 @@
 		"stats": {
 			"atk": 31,
 			"hp": 300,
-			"range": 1,
+			"movement_rate": 86,
 			"attack_rate": 87,
-			"movement_rate": 86
+			"range": 2
 		},
 		"power": {
 			"id": "POWER_PUSH",
-			"value": 3,
-			"power_rate": 50
+			"power_rate": 50,
+			"value": 3
 		},
 		"summon_conditions": [
 			{
@@ -10161,19 +10169,19 @@
 			"ARCH_055",
 			"ARCH_088",
 			"ARCH_093",
-			"ARCH_111"
+			"ARCH_110"
 		],
 		"stats": {
 			"atk": 14,
 			"hp": 480,
-			"range": 1,
+			"movement_rate": 99,
 			"attack_rate": 94,
-			"movement_rate": 99
+			"range": 1
 		},
 		"power": {
 			"id": "POWER_HEAL",
-			"value": 40,
-			"power_rate": 50
+			"power_rate": 50,
+			"value": 40
 		},
 		"summon_conditions": [
 			{
@@ -10184,7 +10192,8 @@
 			}
 		],
 		"material_value": 1,
-		"set": "SET_014"
+		"set": "SET_014",
+		"represented_ids": []
 	},
 	{
 		"id": "EXTRA_078",
@@ -10282,7 +10291,7 @@
 			"hp": 410,
 			"movement_rate": 92,
 			"attack_rate": 92,
-			"range": 1
+			"range": 2
 		},
 		"power": {
 			"id": "POWER_BLOCK",
@@ -11302,9 +11311,9 @@
 		"stats": {
 			"atk": 15,
 			"hp": 360,
-			"range": 1,
+			"movement_rate": 92,
 			"attack_rate": 94,
-			"movement_rate": 92
+			"range": 3
 		},
 		"power": {
 			"id": "POWER_DEBUFF",
@@ -11400,9 +11409,9 @@
 		"stats": {
 			"atk": 50,
 			"hp": 360,
-			"range": 1,
+			"movement_rate": 99,
 			"attack_rate": 76,
-			"movement_rate": 99
+			"range": 3
 		},
 		"power": {
 			"id": "POWER_CONFUSION",
@@ -11831,7 +11840,7 @@
 			"hp": 120,
 			"movement_rate": 92,
 			"attack_rate": 86,
-			"range": 1
+			"range": 2
 		},
 		"power": {},
 		"summon_conditions": [],
@@ -12730,7 +12739,7 @@
 			"hp": 120,
 			"movement_rate": 92,
 			"attack_rate": 90,
-			"range": 1
+			"range": 2
 		},
 		"power": {
 			"id": "POWER_CONFUSION",
@@ -13082,9 +13091,9 @@
 		"stats": {
 			"atk": 24,
 			"hp": 120,
-			"range": 1,
+			"movement_rate": 86,
 			"attack_rate": 86,
-			"movement_rate": 86
+			"range": 2
 		},
 		"power": {
 			"id": "POWER_FREEZE",
@@ -13092,7 +13101,8 @@
 		},
 		"summon_conditions": [
 			{
-				"materials": 1
+				"materials": 1,
+				"requires": []
 			}
 		],
 		"material_value": 1,
@@ -13315,24 +13325,30 @@
 			"ARCH_019",
 			"ARCH_090",
 			"ARCH_092",
-			"ARCH_111"
+			"ARCH_111",
+			"ARCH_099"
 		],
 		"stats": {
 			"atk": 14,
 			"hp": 145,
-			"range": 1,
+			"movement_rate": 86,
 			"attack_rate": 91,
-			"movement_rate": 86
+			"range": 1
 		},
 		"power": {
 			"id": "POWER_HEAL",
-			"value": 30,
-			"power_rate": 23
+			"power_rate": 23,
+			"value": 30
 		},
 		"summon_conditions": [],
 		"material_value": 1,
 		"represented_ids": [],
-		"set": "SET_011"
+		"set": "SET_011",
+		"appel": {
+			"attributes": [
+				"ARCH_054"
+			]
+		}
 	},
 	{
 		"id": "STAPLE_035",
@@ -14575,9 +14591,9 @@
 		"stats": {
 			"atk": 32,
 			"hp": 430,
-			"range": 1,
+			"movement_rate": 86,
 			"attack_rate": 86,
-			"movement_rate": 86
+			"range": 2
 		},
 		"power": {
 			"id": "POWER_CONFUSION",
@@ -14913,7 +14929,7 @@
 			"ARCH_029",
 			"ARCH_090",
 			"ARCH_092",
-			"ARCH_111"
+			"ARCH_110"
 		],
 		"stats": {
 			"atk": 18,
@@ -15579,14 +15595,14 @@
 		"stats": {
 			"atk": 12,
 			"hp": 95,
-			"range": 1,
+			"movement_rate": 86,
 			"attack_rate": 83,
-			"movement_rate": 86
+			"range": 2
 		},
 		"power": {
 			"id": "POWER_HEAL",
-			"value": 30,
-			"power_rate": 23
+			"power_rate": 23,
+			"value": 30
 		},
 		"summon_conditions": [],
 		"material_value": 1,
@@ -15843,9 +15859,9 @@
 		"stats": {
 			"atk": 18,
 			"hp": 50,
-			"range": 1,
+			"movement_rate": 92,
 			"attack_rate": 91,
-			"movement_rate": 92
+			"range": 2
 		},
 		"power": {
 			"id": "POWER_FREEZE",
@@ -15872,12 +15888,17 @@
 		"stats": {
 			"atk": 27,
 			"hp": 275,
-			"range": 1,
+			"movement_rate": 86,
 			"attack_rate": 84,
-			"movement_rate": 86
+			"range": 1
 		},
 		"power": {},
-		"summon_conditions": [],
+		"summon_conditions": [
+			{
+				"materials": 1,
+				"requires": []
+			}
+		],
 		"material_value": 1,
 		"represented_ids": []
 	},
@@ -15898,9 +15919,9 @@
 		"stats": {
 			"atk": 3,
 			"hp": 25,
-			"range": 1,
+			"movement_rate": 99,
 			"attack_rate": 96,
-			"movement_rate": 99
+			"range": 2
 		},
 		"power": {
 			"id": "POWER_DEBUFF",
@@ -16074,9 +16095,9 @@
 		"stats": {
 			"atk": 10,
 			"hp": 470,
-			"range": 1,
+			"movement_rate": 92,
 			"attack_rate": 90,
-			"movement_rate": 92
+			"range": 2
 		},
 		"power": {
 			"id": "POWER_CONFUSION",
@@ -16105,14 +16126,15 @@
 			"ARCH_035",
 			"ARCH_090",
 			"ARCH_093",
-			"ARCH_111"
+			"ARCH_111",
+			"ARCH_099"
 		],
 		"stats": {
 			"atk": 14,
 			"hp": 145,
-			"range": 1,
+			"movement_rate": 86,
 			"attack_rate": 84,
-			"movement_rate": 86
+			"range": 1
 		},
 		"power": {
 			"id": "POWER_FREEZE",
@@ -16121,7 +16143,12 @@
 		"summon_conditions": [],
 		"material_value": 1,
 		"represented_ids": [],
-		"set": "SET_015"
+		"set": "SET_015",
+		"appel": {
+			"attributes": [
+				"ARCH_049"
+			]
+		}
 	},
 	{
 		"id": "STAPLE_127",
@@ -16841,9 +16868,9 @@
 		"stats": {
 			"atk": 37,
 			"hp": 240,
-			"range": 1,
+			"movement_rate": 86,
 			"attack_rate": 80,
-			"movement_rate": 86
+			"range": 2
 		},
 		"power": {
 			"id": "POWER_CONFUSION",
@@ -17176,23 +17203,24 @@
 			"ARCH_021",
 			"ARCH_089",
 			"ARCH_092",
-			"ARCH_111"
+			"ARCH_109"
 		],
 		"stats": {
 			"atk": 26,
 			"hp": 155,
-			"range": 1,
+			"movement_rate": 86,
 			"attack_rate": 82,
-			"movement_rate": 86
+			"range": 1
 		},
 		"power": {
 			"id": "POWER_PUSH",
-			"value": 3,
-			"power_rate": 23
+			"power_rate": 23,
+			"value": 3
 		},
 		"summon_conditions": [
 			{
-				"materials": 1
+				"materials": 1,
+				"requires": []
 			}
 		],
 		"material_value": 1,
@@ -17263,9 +17291,9 @@
 		"stats": {
 			"atk": 26,
 			"hp": 155,
-			"range": 1,
+			"movement_rate": 92,
 			"attack_rate": 94,
-			"movement_rate": 92
+			"range": 2
 		},
 		"power": {
 			"id": "POWER_FREEZE",
@@ -17436,14 +17464,14 @@
 			"ARCH_020",
 			"ARCH_087",
 			"ARCH_093",
-			"ARCH_111"
+			"ARCH_110"
 		],
 		"stats": {
 			"atk": 20,
 			"hp": 420,
-			"range": 1,
+			"movement_rate": 86,
 			"attack_rate": 87,
-			"movement_rate": 86
+			"range": 1
 		},
 		"power": {
 			"id": "POWER_PARALYSIS",
@@ -18876,14 +18904,14 @@
 			"ARCH_001",
 			"ARCH_087",
 			"ARCH_092",
-			"ARCH_111"
+			"ARCH_113"
 		],
 		"stats": {
 			"atk": 22,
 			"hp": 265,
-			"range": 1,
+			"movement_rate": 99,
 			"attack_rate": 94,
-			"movement_rate": 99
+			"range": 1
 		},
 		"power": {},
 		"summon_conditions": [
@@ -18910,14 +18938,14 @@
 			"ARCH_001",
 			"ARCH_087",
 			"ARCH_093",
-			"ARCH_111"
+			"ARCH_110"
 		],
 		"stats": {
 			"atk": 27,
 			"hp": 410,
-			"range": 1,
+			"movement_rate": 92,
 			"attack_rate": 92,
-			"movement_rate": 92
+			"range": 1
 		},
 		"power": {
 			"id": "POWER_PARALYSIS",
@@ -18953,7 +18981,7 @@
 			"ARCH_086",
 			"ARCH_087",
 			"ARCH_094",
-			"ARCH_111"
+			"ARCH_110"
 		],
 		"stats": {
 			"atk": 36,
@@ -20199,14 +20227,14 @@
 		"stats": {
 			"atk": 20,
 			"hp": 250,
-			"range": 1,
+			"movement_rate": 92,
 			"attack_rate": 87,
-			"movement_rate": 92
+			"range": 2
 		},
 		"power": {
 			"id": "POWER_PUSH",
-			"value": 3,
-			"power_rate": 36
+			"power_rate": 36,
+			"value": 3
 		},
 		"summon_conditions": [
 			{
@@ -20980,14 +21008,14 @@
 			"ARCH_055",
 			"ARCH_088",
 			"ARCH_094",
-			"ARCH_111"
+			"ARCH_109"
 		],
 		"stats": {
 			"atk": 31,
 			"hp": 350,
-			"range": 1,
+			"movement_rate": 92,
 			"attack_rate": 84,
-			"movement_rate": 92
+			"range": 1
 		},
 		"power": {
 			"id": "POWER_FREEZE",
@@ -21676,7 +21704,7 @@
 			"hp": 420,
 			"movement_rate": 99,
 			"attack_rate": 94,
-			"range": 1
+			"range": 2
 		},
 		"power": {
 			"id": "POWER_BLOCK",
@@ -22952,9 +22980,9 @@
 		"stats": {
 			"atk": 11,
 			"hp": 95,
-			"range": 1,
+			"movement_rate": 92,
 			"attack_rate": 95,
-			"movement_rate": 92
+			"range": 2
 		},
 		"power": {
 			"id": "POWER_DEBUFF",
@@ -24046,14 +24074,14 @@
 			"ARCH_001",
 			"ARCH_090",
 			"ARCH_091",
-			"ARCH_111"
+			"ARCH_110"
 		],
 		"stats": {
 			"atk": 5,
 			"hp": 230,
-			"range": 1,
+			"movement_rate": 86,
 			"attack_rate": 87,
-			"movement_rate": 86
+			"range": 1
 		},
 		"power": {
 			"id": "POWER_PARALYSIS",
@@ -24238,7 +24266,7 @@
 			"ARCH_090",
 			"ARCH_091",
 			"ARCH_099",
-			"ARCH_113"
+			"ARCH_108"
 		],
 		"stats": {
 			"atk": 9,
@@ -25132,9 +25160,9 @@
 		"stats": {
 			"atk": 28,
 			"hp": 240,
-			"range": 1,
+			"movement_rate": 99,
 			"attack_rate": 95,
-			"movement_rate": 99
+			"range": 2
 		},
 		"power": {
 			"id": "POWER_CONFUSION",
@@ -26563,14 +26591,15 @@
 			"ARCH_021",
 			"ARCH_090",
 			"ARCH_091",
-			"ARCH_111"
+			"ARCH_111",
+			"ARCH_099"
 		],
 		"stats": {
 			"atk": 12,
 			"hp": 170,
-			"range": 1,
+			"movement_rate": 79,
 			"attack_rate": 86,
-			"movement_rate": 79
+			"range": 2
 		},
 		"power": {
 			"id": "POWER_BLOCK",
@@ -26580,7 +26609,12 @@
 		"summon_conditions": [],
 		"material_value": 1,
 		"represented_ids": [],
-		"set": "SET_016"
+		"set": "SET_016",
+		"appel": {
+			"attributes": [
+				"ARCH_029"
+			]
+		}
 	},
 	{
 		"id": "STAPLE_442",
@@ -26766,14 +26800,14 @@
 		"stats": {
 			"atk": 14,
 			"hp": 85,
-			"range": 1,
+			"movement_rate": 99,
 			"attack_rate": 92,
-			"movement_rate": 99
+			"range": 2
 		},
 		"power": {
 			"id": "POWER_PUSH",
-			"value": 2,
-			"power_rate": 36
+			"power_rate": 36,
+			"value": 2
 		},
 		"summon_conditions": [],
 		"material_value": 1,
@@ -29810,7 +29844,7 @@
 			"hp": 360,
 			"movement_rate": 99,
 			"attack_rate": 96,
-			"range": 1
+			"range": 3
 		},
 		"power": {
 			"id": "POWER_CONFUSION",
@@ -30648,14 +30682,14 @@
 		"stats": {
 			"atk": 30,
 			"hp": 250,
-			"range": 1,
+			"movement_rate": 92,
 			"attack_rate": 91,
-			"movement_rate": 92
+			"range": 3
 		},
 		"power": {
 			"id": "POWER_HEAL",
-			"value": 30,
-			"power_rate": 36
+			"power_rate": 36,
+			"value": 30
 		},
 		"summon_conditions": [
 			{
@@ -31214,7 +31248,7 @@
 			"hp": 250,
 			"movement_rate": 92,
 			"attack_rate": 90,
-			"range": 1
+			"range": 2
 		},
 		"power": {
 			"id": "POWER_FREEZE",
@@ -31299,7 +31333,7 @@
 			"hp": 250,
 			"movement_rate": 92,
 			"attack_rate": 90,
-			"range": 1
+			"range": 2
 		},
 		"power": {
 			"id": "POWER_DEBUFF",
@@ -31663,7 +31697,7 @@
 			"hp": 300,
 			"movement_rate": 99,
 			"attack_rate": 94,
-			"range": 1
+			"range": 2
 		},
 		"power": {
 			"id": "POWER_PARALYSIS",
@@ -31896,7 +31930,7 @@
 			"hp": 120,
 			"movement_rate": 92,
 			"attack_rate": 82,
-			"range": 1
+			"range": 2
 		},
 		"power": {},
 		"summon_conditions": [],
@@ -32032,7 +32066,7 @@
 			"hp": 190,
 			"movement_rate": 92,
 			"attack_rate": 87,
-			"range": 1
+			"range": 2
 		},
 		"power": {
 			"id": "POWER_FREEZE",
@@ -32494,7 +32528,7 @@
 			"hp": 70,
 			"movement_rate": 92,
 			"attack_rate": 94,
-			"range": 1
+			"range": 2
 		},
 		"power": {
 			"id": "POWER_PUSH",
@@ -32713,7 +32747,7 @@
 			"hp": 60,
 			"movement_rate": 92,
 			"attack_rate": 94,
-			"range": 1
+			"range": 2
 		},
 		"power": {
 			"id": "POWER_HEAL",
@@ -33409,7 +33443,7 @@
 			"hp": 300,
 			"movement_rate": 92,
 			"attack_rate": 89,
-			"range": 1
+			"range": 2
 		},
 		"power": {
 			"id": "POWER_FREEZE",
@@ -34354,11 +34388,10 @@
 			"ARCH_048",
 			"ARCH_090",
 			"ARCH_097",
-			"ARCH_098",
 			"ARCH_025"
 		],
 		"stats": {
-			"atk": 10,
+			"atk": 5,
 			"hp": 85,
 			"movement_rate": 0,
 			"attack_rate": 88,
@@ -34392,7 +34425,7 @@
 		"power": {
 			"id": "POWER_AOE_ATTACK",
 			"power_rate": 36,
-			"value": 30,
+			"value": 20,
 			"zone": 1
 		},
 		"summon_conditions": [
@@ -34788,7 +34821,7 @@
 			"ARCH_088"
 		],
 		"stats": {
-			"atk": 20,
+			"atk": 10,
 			"hp": 170,
 			"movement_rate": 0,
 			"attack_rate": 88,
