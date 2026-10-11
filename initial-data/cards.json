@@ -15,7 +15,7 @@
 		"stats": {
 			"atk": 25,
 			"hp": 200,
-			"movement_rate": 90,
+			"movement_rate": 85,
 			"attack_rate": 84,
 			"range": 2
 		},
@@ -52,7 +52,7 @@
 		"stats": {
 			"atk": 29,
 			"hp": 175,
-			"movement_rate": 87,
+			"movement_rate": 82,
 			"attack_rate": 78,
 			"range": 3
 		},
@@ -88,7 +88,7 @@
 			"hp": 160,
 			"range": 2,
 			"attack_rate": 87,
-			"movement_rate": 90
+			"movement_rate": 85
 		},
 		"power": {},
 		"summon_conditions": [],
@@ -111,7 +111,7 @@
 			"hp": 120,
 			"range": 1,
 			"attack_rate": 98,
-			"movement_rate": 92
+			"movement_rate": 87
 		},
 		"power": {},
 		"summon_conditions": [],
@@ -134,7 +134,7 @@
 		"stats": {
 			"atk": 23,
 			"hp": 250,
-			"movement_rate": 99,
+			"movement_rate": 94,
 			"attack_rate": 84,
 			"range": 1
 		},
@@ -166,7 +166,7 @@
 		"stats": {
 			"atk": 20,
 			"hp": 150,
-			"movement_rate": 96,
+			"movement_rate": 91,
 			"attack_rate": 86,
 			"range": 2
 		},
@@ -195,7 +195,7 @@
 		"stats": {
 			"atk": 26,
 			"hp": 220,
-			"movement_rate": 96,
+			"movement_rate": 91,
 			"attack_rate": 92,
 			"range": 2
 		},
@@ -235,7 +235,7 @@
 			"hp": 145,
 			"range": 1,
 			"attack_rate": 90,
-			"movement_rate": 92
+			"movement_rate": 87
 		},
 		"power": {},
 		"summon_conditions": [],
@@ -258,7 +258,7 @@
 		"stats": {
 			"atk": 12,
 			"hp": 135,
-			"movement_rate": 96,
+			"movement_rate": 91,
 			"attack_rate": 92,
 			"range": 2
 		},
@@ -282,7 +282,7 @@
 		"stats": {
 			"atk": 13,
 			"hp": 300,
-			"movement_rate": 86,
+			"movement_rate": 81,
 			"attack_rate": 83,
 			"range": 1
 		},
@@ -311,7 +311,7 @@
 			"hp": 335,
 			"range": 1,
 			"attack_rate": 95,
-			"movement_rate": 99
+			"movement_rate": 94
 		},
 		"power": {
 			"id": "POWER_SHIELD",
@@ -348,7 +348,7 @@
 		"stats": {
 			"atk": 25,
 			"hp": 145,
-			"movement_rate": 92,
+			"movement_rate": 87,
 			"attack_rate": 90,
 			"range": 1
 		},
@@ -381,7 +381,7 @@
 			"hp": 250,
 			"range": 1,
 			"attack_rate": 87,
-			"movement_rate": 92
+			"movement_rate": 87
 		},
 		"power": {},
 		"summon_conditions": [
@@ -410,7 +410,7 @@
 			"hp": 145,
 			"range": 1,
 			"attack_rate": 94,
-			"movement_rate": 99
+			"movement_rate": 94
 		},
 		"power": {},
 		"summon_conditions": [],
@@ -435,7 +435,7 @@
 			"hp": 215,
 			"range": 1,
 			"attack_rate": 92,
-			"movement_rate": 92
+			"movement_rate": 87
 		},
 		"power": {},
 		"summon_conditions": [],
@@ -463,7 +463,7 @@
 			"hp": 275,
 			"range": 1,
 			"attack_rate": 96,
-			"movement_rate": 99
+			"movement_rate": 94
 		},
 		"power": {
 			"id": "POWER_POISON",
@@ -504,7 +504,7 @@
 			"hp": 180,
 			"range": 1,
 			"attack_rate": 90,
-			"movement_rate": 92
+			"movement_rate": 87
 		},
 		"power": {},
 		"summon_conditions": [],
@@ -526,7 +526,7 @@
 		"stats": {
 			"atk": 8,
 			"hp": 300,
-			"movement_rate": 92,
+			"movement_rate": 87,
 			"attack_rate": 88,
 			"range": 2
 		},
@@ -557,7 +557,7 @@
 			"hp": 170,
 			"range": 1,
 			"attack_rate": 87,
-			"movement_rate": 92
+			"movement_rate": 87
 		},
 		"power": {},
 		"summon_conditions": [],
@@ -580,7 +580,7 @@
 		"stats": {
 			"atk": 12,
 			"hp": 95,
-			"movement_rate": 92,
+			"movement_rate": 87,
 			"attack_rate": 92,
 			"range": 1
 		},
@@ -605,7 +605,7 @@
 		"stats": {
 			"atk": 12,
 			"hp": 95,
-			"movement_rate": 99,
+			"movement_rate": 94,
 			"attack_rate": 95,
 			"range": 1
 		},
@@ -631,7 +631,7 @@
 			"hp": 120,
 			"range": 1,
 			"attack_rate": 90,
-			"movement_rate": 92
+			"movement_rate": 87
 		},
 		"power": {},
 		"summon_conditions": [],
@@ -656,7 +656,7 @@
 			"hp": 145,
 			"range": 1,
 			"attack_rate": 90,
-			"movement_rate": 92
+			"movement_rate": 87
 		},
 		"power": {},
 		"summon_conditions": [],
@@ -681,7 +681,7 @@
 		"stats": {
 			"atk": 15,
 			"hp": 115,
-			"movement_rate": 90,
+			"movement_rate": 85,
 			"attack_rate": 87,
 			"range": 2
 		},
@@ -707,7 +707,7 @@
 			"hp": 215,
 			"range": 1,
 			"attack_rate": 87,
-			"movement_rate": 92
+			"movement_rate": 87
 		},
 		"power": {},
 		"summon_conditions": [],
@@ -731,7 +731,7 @@
 			"hp": 215,
 			"range": 1,
 			"attack_rate": 92,
-			"movement_rate": 99
+			"movement_rate": 94
 		},
 		"power": {},
 		"summon_conditions": [],
@@ -754,7 +754,7 @@
 			"hp": 145,
 			"range": 1,
 			"attack_rate": 92,
-			"movement_rate": 92
+			"movement_rate": 87
 		},
 		"power": {},
 		"summon_conditions": [],
@@ -780,7 +780,7 @@
 			"hp": 190,
 			"range": 1,
 			"attack_rate": 87,
-			"movement_rate": 92
+			"movement_rate": 87
 		},
 		"power": {},
 		"summon_conditions": [],
@@ -805,7 +805,7 @@
 			"hp": 190,
 			"range": 1,
 			"attack_rate": 87,
-			"movement_rate": 92
+			"movement_rate": 87
 		},
 		"power": {},
 		"summon_conditions": [],
@@ -830,7 +830,7 @@
 			"hp": 190,
 			"range": 1,
 			"attack_rate": 86,
-			"movement_rate": 99
+			"movement_rate": 94
 		},
 		"power": {},
 		"summon_conditions": [],
@@ -852,7 +852,7 @@
 		"stats": {
 			"atk": 10,
 			"hp": 145,
-			"movement_rate": 92,
+			"movement_rate": 87,
 			"attack_rate": 87,
 			"range": 2
 		},
@@ -879,7 +879,7 @@
 		"stats": {
 			"atk": 15,
 			"hp": 145,
-			"movement_rate": 99,
+			"movement_rate": 94,
 			"attack_rate": 86,
 			"range": 1
 		},
@@ -913,7 +913,7 @@
 			"hp": 200,
 			"range": 2,
 			"attack_rate": 84,
-			"movement_rate": 96
+			"movement_rate": 91
 		},
 		"power": {
 			"id": "POWER_AOE_ATTACK",
@@ -946,7 +946,7 @@
 			"hp": 145,
 			"range": 1,
 			"attack_rate": 94,
-			"movement_rate": 92
+			"movement_rate": 87
 		},
 		"power": {},
 		"summon_conditions": [],
@@ -970,7 +970,7 @@
 		"stats": {
 			"atk": 12,
 			"hp": 75,
-			"movement_rate": 90,
+			"movement_rate": 85,
 			"attack_rate": 90,
 			"range": 2
 		},
@@ -997,7 +997,7 @@
 			"hp": 190,
 			"range": 1,
 			"attack_rate": 87,
-			"movement_rate": 92
+			"movement_rate": 87
 		},
 		"power": {},
 		"summon_conditions": [],
@@ -1018,7 +1018,7 @@
 		"stats": {
 			"atk": 5,
 			"hp": 95,
-			"movement_rate": 92,
+			"movement_rate": 87,
 			"attack_rate": 95,
 			"range": 2
 		},
@@ -1043,7 +1043,7 @@
 		"stats": {
 			"atk": 24,
 			"hp": 190,
-			"movement_rate": 83,
+			"movement_rate": 78,
 			"attack_rate": 92,
 			"range": 2
 		},
@@ -1085,7 +1085,7 @@
 			"hp": 190,
 			"range": 1,
 			"attack_rate": 90,
-			"movement_rate": 92
+			"movement_rate": 87
 		},
 		"power": {},
 		"summon_conditions": [],
@@ -1107,7 +1107,7 @@
 		"stats": {
 			"atk": 19,
 			"hp": 180,
-			"movement_rate": 92,
+			"movement_rate": 87,
 			"attack_rate": 90,
 			"range": 1
 		},
@@ -1136,7 +1136,7 @@
 			"hp": 190,
 			"range": 1,
 			"attack_rate": 88,
-			"movement_rate": 92
+			"movement_rate": 87
 		},
 		"power": {},
 		"summon_conditions": [],
@@ -1164,7 +1164,7 @@
 		"stats": {
 			"atk": 19,
 			"hp": 150,
-			"movement_rate": 96,
+			"movement_rate": 91,
 			"attack_rate": 92,
 			"range": 2
 		},
@@ -1205,7 +1205,7 @@
 		"stats": {
 			"atk": 24,
 			"hp": 200,
-			"movement_rate": 90,
+			"movement_rate": 85,
 			"attack_rate": 83,
 			"range": 2
 		},
@@ -1235,7 +1235,7 @@
 		"stats": {
 			"atk": 19,
 			"hp": 150,
-			"movement_rate": 90,
+			"movement_rate": 85,
 			"attack_rate": 86,
 			"range": 2
 		},
@@ -1263,7 +1263,7 @@
 			"hp": 205,
 			"range": 1,
 			"attack_rate": 90,
-			"movement_rate": 92
+			"movement_rate": 87
 		},
 		"power": {},
 		"summon_conditions": [],
@@ -1285,7 +1285,7 @@
 		"stats": {
 			"atk": 16,
 			"hp": 145,
-			"movement_rate": 92,
+			"movement_rate": 87,
 			"attack_rate": 92,
 			"range": 1
 		},
@@ -1312,7 +1312,7 @@
 		"stats": {
 			"atk": 18,
 			"hp": 150,
-			"movement_rate": 83,
+			"movement_rate": 78,
 			"attack_rate": 83,
 			"range": 2
 		},
@@ -1340,7 +1340,7 @@
 		"stats": {
 			"atk": 15,
 			"hp": 190,
-			"movement_rate": 99,
+			"movement_rate": 94,
 			"attack_rate": 87,
 			"range": 2
 		},
@@ -1367,7 +1367,7 @@
 		"stats": {
 			"atk": 15,
 			"hp": 125,
-			"movement_rate": 90,
+			"movement_rate": 85,
 			"attack_rate": 83,
 			"range": 2
 		},
@@ -1392,7 +1392,7 @@
 		"stats": {
 			"atk": 20,
 			"hp": 150,
-			"movement_rate": 90,
+			"movement_rate": 85,
 			"attack_rate": 87,
 			"range": 2
 		},
@@ -1418,7 +1418,7 @@
 		"stats": {
 			"atk": 17,
 			"hp": 190,
-			"movement_rate": 92,
+			"movement_rate": 87,
 			"attack_rate": 83,
 			"range": 1
 		},
@@ -1444,7 +1444,7 @@
 		"stats": {
 			"atk": 12,
 			"hp": 145,
-			"movement_rate": 92,
+			"movement_rate": 87,
 			"attack_rate": 92,
 			"range": 1
 		},
@@ -1476,7 +1476,7 @@
 		"stats": {
 			"atk": 13,
 			"hp": 180,
-			"movement_rate": 92,
+			"movement_rate": 87,
 			"attack_rate": 92,
 			"range": 1
 		},
@@ -1508,7 +1508,7 @@
 		"stats": {
 			"atk": 15,
 			"hp": 120,
-			"movement_rate": 92,
+			"movement_rate": 87,
 			"attack_rate": 92,
 			"range": 1
 		},
@@ -1540,7 +1540,7 @@
 		"stats": {
 			"atk": 10,
 			"hp": 120,
-			"movement_rate": 92,
+			"movement_rate": 87,
 			"attack_rate": 90,
 			"range": 1
 		},
@@ -1572,7 +1572,7 @@
 			"hp": 335,
 			"range": 1,
 			"attack_rate": 92,
-			"movement_rate": 92
+			"movement_rate": 87
 		},
 		"power": {
 			"id": "POWER_PARALYSIS",
@@ -1610,7 +1610,7 @@
 			"hp": 205,
 			"range": 1,
 			"attack_rate": 94,
-			"movement_rate": 92
+			"movement_rate": 87
 		},
 		"power": {},
 		"summon_conditions": [],
@@ -1635,7 +1635,7 @@
 			"hp": 190,
 			"range": 1,
 			"attack_rate": 90,
-			"movement_rate": 92
+			"movement_rate": 87
 		},
 		"power": {},
 		"summon_conditions": [],
@@ -1660,7 +1660,7 @@
 			"hp": 215,
 			"range": 1,
 			"attack_rate": 91,
-			"movement_rate": 92
+			"movement_rate": 87
 		},
 		"power": {},
 		"summon_conditions": [],
@@ -1685,7 +1685,7 @@
 			"hp": 455,
 			"range": 1,
 			"attack_rate": 94,
-			"movement_rate": 99
+			"movement_rate": 94
 		},
 		"power": {
 			"id": "POWER_SHIELD",
@@ -1728,7 +1728,7 @@
 			"hp": 190,
 			"range": 1,
 			"attack_rate": 90,
-			"movement_rate": 92
+			"movement_rate": 87
 		},
 		"power": {},
 		"summon_conditions": [],
@@ -1753,7 +1753,7 @@
 			"hp": 170,
 			"range": 1,
 			"attack_rate": 90,
-			"movement_rate": 92
+			"movement_rate": 87
 		},
 		"power": {},
 		"summon_conditions": [],
@@ -1778,7 +1778,7 @@
 			"hp": 215,
 			"range": 1,
 			"attack_rate": 88,
-			"movement_rate": 92
+			"movement_rate": 87
 		},
 		"power": {},
 		"summon_conditions": [],
@@ -1803,7 +1803,7 @@
 		"stats": {
 			"atk": 38,
 			"hp": 300,
-			"movement_rate": 99,
+			"movement_rate": 94,
 			"attack_rate": 91,
 			"range": 1
 		},
@@ -1863,7 +1863,7 @@
 			"hp": 255,
 			"range": 2,
 			"attack_rate": 92,
-			"movement_rate": 96
+			"movement_rate": 91
 		},
 		"power": {
 			"id": "POWER_SUPER_ATTACK",
@@ -1903,7 +1903,7 @@
 		"stats": {
 			"atk": 40,
 			"hp": 380,
-			"movement_rate": 96,
+			"movement_rate": 91,
 			"attack_rate": 94,
 			"range": 2
 		},
@@ -1953,7 +1953,7 @@
 			"hp": 360,
 			"range": 1,
 			"attack_rate": 90,
-			"movement_rate": 99
+			"movement_rate": 94
 		},
 		"power": {
 			"id": "POWER_PARALYSIS",
@@ -1994,7 +1994,7 @@
 			"hp": 245,
 			"range": 2,
 			"attack_rate": 90,
-			"movement_rate": 96
+			"movement_rate": 91
 		},
 		"power": {
 			"id": "POWER_AOE_ATTACK",
@@ -2037,7 +2037,7 @@
 		"stats": {
 			"atk": 22,
 			"hp": 180,
-			"movement_rate": 96,
+			"movement_rate": 91,
 			"attack_rate": 79,
 			"range": 2
 		},
@@ -2079,7 +2079,7 @@
 		"stats": {
 			"atk": 24,
 			"hp": 200,
-			"movement_rate": 83,
+			"movement_rate": 78,
 			"attack_rate": 79,
 			"range": 2
 		},
@@ -2123,7 +2123,7 @@
 			"hp": 210,
 			"range": 2,
 			"attack_rate": 79,
-			"movement_rate": 90
+			"movement_rate": 85
 		},
 		"power": {
 			"id": "POWER_PARALYSIS",
@@ -2162,7 +2162,7 @@
 		"stats": {
 			"atk": 18,
 			"hp": 190,
-			"movement_rate": 83,
+			"movement_rate": 78,
 			"attack_rate": 87,
 			"range": 2
 		},
@@ -2192,7 +2192,7 @@
 			"hp": 145,
 			"range": 1,
 			"attack_rate": 90,
-			"movement_rate": 92
+			"movement_rate": 87
 		},
 		"power": {},
 		"summon_conditions": [],
@@ -2216,7 +2216,7 @@
 			"hp": 215,
 			"range": 1,
 			"attack_rate": 90,
-			"movement_rate": 92
+			"movement_rate": 87
 		},
 		"power": {
 			"id": "POWER_SHIELD",
@@ -2246,7 +2246,7 @@
 		"stats": {
 			"atk": 17,
 			"hp": 145,
-			"movement_rate": 96,
+			"movement_rate": 91,
 			"attack_rate": 92,
 			"range": 2
 		},
@@ -2286,7 +2286,7 @@
 		"stats": {
 			"atk": 28,
 			"hp": 245,
-			"movement_rate": 90,
+			"movement_rate": 85,
 			"attack_rate": 92,
 			"range": 2
 		},
@@ -2331,7 +2331,7 @@
 			"hp": 265,
 			"range": 1,
 			"attack_rate": 88,
-			"movement_rate": 99
+			"movement_rate": 94
 		},
 		"power": {
 			"id": "POWER_POISON",
@@ -2362,7 +2362,7 @@
 		"stats": {
 			"atk": 7,
 			"hp": 95,
-			"movement_rate": 92,
+			"movement_rate": 87,
 			"attack_rate": 94,
 			"range": 2
 		},
@@ -2388,7 +2388,7 @@
 			"hp": 155,
 			"range": 1,
 			"attack_rate": 87,
-			"movement_rate": 92
+			"movement_rate": 87
 		},
 		"power": {},
 		"summon_conditions": [],
@@ -2413,7 +2413,7 @@
 			"hp": 145,
 			"range": 1,
 			"attack_rate": 90,
-			"movement_rate": 92
+			"movement_rate": 87
 		},
 		"power": {},
 		"summon_conditions": [],
@@ -2438,7 +2438,7 @@
 			"hp": 215,
 			"range": 1,
 			"attack_rate": 86,
-			"movement_rate": 92
+			"movement_rate": 87
 		},
 		"power": {},
 		"summon_conditions": [],
@@ -2461,7 +2461,7 @@
 		"stats": {
 			"atk": 10,
 			"hp": 95,
-			"movement_rate": 90,
+			"movement_rate": 85,
 			"attack_rate": 91,
 			"range": 2
 		},
@@ -2494,7 +2494,7 @@
 			"hp": 240,
 			"range": 2,
 			"attack_rate": 88,
-			"movement_rate": 90
+			"movement_rate": 85
 		},
 		"power": {
 			"id": "POWER_HEAL",
@@ -2531,7 +2531,7 @@
 		"stats": {
 			"atk": 3,
 			"hp": 300,
-			"movement_rate": 86,
+			"movement_rate": 81,
 			"attack_rate": 94,
 			"range": 1
 		},
@@ -2562,7 +2562,7 @@
 		"stats": {
 			"atk": 28,
 			"hp": 285,
-			"movement_rate": 90,
+			"movement_rate": 85,
 			"attack_rate": 84,
 			"range": 2
 		},
@@ -2594,7 +2594,7 @@
 		"stats": {
 			"atk": 36,
 			"hp": 305,
-			"movement_rate": 90,
+			"movement_rate": 85,
 			"attack_rate": 87,
 			"range": 2
 		},
@@ -2636,7 +2636,7 @@
 			"hp": 280,
 			"range": 3,
 			"attack_rate": 91,
-			"movement_rate": 87
+			"movement_rate": 82
 		},
 		"power": {
 			"id": "POWER_AOE_ATTACK",
@@ -2676,7 +2676,7 @@
 		"stats": {
 			"atk": 35,
 			"hp": 305,
-			"movement_rate": 90,
+			"movement_rate": 85,
 			"attack_rate": 79,
 			"range": 2
 		},
@@ -2722,7 +2722,7 @@
 			"hp": 265,
 			"range": 2,
 			"attack_rate": 87,
-			"movement_rate": 90
+			"movement_rate": 85
 		},
 		"power": {
 			"id": "POWER_AOE_ATTACK",
@@ -2763,7 +2763,7 @@
 			"hp": 215,
 			"range": 1,
 			"attack_rate": 86,
-			"movement_rate": 99
+			"movement_rate": 94
 		},
 		"power": {},
 		"summon_conditions": [],
@@ -2785,7 +2785,7 @@
 		"stats": {
 			"atk": 5,
 			"hp": 310,
-			"movement_rate": 86,
+			"movement_rate": 81,
 			"attack_rate": 94,
 			"range": 1
 		},
@@ -2817,7 +2817,7 @@
 		"stats": {
 			"atk": 10,
 			"hp": 95,
-			"movement_rate": 96,
+			"movement_rate": 91,
 			"attack_rate": 90,
 			"range": 2
 		},
@@ -2844,7 +2844,7 @@
 		"stats": {
 			"atk": 12,
 			"hp": 75,
-			"movement_rate": 96,
+			"movement_rate": 91,
 			"attack_rate": 92,
 			"range": 2
 		},
@@ -2870,7 +2870,7 @@
 		"stats": {
 			"atk": 16,
 			"hp": 95,
-			"movement_rate": 90,
+			"movement_rate": 85,
 			"attack_rate": 87,
 			"range": 2
 		},
@@ -2898,7 +2898,7 @@
 			"hp": 300,
 			"range": 1,
 			"attack_rate": 87,
-			"movement_rate": 86
+			"movement_rate": 81
 		},
 		"power": {},
 		"summon_conditions": [],
@@ -2923,7 +2923,7 @@
 			"hp": 115,
 			"range": 2,
 			"attack_rate": 94,
-			"movement_rate": 90
+			"movement_rate": 85
 		},
 		"power": {},
 		"summon_conditions": [],
@@ -2948,7 +2948,7 @@
 			"hp": 145,
 			"range": 2,
 			"attack_rate": 90,
-			"movement_rate": 90
+			"movement_rate": 85
 		},
 		"power": {
 			"id": "POWER_AOE_ATTACK",
@@ -2989,7 +2989,7 @@
 		"stats": {
 			"atk": 10,
 			"hp": 360,
-			"movement_rate": 92,
+			"movement_rate": 87,
 			"attack_rate": 90,
 			"range": 1
 		},
@@ -3027,7 +3027,7 @@
 		"stats": {
 			"atk": 19,
 			"hp": 175,
-			"movement_rate": 80,
+			"movement_rate": 75,
 			"attack_rate": 86,
 			"range": 3
 		},
@@ -3069,7 +3069,7 @@
 		"stats": {
 			"atk": 21,
 			"hp": 230,
-			"movement_rate": 99,
+			"movement_rate": 94,
 			"attack_rate": 94,
 			"range": 1
 		},
@@ -3106,7 +3106,7 @@
 		"stats": {
 			"atk": 35,
 			"hp": 600,
-			"movement_rate": 86,
+			"movement_rate": 81,
 			"attack_rate": 87,
 			"range": 1
 		},
@@ -3153,7 +3153,7 @@
 		"stats": {
 			"atk": 45,
 			"hp": 340,
-			"movement_rate": 86,
+			"movement_rate": 81,
 			"attack_rate": 91,
 			"range": 4
 		},
@@ -3196,7 +3196,7 @@
 			"hp": 285,
 			"range": 2,
 			"attack_rate": 94,
-			"movement_rate": 96
+			"movement_rate": 91
 		},
 		"power": {
 			"id": "POWER_AOE_ATTACK",
@@ -3238,7 +3238,7 @@
 			"hp": 250,
 			"range": 1,
 			"attack_rate": 87,
-			"movement_rate": 92
+			"movement_rate": 87
 		},
 		"power": {
 			"id": "POWER_TELEPORT",
@@ -3276,7 +3276,7 @@
 		"stats": {
 			"atk": 26,
 			"hp": 250,
-			"movement_rate": 92,
+			"movement_rate": 87,
 			"attack_rate": 87,
 			"range": 1
 		},
@@ -3317,7 +3317,7 @@
 		"stats": {
 			"atk": 28,
 			"hp": 300,
-			"movement_rate": 99,
+			"movement_rate": 94,
 			"attack_rate": 91,
 			"range": 1
 		},
@@ -3357,7 +3357,7 @@
 			"hp": 430,
 			"range": 1,
 			"attack_rate": 91,
-			"movement_rate": 99
+			"movement_rate": 94
 		},
 		"power": {
 			"id": "POWER_SHIELD",
@@ -3395,7 +3395,7 @@
 		"stats": {
 			"atk": 19,
 			"hp": 210,
-			"movement_rate": 96,
+			"movement_rate": 91,
 			"attack_rate": 92,
 			"range": 2
 		},
@@ -3438,7 +3438,7 @@
 		"stats": {
 			"atk": 28,
 			"hp": 170,
-			"movement_rate": 99,
+			"movement_rate": 94,
 			"attack_rate": 90,
 			"range": 1
 		},
@@ -3476,7 +3476,7 @@
 		"stats": {
 			"atk": 20,
 			"hp": 210,
-			"movement_rate": 90,
+			"movement_rate": 85,
 			"attack_rate": 90,
 			"range": 2
 		},
@@ -3513,7 +3513,7 @@
 		"stats": {
 			"atk": 19,
 			"hp": 150,
-			"movement_rate": 90,
+			"movement_rate": 85,
 			"attack_rate": 87,
 			"range": 2
 		},
@@ -3550,7 +3550,7 @@
 		"stats": {
 			"atk": 26,
 			"hp": 265,
-			"movement_rate": 92,
+			"movement_rate": 87,
 			"attack_rate": 91,
 			"range": 1
 		},
@@ -3590,7 +3590,7 @@
 			"hp": 240,
 			"range": 1,
 			"attack_rate": 87,
-			"movement_rate": 92
+			"movement_rate": 87
 		},
 		"power": {},
 		"summon_conditions": [
@@ -3627,7 +3627,7 @@
 			"hp": 285,
 			"range": 2,
 			"attack_rate": 87,
-			"movement_rate": 90
+			"movement_rate": 85
 		},
 		"power": {},
 		"summon_conditions": [
@@ -3662,7 +3662,7 @@
 		"stats": {
 			"atk": 18,
 			"hp": 150,
-			"movement_rate": 90,
+			"movement_rate": 85,
 			"attack_rate": 87,
 			"range": 2
 		},
@@ -3697,7 +3697,7 @@
 		"stats": {
 			"atk": 7,
 			"hp": 145,
-			"movement_rate": 96,
+			"movement_rate": 91,
 			"attack_rate": 90,
 			"range": 2
 		},
@@ -3730,7 +3730,7 @@
 			"hp": 140,
 			"range": 3,
 			"attack_rate": 82,
-			"movement_rate": 80
+			"movement_rate": 75
 		},
 		"power": {},
 		"summon_conditions": [],
@@ -3758,7 +3758,7 @@
 			"hp": 265,
 			"range": 2,
 			"attack_rate": 94,
-			"movement_rate": 96
+			"movement_rate": 91
 		},
 		"power": {
 			"id": "POWER_TELEPORT",
@@ -3798,7 +3798,7 @@
 		"stats": {
 			"atk": 24,
 			"hp": 145,
-			"movement_rate": 94,
+			"movement_rate": 89,
 			"attack_rate": 90,
 			"range": 3
 		},
@@ -3842,7 +3842,7 @@
 			"hp": 190,
 			"range": 2,
 			"attack_rate": 92,
-			"movement_rate": 90
+			"movement_rate": 85
 		},
 		"power": {},
 		"summon_conditions": [
@@ -3878,7 +3878,7 @@
 		"stats": {
 			"atk": 19,
 			"hp": 150,
-			"movement_rate": 96,
+			"movement_rate": 91,
 			"attack_rate": 94,
 			"range": 2
 		},
@@ -3917,7 +3917,7 @@
 		"stats": {
 			"atk": 28,
 			"hp": 265,
-			"movement_rate": 96,
+			"movement_rate": 91,
 			"attack_rate": 94,
 			"range": 2
 		},
@@ -3961,7 +3961,7 @@
 		"stats": {
 			"atk": 18,
 			"hp": 230,
-			"movement_rate": 92,
+			"movement_rate": 87,
 			"attack_rate": 90,
 			"range": 2
 		},
@@ -4002,7 +4002,7 @@
 		"stats": {
 			"atk": 16,
 			"hp": 170,
-			"movement_rate": 99,
+			"movement_rate": 94,
 			"attack_rate": 96,
 			"range": 1
 		},
@@ -4043,7 +4043,7 @@
 		"stats": {
 			"atk": 35,
 			"hp": 360,
-			"movement_rate": 99,
+			"movement_rate": 94,
 			"attack_rate": 94,
 			"range": 1
 		},
@@ -4090,7 +4090,7 @@
 			"hp": 150,
 			"range": 2,
 			"attack_rate": 90,
-			"movement_rate": 90
+			"movement_rate": 85
 		},
 		"power": {
 			"id": "POWER_FREEZE",
@@ -4135,7 +4135,7 @@
 			"hp": 480,
 			"range": 1,
 			"attack_rate": 90,
-			"movement_rate": 92
+			"movement_rate": 87
 		},
 		"power": {
 			"id": "POWER_TAUNT",
@@ -4182,7 +4182,7 @@
 			"hp": 240,
 			"range": 2,
 			"attack_rate": 90,
-			"movement_rate": 90
+			"movement_rate": 85
 		},
 		"power": {
 			"id": "POWER_HEAL",
@@ -4220,7 +4220,7 @@
 			"hp": 280,
 			"range": 3,
 			"attack_rate": 92,
-			"movement_rate": 94
+			"movement_rate": 89
 		},
 		"power": {
 			"id": "POWER_AOE_ATTACK",
@@ -4263,7 +4263,7 @@
 			"hp": 155,
 			"range": 1,
 			"attack_rate": 90,
-			"movement_rate": 92
+			"movement_rate": 87
 		},
 		"power": {},
 		"summon_conditions": [],
@@ -4288,7 +4288,7 @@
 			"hp": 180,
 			"range": 1,
 			"attack_rate": 88,
-			"movement_rate": 92
+			"movement_rate": 87
 		},
 		"power": {},
 		"summon_conditions": [],
@@ -4313,7 +4313,7 @@
 			"hp": 130,
 			"range": 1,
 			"attack_rate": 92,
-			"movement_rate": 99
+			"movement_rate": 94
 		},
 		"power": {},
 		"summon_conditions": [],
@@ -4336,7 +4336,7 @@
 		"stats": {
 			"atk": 8,
 			"hp": 110,
-			"movement_rate": 86,
+			"movement_rate": 81,
 			"attack_rate": 96,
 			"range": 3
 		},
@@ -4369,7 +4369,7 @@
 			"hp": 145,
 			"range": 1,
 			"attack_rate": 92,
-			"movement_rate": 92
+			"movement_rate": 87
 		},
 		"power": {
 			"id": "POWER_POISON",
@@ -4398,7 +4398,7 @@
 		"stats": {
 			"atk": 10,
 			"hp": 95,
-			"movement_rate": 90,
+			"movement_rate": 85,
 			"attack_rate": 94,
 			"range": 2
 		},
@@ -4426,7 +4426,7 @@
 		"stats": {
 			"atk": 15,
 			"hp": 240,
-			"movement_rate": 86,
+			"movement_rate": 81,
 			"attack_rate": 92,
 			"range": 1
 		},
@@ -4453,7 +4453,7 @@
 			"hp": 190,
 			"range": 1,
 			"attack_rate": 88,
-			"movement_rate": 92
+			"movement_rate": 87
 		},
 		"power": {},
 		"summon_conditions": [],
@@ -4479,7 +4479,7 @@
 			"hp": 135,
 			"range": 2,
 			"attack_rate": 87,
-			"movement_rate": 90
+			"movement_rate": 85
 		},
 		"power": {},
 		"summon_conditions": [],
@@ -4503,7 +4503,7 @@
 		"stats": {
 			"atk": 23,
 			"hp": 190,
-			"movement_rate": 92,
+			"movement_rate": 87,
 			"attack_rate": 88,
 			"range": 1
 		},
@@ -4533,7 +4533,7 @@
 		"stats": {
 			"atk": 22,
 			"hp": 215,
-			"movement_rate": 99,
+			"movement_rate": 94,
 			"attack_rate": 90,
 			"range": 2
 		},
@@ -4563,7 +4563,7 @@
 		"stats": {
 			"atk": 35,
 			"hp": 300,
-			"movement_rate": 99,
+			"movement_rate": 94,
 			"attack_rate": 90,
 			"range": 1
 		},
@@ -4602,7 +4602,7 @@
 			"hp": 240,
 			"range": 1,
 			"attack_rate": 91,
-			"movement_rate": 99
+			"movement_rate": 94
 		},
 		"power": {
 			"id": "POWER_SUPER_ATTACK",
@@ -4636,7 +4636,7 @@
 			"hp": 420,
 			"range": 1,
 			"attack_rate": 83,
-			"movement_rate": 86
+			"movement_rate": 81
 		},
 		"power": {
 			"id": "POWER_BURN",
@@ -4667,7 +4667,7 @@
 		"stats": {
 			"atk": 0,
 			"hp": 300,
-			"movement_rate": 76,
+			"movement_rate": 71,
 			"attack_rate": 76,
 			"range": 4
 		},
@@ -4707,7 +4707,7 @@
 			"hp": 335,
 			"range": 2,
 			"attack_rate": 90,
-			"movement_rate": 90
+			"movement_rate": 85
 		},
 		"power": {
 			"id": "POWER_SUPER_ATTACK",
@@ -4747,7 +4747,7 @@
 		"stats": {
 			"atk": 38,
 			"hp": 315,
-			"movement_rate": 87,
+			"movement_rate": 82,
 			"attack_rate": 88,
 			"range": 3
 		},
@@ -4787,7 +4787,7 @@
 			"hp": 145,
 			"range": 2,
 			"attack_rate": 87,
-			"movement_rate": 96
+			"movement_rate": 91
 		},
 		"power": {},
 		"summon_conditions": [],
@@ -4810,7 +4810,7 @@
 			"hp": 205,
 			"range": 1,
 			"attack_rate": 90,
-			"movement_rate": 86
+			"movement_rate": 81
 		},
 		"power": {},
 		"summon_conditions": [],
@@ -4832,7 +4832,7 @@
 		"stats": {
 			"atk": 10,
 			"hp": 135,
-			"movement_rate": 83,
+			"movement_rate": 78,
 			"attack_rate": 92,
 			"range": 2
 		},
@@ -4859,7 +4859,7 @@
 			"hp": 170,
 			"range": 1,
 			"attack_rate": 87,
-			"movement_rate": 92
+			"movement_rate": 87
 		},
 		"power": {},
 		"summon_conditions": [],
@@ -4883,7 +4883,7 @@
 		"stats": {
 			"atk": 14,
 			"hp": 145,
-			"movement_rate": 92,
+			"movement_rate": 87,
 			"attack_rate": 92,
 			"range": 1
 		},
@@ -4911,7 +4911,7 @@
 			"hp": 180,
 			"range": 2,
 			"attack_rate": 84,
-			"movement_rate": 96
+			"movement_rate": 91
 		},
 		"power": {},
 		"summon_conditions": [],
@@ -4936,7 +4936,7 @@
 			"hp": 140,
 			"range": 3,
 			"attack_rate": 86,
-			"movement_rate": 87
+			"movement_rate": 82
 		},
 		"power": {},
 		"summon_conditions": [],
@@ -4960,7 +4960,7 @@
 			"hp": 250,
 			"range": 1,
 			"attack_rate": 87,
-			"movement_rate": 92
+			"movement_rate": 87
 		},
 		"power": {},
 		"summon_conditions": [
@@ -4986,7 +4986,7 @@
 		"stats": {
 			"atk": 20,
 			"hp": 215,
-			"movement_rate": 86,
+			"movement_rate": 81,
 			"attack_rate": 83,
 			"range": 1
 		},
@@ -5015,7 +5015,7 @@
 		"stats": {
 			"atk": 26,
 			"hp": 265,
-			"movement_rate": 92,
+			"movement_rate": 87,
 			"attack_rate": 87,
 			"range": 1
 		},
@@ -5048,7 +5048,7 @@
 		"stats": {
 			"atk": 32,
 			"hp": 385,
-			"movement_rate": 99,
+			"movement_rate": 94,
 			"attack_rate": 91,
 			"range": 1
 		},
@@ -5088,7 +5088,7 @@
 			"hp": 190,
 			"range": 3,
 			"attack_rate": 84,
-			"movement_rate": 94
+			"movement_rate": 89
 		},
 		"power": {
 			"id": "POWER_AOE_ATTACK",
@@ -5119,7 +5119,7 @@
 		"stats": {
 			"atk": 20,
 			"hp": 205,
-			"movement_rate": 92,
+			"movement_rate": 87,
 			"attack_rate": 87,
 			"range": 1
 		},
@@ -5147,7 +5147,7 @@
 			"hp": 110,
 			"range": 3,
 			"attack_rate": 88,
-			"movement_rate": 94
+			"movement_rate": 89
 		},
 		"power": {},
 		"summon_conditions": [],
@@ -5171,7 +5171,7 @@
 			"hp": 190,
 			"range": 1,
 			"attack_rate": 90,
-			"movement_rate": 92
+			"movement_rate": 87
 		},
 		"power": {},
 		"summon_conditions": [],
@@ -5192,7 +5192,7 @@
 		"stats": {
 			"atk": 12,
 			"hp": 120,
-			"movement_rate": 92,
+			"movement_rate": 87,
 			"attack_rate": 92,
 			"range": 1
 		},
@@ -5217,7 +5217,7 @@
 		"stats": {
 			"atk": 14,
 			"hp": 85,
-			"movement_rate": 96,
+			"movement_rate": 91,
 			"attack_rate": 94,
 			"range": 2
 		},
@@ -5243,7 +5243,7 @@
 			"hp": 130,
 			"range": 1,
 			"attack_rate": 90,
-			"movement_rate": 92
+			"movement_rate": 87
 		},
 		"power": {},
 		"summon_conditions": [],
@@ -5264,7 +5264,7 @@
 		"stats": {
 			"atk": 5,
 			"hp": 180,
-			"movement_rate": 92,
+			"movement_rate": 87,
 			"attack_rate": 92,
 			"range": 1
 		},
@@ -5291,7 +5291,7 @@
 			"hp": 95,
 			"range": 1,
 			"attack_rate": 95,
-			"movement_rate": 86
+			"movement_rate": 81
 		},
 		"power": {
 			"id": "POWER_PARALYSIS",
@@ -5318,7 +5318,7 @@
 		"stats": {
 			"atk": 8,
 			"hp": 120,
-			"movement_rate": 86,
+			"movement_rate": 81,
 			"attack_rate": 96,
 			"range": 1
 		},
@@ -5355,7 +5355,7 @@
 		"stats": {
 			"atk": 0,
 			"hp": 300,
-			"movement_rate": 76,
+			"movement_rate": 71,
 			"attack_rate": 76,
 			"range": 4
 		},
@@ -5384,7 +5384,7 @@
 		"stats": {
 			"atk": 11,
 			"hp": 110,
-			"movement_rate": 99,
+			"movement_rate": 94,
 			"attack_rate": 94,
 			"range": 1
 		},
@@ -5412,7 +5412,7 @@
 			"hp": 240,
 			"range": 2,
 			"attack_rate": 90,
-			"movement_rate": 90
+			"movement_rate": 85
 		},
 		"power": {},
 		"summon_conditions": [
@@ -5448,7 +5448,7 @@
 			"hp": 305,
 			"range": 2,
 			"attack_rate": 92,
-			"movement_rate": 96
+			"movement_rate": 91
 		},
 		"power": {
 			"id": "POWER_AOE_ATTACK",
@@ -5482,7 +5482,7 @@
 		"stats": {
 			"atk": 28,
 			"hp": 300,
-			"movement_rate": 99,
+			"movement_rate": 94,
 			"attack_rate": 90,
 			"range": 1
 		},
@@ -5518,7 +5518,7 @@
 			"hp": 190,
 			"range": 1,
 			"attack_rate": 88,
-			"movement_rate": 92
+			"movement_rate": 87
 		},
 		"power": {},
 		"summon_conditions": [],
@@ -5542,7 +5542,7 @@
 			"hp": 145,
 			"range": 1,
 			"attack_rate": 90,
-			"movement_rate": 92
+			"movement_rate": 87
 		},
 		"power": {},
 		"summon_conditions": [],
@@ -5566,7 +5566,7 @@
 			"hp": 125,
 			"range": 2,
 			"attack_rate": 92,
-			"movement_rate": 96
+			"movement_rate": 91
 		},
 		"power": {},
 		"summon_conditions": [],
@@ -5588,7 +5588,7 @@
 			"hp": 180,
 			"range": 1,
 			"attack_rate": 90,
-			"movement_rate": 92
+			"movement_rate": 87
 		},
 		"power": {},
 		"summon_conditions": [],
@@ -5611,7 +5611,7 @@
 			"hp": 170,
 			"range": 1,
 			"attack_rate": 88,
-			"movement_rate": 92
+			"movement_rate": 87
 		},
 		"power": {},
 		"summon_conditions": [],
@@ -5634,7 +5634,7 @@
 			"hp": 145,
 			"range": 1,
 			"attack_rate": 91,
-			"movement_rate": 92
+			"movement_rate": 87
 		},
 		"power": {},
 		"summon_conditions": [],
@@ -5657,7 +5657,7 @@
 		"stats": {
 			"atk": 27,
 			"hp": 250,
-			"movement_rate": 99,
+			"movement_rate": 94,
 			"attack_rate": 87,
 			"range": 1
 		},
@@ -5693,7 +5693,7 @@
 			"hp": 335,
 			"range": 1,
 			"attack_rate": 91,
-			"movement_rate": 92
+			"movement_rate": 87
 		},
 		"power": {},
 		"summon_conditions": [
@@ -5721,7 +5721,7 @@
 			"hp": 250,
 			"range": 1,
 			"attack_rate": 87,
-			"movement_rate": 99
+			"movement_rate": 94
 		},
 		"power": {},
 		"summon_conditions": [
@@ -5748,7 +5748,7 @@
 			"hp": 70,
 			"range": 3,
 			"attack_rate": 92,
-			"movement_rate": 94
+			"movement_rate": 89
 		},
 		"power": {},
 		"summon_conditions": [],
@@ -5772,7 +5772,7 @@
 			"hp": 145,
 			"range": 1,
 			"attack_rate": 91,
-			"movement_rate": 86
+			"movement_rate": 81
 		},
 		"power": {},
 		"summon_conditions": [],
@@ -5796,7 +5796,7 @@
 			"hp": 215,
 			"range": 1,
 			"attack_rate": 86,
-			"movement_rate": 92
+			"movement_rate": 87
 		},
 		"power": {},
 		"summon_conditions": [],
@@ -5822,7 +5822,7 @@
 			"hp": 255,
 			"range": 2,
 			"attack_rate": 84,
-			"movement_rate": 96
+			"movement_rate": 91
 		},
 		"power": {},
 		"summon_conditions": [
@@ -5847,7 +5847,7 @@
 		"stats": {
 			"atk": 26,
 			"hp": 335,
-			"movement_rate": 99,
+			"movement_rate": 94,
 			"attack_rate": 87,
 			"range": 1
 		},
@@ -5882,7 +5882,7 @@
 			"hp": 145,
 			"range": 1,
 			"attack_rate": 90,
-			"movement_rate": 99
+			"movement_rate": 94
 		},
 		"power": {},
 		"summon_conditions": [],
@@ -5904,7 +5904,7 @@
 		"stats": {
 			"atk": 12,
 			"hp": 240,
-			"movement_rate": 92,
+			"movement_rate": 87,
 			"attack_rate": 87,
 			"range": 1
 		},
@@ -5931,7 +5931,7 @@
 			"hp": 155,
 			"range": 1,
 			"attack_rate": 92,
-			"movement_rate": 99
+			"movement_rate": 94
 		},
 		"power": {},
 		"summon_conditions": [],
@@ -5953,7 +5953,7 @@
 		"stats": {
 			"atk": 21,
 			"hp": 190,
-			"movement_rate": 96,
+			"movement_rate": 91,
 			"attack_rate": 87,
 			"range": 2
 		},
@@ -5979,7 +5979,7 @@
 		"stats": {
 			"atk": 12,
 			"hp": 120,
-			"movement_rate": 92,
+			"movement_rate": 87,
 			"attack_rate": 94,
 			"range": 2
 		},
@@ -6008,7 +6008,7 @@
 			"hp": 190,
 			"range": 2,
 			"attack_rate": 90,
-			"movement_rate": 96
+			"movement_rate": 91
 		},
 		"power": {},
 		"summon_conditions": [],
@@ -6030,7 +6030,7 @@
 		"stats": {
 			"atk": 14,
 			"hp": 125,
-			"movement_rate": 96,
+			"movement_rate": 91,
 			"attack_rate": 92,
 			"range": 2
 		},
@@ -6059,7 +6059,7 @@
 			"hp": 170,
 			"range": 1,
 			"attack_rate": 90,
-			"movement_rate": 99
+			"movement_rate": 94
 		},
 		"power": {},
 		"summon_conditions": [],
@@ -6081,7 +6081,7 @@
 		"stats": {
 			"atk": 24,
 			"hp": 245,
-			"movement_rate": 96,
+			"movement_rate": 91,
 			"attack_rate": 90,
 			"range": 1
 		},
@@ -6113,7 +6113,7 @@
 			"hp": 230,
 			"range": 3,
 			"attack_rate": 83,
-			"movement_rate": 80
+			"movement_rate": 75
 		},
 		"power": {},
 		"summon_conditions": [
@@ -6143,7 +6143,7 @@
 		"stats": {
 			"atk": 22,
 			"hp": 200,
-			"movement_rate": 96,
+			"movement_rate": 91,
 			"attack_rate": 87,
 			"range": 2
 		},
@@ -6174,7 +6174,7 @@
 		"stats": {
 			"atk": 32,
 			"hp": 325,
-			"movement_rate": 99,
+			"movement_rate": 94,
 			"attack_rate": 92,
 			"range": 1
 		},
@@ -6216,7 +6216,7 @@
 			"hp": 145,
 			"range": 2,
 			"attack_rate": 92,
-			"movement_rate": 90
+			"movement_rate": 85
 		},
 		"power": {},
 		"summon_conditions": [],
@@ -6239,7 +6239,7 @@
 			"hp": 285,
 			"range": 2,
 			"attack_rate": 86,
-			"movement_rate": 90
+			"movement_rate": 85
 		},
 		"power": {
 			"id": "POWER_SUPER_ATTACK",
@@ -6271,7 +6271,7 @@
 		"stats": {
 			"atk": 13,
 			"hp": 170,
-			"movement_rate": 92,
+			"movement_rate": 87,
 			"attack_rate": 91,
 			"range": 1
 		},
@@ -6298,7 +6298,7 @@
 		"stats": {
 			"atk": 15,
 			"hp": 130,
-			"movement_rate": 92,
+			"movement_rate": 87,
 			"attack_rate": 92,
 			"range": 1
 		},
@@ -6325,7 +6325,7 @@
 		"stats": {
 			"atk": 11,
 			"hp": 205,
-			"movement_rate": 92,
+			"movement_rate": 87,
 			"attack_rate": 92,
 			"range": 1
 		},
@@ -6351,7 +6351,7 @@
 		"stats": {
 			"atk": 22,
 			"hp": 145,
-			"movement_rate": 90,
+			"movement_rate": 85,
 			"attack_rate": 92,
 			"range": 2
 		},
@@ -6384,7 +6384,7 @@
 		"stats": {
 			"atk": 20,
 			"hp": 190,
-			"movement_rate": 96,
+			"movement_rate": 91,
 			"attack_rate": 90,
 			"range": 2
 		},
@@ -6416,7 +6416,7 @@
 		"stats": {
 			"atk": 30,
 			"hp": 255,
-			"movement_rate": 90,
+			"movement_rate": 85,
 			"attack_rate": 92,
 			"range": 2
 		},
@@ -6462,7 +6462,7 @@
 			"hp": 180,
 			"range": 3,
 			"attack_rate": 90,
-			"movement_rate": 87
+			"movement_rate": 82
 		},
 		"power": {
 			"id": "POWER_AOE_ATTACK",
@@ -6497,7 +6497,7 @@
 		"stats": {
 			"atk": 32,
 			"hp": 265,
-			"movement_rate": 90,
+			"movement_rate": 85,
 			"attack_rate": 92,
 			"range": 2
 		},
@@ -6530,7 +6530,7 @@
 		"stats": {
 			"atk": 14,
 			"hp": 145,
-			"movement_rate": 90,
+			"movement_rate": 85,
 			"attack_rate": 92,
 			"range": 2
 		},
@@ -6568,7 +6568,7 @@
 			"hp": 170,
 			"range": 1,
 			"attack_rate": 90,
-			"movement_rate": 92
+			"movement_rate": 87
 		},
 		"power": {},
 		"summon_conditions": [
@@ -6600,7 +6600,7 @@
 		"stats": {
 			"atk": 1,
 			"hp": 80,
-			"movement_rate": 83,
+			"movement_rate": 78,
 			"attack_rate": 96,
 			"range": 1
 		},
@@ -6627,7 +6627,7 @@
 		"stats": {
 			"atk": 10,
 			"hp": 180,
-			"movement_rate": 92,
+			"movement_rate": 87,
 			"attack_rate": 90,
 			"range": 3
 		},
@@ -6664,7 +6664,7 @@
 		"stats": {
 			"atk": 20,
 			"hp": 360,
-			"movement_rate": 86,
+			"movement_rate": 81,
 			"attack_rate": 92,
 			"range": 3
 		},
@@ -6704,7 +6704,7 @@
 		"stats": {
 			"atk": 25,
 			"hp": 240,
-			"movement_rate": 92,
+			"movement_rate": 87,
 			"attack_rate": 90,
 			"range": 1
 		},
@@ -6743,7 +6743,7 @@
 		"stats": {
 			"atk": 30,
 			"hp": 240,
-			"movement_rate": 96,
+			"movement_rate": 91,
 			"attack_rate": 87,
 			"range": 2
 		},
@@ -6784,7 +6784,7 @@
 			"hp": 150,
 			"range": 2,
 			"attack_rate": 91,
-			"movement_rate": 90
+			"movement_rate": 85
 		},
 		"power": {},
 		"summon_conditions": [
@@ -6816,7 +6816,7 @@
 		"stats": {
 			"atk": 18,
 			"hp": 150,
-			"movement_rate": 90,
+			"movement_rate": 85,
 			"attack_rate": 88,
 			"range": 2
 		},
@@ -6844,7 +6844,7 @@
 			"hp": 200,
 			"range": 2,
 			"attack_rate": 87,
-			"movement_rate": 90
+			"movement_rate": 85
 		},
 		"power": {},
 		"summon_conditions": [
@@ -6878,7 +6878,7 @@
 			"hp": 145,
 			"range": 1,
 			"attack_rate": 91,
-			"movement_rate": 92
+			"movement_rate": 87
 		},
 		"power": {},
 		"summon_conditions": [],
@@ -6901,7 +6901,7 @@
 			"hp": 170,
 			"range": 1,
 			"attack_rate": 90,
-			"movement_rate": 92
+			"movement_rate": 87
 		},
 		"power": {},
 		"summon_conditions": [],
@@ -6922,7 +6922,7 @@
 		"stats": {
 			"atk": 12,
 			"hp": 110,
-			"movement_rate": 99,
+			"movement_rate": 94,
 			"attack_rate": 94,
 			"range": 1
 		},
@@ -6949,7 +6949,7 @@
 			"hp": 120,
 			"range": 1,
 			"attack_rate": 91,
-			"movement_rate": 92
+			"movement_rate": 87
 		},
 		"power": {},
 		"summon_conditions": [],
@@ -6974,7 +6974,7 @@
 			"hp": 190,
 			"range": 1,
 			"attack_rate": 90,
-			"movement_rate": 99
+			"movement_rate": 94
 		},
 		"power": {},
 		"summon_conditions": [],
@@ -6997,7 +6997,7 @@
 			"hp": 215,
 			"range": 1,
 			"attack_rate": 90,
-			"movement_rate": 92
+			"movement_rate": 87
 		},
 		"power": {},
 		"summon_conditions": [],
@@ -7020,7 +7020,7 @@
 		"stats": {
 			"atk": 22,
 			"hp": 240,
-			"movement_rate": 99,
+			"movement_rate": 94,
 			"attack_rate": 90,
 			"range": 2
 		},
@@ -7052,7 +7052,7 @@
 		"stats": {
 			"atk": 5,
 			"hp": 95,
-			"movement_rate": 92,
+			"movement_rate": 87,
 			"attack_rate": 96,
 			"range": 1
 		},
@@ -7083,7 +7083,7 @@
 		"stats": {
 			"atk": 5,
 			"hp": 180,
-			"movement_rate": 90,
+			"movement_rate": 85,
 			"attack_rate": 90,
 			"range": 1
 		},
@@ -7108,7 +7108,7 @@
 		"stats": {
 			"atk": 16,
 			"hp": 95,
-			"movement_rate": 96,
+			"movement_rate": 91,
 			"attack_rate": 92,
 			"range": 2
 		},
@@ -7135,7 +7135,7 @@
 			"hp": 145,
 			"range": 1,
 			"attack_rate": 90,
-			"movement_rate": 92
+			"movement_rate": 87
 		},
 		"power": {},
 		"summon_conditions": [],
@@ -7159,7 +7159,7 @@
 			"hp": 155,
 			"range": 1,
 			"attack_rate": 88,
-			"movement_rate": 92
+			"movement_rate": 87
 		},
 		"power": {},
 		"summon_conditions": [],
@@ -7180,7 +7180,7 @@
 		"stats": {
 			"atk": 12,
 			"hp": 95,
-			"movement_rate": 92,
+			"movement_rate": 87,
 			"attack_rate": 92,
 			"range": 1
 		},
@@ -7205,7 +7205,7 @@
 		"stats": {
 			"atk": 10,
 			"hp": 300,
-			"movement_rate": 86,
+			"movement_rate": 81,
 			"attack_rate": 92,
 			"range": 1
 		},
@@ -7230,7 +7230,7 @@
 		"stats": {
 			"atk": 25,
 			"hp": 420,
-			"movement_rate": 92,
+			"movement_rate": 87,
 			"attack_rate": 90,
 			"range": 1
 		},
@@ -7266,7 +7266,7 @@
 		"stats": {
 			"atk": 24,
 			"hp": 190,
-			"movement_rate": 96,
+			"movement_rate": 91,
 			"attack_rate": 90,
 			"range": 2
 		},
@@ -7298,7 +7298,7 @@
 		"stats": {
 			"atk": 16,
 			"hp": 150,
-			"movement_rate": 90,
+			"movement_rate": 85,
 			"attack_rate": 88,
 			"range": 2
 		},
@@ -7323,7 +7323,7 @@
 		"stats": {
 			"atk": 27,
 			"hp": 245,
-			"movement_rate": 96,
+			"movement_rate": 91,
 			"attack_rate": 87,
 			"range": 2
 		},
@@ -7359,7 +7359,7 @@
 			"hp": 180,
 			"range": 1,
 			"attack_rate": 90,
-			"movement_rate": 86
+			"movement_rate": 81
 		},
 		"power": {
 			"id": "POWER_SHIELD",
@@ -7391,7 +7391,7 @@
 			"hp": 335,
 			"range": 1,
 			"attack_rate": 91,
-			"movement_rate": 92
+			"movement_rate": 87
 		},
 		"power": {},
 		"summon_conditions": [
@@ -7420,7 +7420,7 @@
 		"stats": {
 			"atk": 26,
 			"hp": 190,
-			"movement_rate": 96,
+			"movement_rate": 91,
 			"attack_rate": 87,
 			"range": 2
 		},
@@ -7453,7 +7453,7 @@
 		"stats": {
 			"atk": 24,
 			"hp": 190,
-			"movement_rate": 96,
+			"movement_rate": 91,
 			"attack_rate": 90,
 			"range": 2
 		},
@@ -7487,7 +7487,7 @@
 		"stats": {
 			"atk": 25,
 			"hp": 200,
-			"movement_rate": 96,
+			"movement_rate": 91,
 			"attack_rate": 88,
 			"range": 2
 		},
@@ -7522,7 +7522,7 @@
 		"stats": {
 			"atk": 40,
 			"hp": 430,
-			"movement_rate": 96,
+			"movement_rate": 91,
 			"attack_rate": 91,
 			"range": 2
 		},
@@ -7564,7 +7564,7 @@
 		"stats": {
 			"atk": 18,
 			"hp": 240,
-			"movement_rate": 86,
+			"movement_rate": 81,
 			"attack_rate": 87,
 			"range": 1
 		},
@@ -7591,7 +7591,7 @@
 			"hp": 130,
 			"range": 1,
 			"attack_rate": 88,
-			"movement_rate": 99
+			"movement_rate": 94
 		},
 		"power": {},
 		"summon_conditions": [],
@@ -7613,7 +7613,7 @@
 		"stats": {
 			"atk": 23,
 			"hp": 265,
-			"movement_rate": 86,
+			"movement_rate": 81,
 			"attack_rate": 91,
 			"range": 1
 		},
@@ -7645,7 +7645,7 @@
 		"stats": {
 			"atk": 16,
 			"hp": 180,
-			"movement_rate": 86,
+			"movement_rate": 81,
 			"attack_rate": 87,
 			"range": 1
 		},
@@ -7671,7 +7671,7 @@
 			"hp": 215,
 			"range": 1,
 			"attack_rate": 87,
-			"movement_rate": 92
+			"movement_rate": 87
 		},
 		"power": {},
 		"summon_conditions": [],
@@ -7693,7 +7693,7 @@
 			"hp": 250,
 			"range": 1,
 			"attack_rate": 90,
-			"movement_rate": 92
+			"movement_rate": 87
 		},
 		"power": {},
 		"summon_conditions": [],
@@ -7716,7 +7716,7 @@
 			"hp": 145,
 			"range": 1,
 			"attack_rate": 91,
-			"movement_rate": 92
+			"movement_rate": 87
 		},
 		"power": {},
 		"summon_conditions": [],
@@ -7738,7 +7738,7 @@
 		"stats": {
 			"atk": 12,
 			"hp": 120,
-			"movement_rate": 99,
+			"movement_rate": 94,
 			"attack_rate": 94,
 			"range": 1
 		},
@@ -7770,7 +7770,7 @@
 			"hp": 360,
 			"range": 2,
 			"attack_rate": 87,
-			"movement_rate": 90
+			"movement_rate": 85
 		},
 		"power": {
 			"id": "POWER_HEAL",
@@ -7808,7 +7808,7 @@
 			"hp": 115,
 			"range": 2,
 			"attack_rate": 90,
-			"movement_rate": 90
+			"movement_rate": 85
 		},
 		"power": {
 			"id": "POWER_PUSH",
@@ -7834,7 +7834,7 @@
 		"stats": {
 			"atk": 22,
 			"hp": 190,
-			"movement_rate": 99,
+			"movement_rate": 94,
 			"attack_rate": 91,
 			"range": 1
 		},
@@ -7865,7 +7865,7 @@
 		"stats": {
 			"atk": 23,
 			"hp": 130,
-			"movement_rate": 99,
+			"movement_rate": 94,
 			"attack_rate": 96,
 			"range": 1
 		},
@@ -7900,7 +7900,7 @@
 		"stats": {
 			"atk": 40,
 			"hp": 475,
-			"movement_rate": 96,
+			"movement_rate": 91,
 			"attack_rate": 90,
 			"range": 2
 		},
@@ -7938,7 +7938,7 @@
 			"hp": 205,
 			"range": 1,
 			"attack_rate": 87,
-			"movement_rate": 92
+			"movement_rate": 87
 		},
 		"power": {},
 		"summon_conditions": [],
@@ -7961,7 +7961,7 @@
 			"hp": 310,
 			"range": 1,
 			"attack_rate": 90,
-			"movement_rate": 99
+			"movement_rate": 94
 		},
 		"power": {},
 		"summon_conditions": [
@@ -7991,7 +7991,7 @@
 			"hp": 250,
 			"range": 1,
 			"attack_rate": 96,
-			"movement_rate": 92
+			"movement_rate": 87
 		},
 		"power": {},
 		"summon_conditions": [
@@ -8021,7 +8021,7 @@
 			"hp": 310,
 			"range": 1,
 			"attack_rate": 86,
-			"movement_rate": 86
+			"movement_rate": 81
 		},
 		"power": {},
 		"summon_conditions": [
@@ -8046,7 +8046,7 @@
 		"stats": {
 			"atk": 14,
 			"hp": 145,
-			"movement_rate": 99,
+			"movement_rate": 94,
 			"attack_rate": 90,
 			"range": 1
 		},
@@ -8070,7 +8070,7 @@
 		"stats": {
 			"atk": 7,
 			"hp": 110,
-			"movement_rate": 99,
+			"movement_rate": 94,
 			"attack_rate": 95,
 			"range": 1
 		},
@@ -8096,7 +8096,7 @@
 			"hp": 420,
 			"range": 1,
 			"attack_rate": 86,
-			"movement_rate": 92
+			"movement_rate": 87
 		},
 		"power": {
 			"id": "POWER_AOE_ATTACK",
@@ -8134,7 +8134,7 @@
 			"hp": 335,
 			"range": 1,
 			"attack_rate": 90,
-			"movement_rate": 92
+			"movement_rate": 87
 		},
 		"power": {
 			"id": "POWER_SUPER_ATTACK",
@@ -8171,7 +8171,7 @@
 			"hp": 250,
 			"range": 1,
 			"attack_rate": 84,
-			"movement_rate": 92
+			"movement_rate": 87
 		},
 		"power": {},
 		"summon_conditions": [],
@@ -8192,7 +8192,7 @@
 		"stats": {
 			"atk": 14,
 			"hp": 70,
-			"movement_rate": 99,
+			"movement_rate": 94,
 			"attack_rate": 95,
 			"range": 1
 		},
@@ -8216,7 +8216,7 @@
 		"stats": {
 			"atk": 23,
 			"hp": 275,
-			"movement_rate": 99,
+			"movement_rate": 94,
 			"attack_rate": 92,
 			"range": 1
 		},
@@ -8255,7 +8255,7 @@
 			"hp": 205,
 			"range": 1,
 			"attack_rate": 87,
-			"movement_rate": 86
+			"movement_rate": 81
 		},
 		"power": {},
 		"summon_conditions": [],
@@ -8280,7 +8280,7 @@
 		"stats": {
 			"atk": 27,
 			"hp": 190,
-			"movement_rate": 96,
+			"movement_rate": 91,
 			"attack_rate": 90,
 			"range": 2
 		},
@@ -8326,7 +8326,7 @@
 		"stats": {
 			"atk": 41,
 			"hp": 240,
-			"movement_rate": 94,
+			"movement_rate": 89,
 			"attack_rate": 90,
 			"range": 3
 		},
@@ -8366,7 +8366,7 @@
 			"hp": 150,
 			"range": 2,
 			"attack_rate": 84,
-			"movement_rate": 83
+			"movement_rate": 78
 		},
 		"power": {},
 		"summon_conditions": [
@@ -8394,7 +8394,7 @@
 			"hp": 250,
 			"range": 3,
 			"attack_rate": 86,
-			"movement_rate": 80
+			"movement_rate": 75
 		},
 		"power": {
 			"id": "POWER_AOE_ATTACK",
@@ -8431,7 +8431,7 @@
 		"stats": {
 			"atk": 48,
 			"hp": 505,
-			"movement_rate": 99,
+			"movement_rate": 94,
 			"attack_rate": 88,
 			"range": 1
 		},
@@ -8473,7 +8473,7 @@
 			"hp": 285,
 			"range": 2,
 			"attack_rate": 91,
-			"movement_rate": 90
+			"movement_rate": 85
 		},
 		"power": {
 			"id": "POWER_PARALYSIS",
@@ -8515,7 +8515,7 @@
 		"stats": {
 			"atk": 24,
 			"hp": 360,
-			"movement_rate": 92,
+			"movement_rate": 87,
 			"attack_rate": 91,
 			"range": 1
 		},
@@ -8560,7 +8560,7 @@
 			"hp": 225,
 			"range": 3,
 			"attack_rate": 87,
-			"movement_rate": 80
+			"movement_rate": 75
 		},
 		"power": {
 			"id": "POWER_AOE_ATTACK",
@@ -8600,7 +8600,7 @@
 			"hp": 455,
 			"range": 1,
 			"attack_rate": 87,
-			"movement_rate": 86
+			"movement_rate": 81
 		},
 		"power": {
 			"id": "POWER_SHIELD",
@@ -8635,7 +8635,7 @@
 		"stats": {
 			"atk": 22,
 			"hp": 150,
-			"movement_rate": 90,
+			"movement_rate": 85,
 			"attack_rate": 90,
 			"range": 2
 		},
@@ -8668,7 +8668,7 @@
 			"hp": 215,
 			"range": 1,
 			"attack_rate": 91,
-			"movement_rate": 92
+			"movement_rate": 87
 		},
 		"power": {},
 		"summon_conditions": [],
@@ -8692,7 +8692,7 @@
 		"stats": {
 			"atk": 17,
 			"hp": 75,
-			"movement_rate": 90,
+			"movement_rate": 85,
 			"attack_rate": 88,
 			"range": 2
 		},
@@ -8718,7 +8718,7 @@
 		"stats": {
 			"atk": 16,
 			"hp": 85,
-			"movement_rate": 86,
+			"movement_rate": 81,
 			"attack_rate": 87,
 			"range": 1
 		},
@@ -8749,7 +8749,7 @@
 			"hp": 285,
 			"range": 2,
 			"attack_rate": 91,
-			"movement_rate": 83
+			"movement_rate": 78
 		},
 		"power": {
 			"id": "POWER_AOE_ATTACK",
@@ -8788,7 +8788,7 @@
 		"stats": {
 			"atk": 10,
 			"hp": 240,
-			"movement_rate": 96,
+			"movement_rate": 91,
 			"attack_rate": 90,
 			"range": 2
 		},
@@ -8827,7 +8827,7 @@
 		"stats": {
 			"atk": 25,
 			"hp": 125,
-			"movement_rate": 87,
+			"movement_rate": 82,
 			"attack_rate": 94,
 			"range": 3
 		},
@@ -8870,7 +8870,7 @@
 			"hp": 290,
 			"range": 1,
 			"attack_rate": 86,
-			"movement_rate": 92
+			"movement_rate": 87
 		},
 		"power": {},
 		"summon_conditions": [],
@@ -8897,7 +8897,7 @@
 			"hp": 145,
 			"range": 2,
 			"attack_rate": 86,
-			"movement_rate": 83
+			"movement_rate": 78
 		},
 		"power": {},
 		"summon_conditions": [],
@@ -8920,7 +8920,7 @@
 		"stats": {
 			"atk": 12,
 			"hp": 150,
-			"movement_rate": 83,
+			"movement_rate": 78,
 			"attack_rate": 86,
 			"range": 2
 		},
@@ -8946,7 +8946,7 @@
 		"stats": {
 			"atk": 23,
 			"hp": 155,
-			"movement_rate": 99,
+			"movement_rate": 94,
 			"attack_rate": 95,
 			"range": 1
 		},
@@ -8977,7 +8977,7 @@
 		"stats": {
 			"atk": 18,
 			"hp": 180,
-			"movement_rate": 92,
+			"movement_rate": 87,
 			"attack_rate": 92,
 			"range": 1
 		},
@@ -9002,7 +9002,7 @@
 		"stats": {
 			"atk": 5,
 			"hp": 95,
-			"movement_rate": 92,
+			"movement_rate": 87,
 			"attack_rate": 94,
 			"range": 1
 		},
@@ -9030,7 +9030,7 @@
 			"hp": 310,
 			"range": 3,
 			"attack_rate": 86,
-			"movement_rate": 87
+			"movement_rate": 82
 		},
 		"power": {
 			"id": "POWER_AOE_ATTACK",
@@ -9068,7 +9068,7 @@
 			"hp": 335,
 			"range": 1,
 			"attack_rate": 90,
-			"movement_rate": 92
+			"movement_rate": 87
 		},
 		"power": {
 			"id": "POWER_POISON",
@@ -9105,7 +9105,7 @@
 		"stats": {
 			"atk": 23,
 			"hp": 335,
-			"movement_rate": 92,
+			"movement_rate": 87,
 			"attack_rate": 90,
 			"range": 2
 		},
@@ -9145,7 +9145,7 @@
 		"stats": {
 			"atk": 31,
 			"hp": 410,
-			"movement_rate": 92,
+			"movement_rate": 87,
 			"attack_rate": 95,
 			"range": 1
 		},
@@ -9183,7 +9183,7 @@
 		"stats": {
 			"atk": 23,
 			"hp": 335,
-			"movement_rate": 92,
+			"movement_rate": 87,
 			"attack_rate": 90,
 			"range": 2
 		},
@@ -9222,7 +9222,7 @@
 		"stats": {
 			"atk": 10,
 			"hp": 360,
-			"movement_rate": 86,
+			"movement_rate": 81,
 			"attack_rate": 92,
 			"range": 1
 		},
@@ -9248,7 +9248,7 @@
 		"stats": {
 			"atk": 12,
 			"hp": 290,
-			"movement_rate": 92,
+			"movement_rate": 87,
 			"attack_rate": 88,
 			"range": 2
 		},
@@ -9278,7 +9278,7 @@
 		"stats": {
 			"atk": 19,
 			"hp": 145,
-			"movement_rate": 99,
+			"movement_rate": 94,
 			"attack_rate": 94,
 			"range": 1
 		},
@@ -9306,7 +9306,7 @@
 			"hp": 250,
 			"range": 1,
 			"attack_rate": 87,
-			"movement_rate": 92
+			"movement_rate": 87
 		},
 		"power": {},
 		"summon_conditions": [],
@@ -9331,7 +9331,7 @@
 			"hp": 75,
 			"range": 3,
 			"attack_rate": 94,
-			"movement_rate": 87
+			"movement_rate": 82
 		},
 		"power": {},
 		"summon_conditions": [],
@@ -9355,7 +9355,7 @@
 		"stats": {
 			"atk": 5,
 			"hp": 400,
-			"movement_rate": 90,
+			"movement_rate": 85,
 			"attack_rate": 96,
 			"range": 1
 		},
@@ -9394,7 +9394,7 @@
 			"hp": 250,
 			"range": 1,
 			"attack_rate": 87,
-			"movement_rate": 92
+			"movement_rate": 87
 		},
 		"power": {},
 		"summon_conditions": [
@@ -9460,7 +9460,7 @@
 			"hp": 170,
 			"range": 1,
 			"attack_rate": 94,
-			"movement_rate": 99
+			"movement_rate": 94
 		},
 		"power": {},
 		"summon_conditions": [],
@@ -9488,7 +9488,7 @@
 		"stats": {
 			"atk": 40,
 			"hp": 480,
-			"movement_rate": 86,
+			"movement_rate": 81,
 			"attack_rate": 84,
 			"range": 1
 		},
@@ -9534,7 +9534,7 @@
 			"hp": 430,
 			"range": 1,
 			"attack_rate": 92,
-			"movement_rate": 99
+			"movement_rate": 94
 		},
 		"power": {},
 		"summon_conditions": [
@@ -9567,7 +9567,7 @@
 			"hp": 145,
 			"range": 1,
 			"attack_rate": 87,
-			"movement_rate": 92
+			"movement_rate": 87
 		},
 		"power": {},
 		"summon_conditions": [],
@@ -9592,7 +9592,7 @@
 		"stats": {
 			"atk": 30,
 			"hp": 480,
-			"movement_rate": 99,
+			"movement_rate": 94,
 			"attack_rate": 87,
 			"range": 3
 		},
@@ -9631,7 +9631,7 @@
 			"hp": 380,
 			"range": 2,
 			"attack_rate": 86,
-			"movement_rate": 90
+			"movement_rate": 85
 		},
 		"power": {
 			"id": "POWER_AOE_ATTACK",
@@ -9668,7 +9668,7 @@
 		"stats": {
 			"atk": 27,
 			"hp": 430,
-			"movement_rate": 92,
+			"movement_rate": 87,
 			"attack_rate": 87,
 			"range": 1
 		},
@@ -9704,7 +9704,7 @@
 		"stats": {
 			"atk": 18,
 			"hp": 145,
-			"movement_rate": 99,
+			"movement_rate": 94,
 			"attack_rate": 88,
 			"range": 1
 		},
@@ -9729,7 +9729,7 @@
 		"stats": {
 			"atk": 21,
 			"hp": 190,
-			"movement_rate": 99,
+			"movement_rate": 94,
 			"attack_rate": 92,
 			"range": 1
 		},
@@ -9763,7 +9763,7 @@
 		"stats": {
 			"atk": 33,
 			"hp": 240,
-			"movement_rate": 99,
+			"movement_rate": 94,
 			"attack_rate": 91,
 			"range": 1
 		},
@@ -9800,7 +9800,7 @@
 		"stats": {
 			"atk": 25,
 			"hp": 250,
-			"movement_rate": 99,
+			"movement_rate": 94,
 			"attack_rate": 92,
 			"range": 1
 		},
@@ -9842,7 +9842,7 @@
 			"hp": 230,
 			"range": 1,
 			"attack_rate": 90,
-			"movement_rate": 86
+			"movement_rate": 81
 		},
 		"power": {},
 		"summon_conditions": [],
@@ -9866,7 +9866,7 @@
 			"hp": 335,
 			"range": 1,
 			"attack_rate": 87,
-			"movement_rate": 92
+			"movement_rate": 87
 		},
 		"power": {},
 		"summon_conditions": [
@@ -9896,7 +9896,7 @@
 			"hp": 110,
 			"range": 1,
 			"attack_rate": 92,
-			"movement_rate": 92
+			"movement_rate": 87
 		},
 		"power": {},
 		"summon_conditions": [],
@@ -9917,7 +9917,7 @@
 		"stats": {
 			"atk": 14,
 			"hp": 190,
-			"movement_rate": 92,
+			"movement_rate": 87,
 			"attack_rate": 88,
 			"range": 1
 		},
@@ -9945,7 +9945,7 @@
 		"stats": {
 			"atk": 50,
 			"hp": 600,
-			"movement_rate": 99,
+			"movement_rate": 94,
 			"attack_rate": 94,
 			"range": 1
 		},
@@ -9984,7 +9984,7 @@
 			"hp": 275,
 			"range": 2,
 			"attack_rate": 87,
-			"movement_rate": 83
+			"movement_rate": 78
 		},
 		"power": {
 			"id": "POWER_PARALYSIS",
@@ -10022,7 +10022,7 @@
 		"stats": {
 			"atk": 30,
 			"hp": 335,
-			"movement_rate": 99,
+			"movement_rate": 94,
 			"attack_rate": 92,
 			"range": 2
 		},
@@ -10062,7 +10062,7 @@
 		"stats": {
 			"atk": 31,
 			"hp": 300,
-			"movement_rate": 86,
+			"movement_rate": 81,
 			"attack_rate": 87,
 			"range": 2
 		},
@@ -10102,7 +10102,7 @@
 		"stats": {
 			"atk": 27,
 			"hp": 300,
-			"movement_rate": 92,
+			"movement_rate": 87,
 			"attack_rate": 90,
 			"range": 1
 		},
@@ -10138,7 +10138,7 @@
 		"stats": {
 			"atk": 36,
 			"hp": 480,
-			"movement_rate": 92,
+			"movement_rate": 87,
 			"attack_rate": 90,
 			"range": 1
 		},
@@ -10174,7 +10174,7 @@
 		"stats": {
 			"atk": 14,
 			"hp": 480,
-			"movement_rate": 99,
+			"movement_rate": 94,
 			"attack_rate": 94,
 			"range": 1
 		},
@@ -10212,7 +10212,7 @@
 		"stats": {
 			"atk": 21,
 			"hp": 205,
-			"movement_rate": 92,
+			"movement_rate": 87,
 			"attack_rate": 91,
 			"range": 1
 		},
@@ -10251,7 +10251,7 @@
 		"stats": {
 			"atk": 28,
 			"hp": 300,
-			"movement_rate": 92,
+			"movement_rate": 87,
 			"attack_rate": 91,
 			"range": 1
 		},
@@ -10289,7 +10289,7 @@
 		"stats": {
 			"atk": 36,
 			"hp": 410,
-			"movement_rate": 92,
+			"movement_rate": 87,
 			"attack_rate": 92,
 			"range": 2
 		},
@@ -10331,7 +10331,7 @@
 			"hp": 445,
 			"range": 1,
 			"attack_rate": 88,
-			"movement_rate": 99
+			"movement_rate": 94
 		},
 		"power": {
 			"id": "POWER_POISON",
@@ -10374,7 +10374,7 @@
 			"hp": 190,
 			"range": 1,
 			"attack_rate": 87,
-			"movement_rate": 86
+			"movement_rate": 81
 		},
 		"power": {},
 		"summon_conditions": [],
@@ -10398,7 +10398,7 @@
 		"stats": {
 			"atk": 40,
 			"hp": 380,
-			"movement_rate": 90,
+			"movement_rate": 85,
 			"attack_rate": 86,
 			"range": 2
 		},
@@ -10434,7 +10434,7 @@
 		"stats": {
 			"atk": 40,
 			"hp": 480,
-			"movement_rate": 92,
+			"movement_rate": 87,
 			"attack_rate": 88,
 			"range": 1
 		},
@@ -10476,7 +10476,7 @@
 		"stats": {
 			"atk": 50,
 			"hp": 475,
-			"movement_rate": 90,
+			"movement_rate": 85,
 			"attack_rate": 86,
 			"range": 2
 		},
@@ -10519,7 +10519,7 @@
 			"hp": 150,
 			"range": 2,
 			"attack_rate": 90,
-			"movement_rate": 90
+			"movement_rate": 85
 		},
 		"power": {
 			"id": "POWER_FREEZE",
@@ -10555,7 +10555,7 @@
 		"stats": {
 			"atk": 48,
 			"hp": 350,
-			"movement_rate": 87,
+			"movement_rate": 82,
 			"attack_rate": 83,
 			"range": 3
 		},
@@ -10604,7 +10604,7 @@
 		"stats": {
 			"atk": 22,
 			"hp": 75,
-			"movement_rate": 96,
+			"movement_rate": 91,
 			"attack_rate": 92,
 			"range": 2
 		},
@@ -10641,7 +10641,7 @@
 			"hp": 245,
 			"range": 3,
 			"attack_rate": 91,
-			"movement_rate": 94
+			"movement_rate": 89
 		},
 		"power": {
 			"id": "POWER_BLOCK",
@@ -10687,7 +10687,7 @@
 			"hp": 230,
 			"range": 2,
 			"attack_rate": 91,
-			"movement_rate": 90
+			"movement_rate": 85
 		},
 		"power": {
 			"id": "POWER_TELEPORT",
@@ -10730,7 +10730,7 @@
 		"stats": {
 			"atk": 22,
 			"hp": 230,
-			"movement_rate": 90,
+			"movement_rate": 85,
 			"attack_rate": 88,
 			"range": 2
 		},
@@ -10778,7 +10778,7 @@
 			"hp": 175,
 			"range": 3,
 			"attack_rate": 86,
-			"movement_rate": 94
+			"movement_rate": 89
 		},
 		"power": {
 			"id": "POWER_AOE_ATTACK",
@@ -10825,7 +10825,7 @@
 		"stats": {
 			"atk": 45,
 			"hp": 480,
-			"movement_rate": 99,
+			"movement_rate": 94,
 			"attack_rate": 92,
 			"range": 1
 		},
@@ -10874,7 +10874,7 @@
 			"hp": 265,
 			"range": 1,
 			"attack_rate": 91,
-			"movement_rate": 99
+			"movement_rate": 94
 		},
 		"power": {
 			"id": "POWER_BURN",
@@ -10910,7 +10910,7 @@
 		"stats": {
 			"atk": 0,
 			"hp": 100,
-			"movement_rate": 76,
+			"movement_rate": 71,
 			"attack_rate": 76,
 			"range": 4
 		},
@@ -10941,7 +10941,7 @@
 		"stats": {
 			"atk": 12,
 			"hp": 340,
-			"movement_rate": 72,
+			"movement_rate": 67,
 			"attack_rate": 75,
 			"range": 4
 		},
@@ -10981,7 +10981,7 @@
 			"hp": 180,
 			"range": 1,
 			"attack_rate": 95,
-			"movement_rate": 99
+			"movement_rate": 94
 		},
 		"power": {},
 		"summon_conditions": [
@@ -11014,7 +11014,7 @@
 		"stats": {
 			"atk": 20,
 			"hp": 150,
-			"movement_rate": 96,
+			"movement_rate": 91,
 			"attack_rate": 92,
 			"range": 2
 		},
@@ -11052,7 +11052,7 @@
 			"hp": 85,
 			"range": 3,
 			"attack_rate": 90,
-			"movement_rate": 80
+			"movement_rate": 75
 		},
 		"power": {
 			"id": "POWER_PUSH",
@@ -11091,7 +11091,7 @@
 		"stats": {
 			"atk": 8,
 			"hp": 70,
-			"movement_rate": 99,
+			"movement_rate": 94,
 			"attack_rate": 94,
 			"range": 1
 		},
@@ -11118,7 +11118,7 @@
 		"stats": {
 			"atk": 21,
 			"hp": 180,
-			"movement_rate": 74,
+			"movement_rate": 69,
 			"attack_rate": 84,
 			"range": 3
 		},
@@ -11161,7 +11161,7 @@
 			"hp": 360,
 			"range": 1,
 			"attack_rate": 91,
-			"movement_rate": 99
+			"movement_rate": 94
 		},
 		"power": {
 			"id": "POWER_SHIELD",
@@ -11201,7 +11201,7 @@
 			"hp": 145,
 			"range": 3,
 			"attack_rate": 90,
-			"movement_rate": 87
+			"movement_rate": 82
 		},
 		"power": {
 			"id": "POWER_AOE_ATTACK",
@@ -11240,7 +11240,7 @@
 		"stats": {
 			"atk": 13,
 			"hp": 170,
-			"movement_rate": 92,
+			"movement_rate": 87,
 			"attack_rate": 94,
 			"range": 1
 		},
@@ -11274,7 +11274,7 @@
 		"stats": {
 			"atk": 10,
 			"hp": 240,
-			"movement_rate": 99,
+			"movement_rate": 94,
 			"attack_rate": 95,
 			"range": 1
 		},
@@ -11311,7 +11311,7 @@
 		"stats": {
 			"atk": 15,
 			"hp": 360,
-			"movement_rate": 92,
+			"movement_rate": 87,
 			"attack_rate": 94,
 			"range": 3
 		},
@@ -11347,7 +11347,7 @@
 		"stats": {
 			"atk": 5,
 			"hp": 145,
-			"movement_rate": 90,
+			"movement_rate": 85,
 			"attack_rate": 90,
 			"range": 2
 		},
@@ -11371,7 +11371,7 @@
 		"stats": {
 			"atk": 31,
 			"hp": 420,
-			"movement_rate": 92,
+			"movement_rate": 87,
 			"attack_rate": 90,
 			"range": 1
 		},
@@ -11409,7 +11409,7 @@
 		"stats": {
 			"atk": 50,
 			"hp": 360,
-			"movement_rate": 99,
+			"movement_rate": 94,
 			"attack_rate": 76,
 			"range": 3
 		},
@@ -11452,7 +11452,7 @@
 			"hp": 265,
 			"range": 3,
 			"attack_rate": 86,
-			"movement_rate": 80
+			"movement_rate": 75
 		},
 		"power": {
 			"id": "POWER_SUPER_ATTACK",
@@ -11488,7 +11488,7 @@
 		"stats": {
 			"atk": 5,
 			"hp": 120,
-			"movement_rate": 99,
+			"movement_rate": 94,
 			"attack_rate": 98,
 			"range": 1
 		},
@@ -11529,7 +11529,7 @@
 			"hp": 250,
 			"range": 3,
 			"attack_rate": 88,
-			"movement_rate": 80
+			"movement_rate": 75
 		},
 		"power": {
 			"id": "POWER_HEAL",
@@ -11568,7 +11568,7 @@
 			"hp": 300,
 			"range": 1,
 			"attack_rate": 90,
-			"movement_rate": 92
+			"movement_rate": 87
 		},
 		"power": {},
 		"summon_conditions": [
@@ -11601,7 +11601,7 @@
 		"stats": {
 			"atk": 30,
 			"hp": 360,
-			"movement_rate": 86,
+			"movement_rate": 81,
 			"attack_rate": 86,
 			"range": 1
 		},
@@ -11639,7 +11639,7 @@
 			"hp": 205,
 			"range": 1,
 			"attack_rate": 87,
-			"movement_rate": 92
+			"movement_rate": 87
 		},
 		"power": {},
 		"summon_conditions": [],
@@ -11664,7 +11664,7 @@
 		"stats": {
 			"atk": 12,
 			"hp": 170,
-			"movement_rate": 86,
+			"movement_rate": 81,
 			"attack_rate": 87,
 			"range": 1
 		},
@@ -11693,7 +11693,7 @@
 		"stats": {
 			"atk": 30,
 			"hp": 285,
-			"movement_rate": 90,
+			"movement_rate": 85,
 			"attack_rate": 88,
 			"range": 2
 		},
@@ -11740,7 +11740,7 @@
 			"hp": 190,
 			"range": 1,
 			"attack_rate": 88,
-			"movement_rate": 92
+			"movement_rate": 87
 		},
 		"power": {
 			"id": "POWER_POISON",
@@ -11782,7 +11782,7 @@
 		"stats": {
 			"atk": 15,
 			"hp": 205,
-			"movement_rate": 92,
+			"movement_rate": 87,
 			"attack_rate": 87,
 			"range": 1
 		},
@@ -11811,7 +11811,7 @@
 			"hp": 110,
 			"range": 1,
 			"attack_rate": 83,
-			"movement_rate": 86
+			"movement_rate": 81
 		},
 		"power": {},
 		"summon_conditions": [],
@@ -11838,7 +11838,7 @@
 		"stats": {
 			"atk": 17,
 			"hp": 120,
-			"movement_rate": 92,
+			"movement_rate": 87,
 			"attack_rate": 86,
 			"range": 2
 		},
@@ -11863,7 +11863,7 @@
 		"stats": {
 			"atk": 5,
 			"hp": 60,
-			"movement_rate": 79,
+			"movement_rate": 74,
 			"attack_rate": 84,
 			"range": 1
 		},
@@ -11895,7 +11895,7 @@
 			"hp": 120,
 			"range": 1,
 			"attack_rate": 91,
-			"movement_rate": 99
+			"movement_rate": 94
 		},
 		"power": {},
 		"summon_conditions": [],
@@ -11921,7 +11921,7 @@
 			"hp": 215,
 			"range": 1,
 			"attack_rate": 87,
-			"movement_rate": 86
+			"movement_rate": 81
 		},
 		"power": {},
 		"summon_conditions": [],
@@ -11949,7 +11949,7 @@
 		"stats": {
 			"atk": 35,
 			"hp": 325,
-			"movement_rate": 90,
+			"movement_rate": 85,
 			"attack_rate": 90,
 			"range": 2
 		},
@@ -11988,7 +11988,7 @@
 			"hp": 265,
 			"range": 1,
 			"attack_rate": 86,
-			"movement_rate": 92
+			"movement_rate": 87
 		},
 		"power": {},
 		"summon_conditions": [
@@ -12020,7 +12020,7 @@
 			"hp": 170,
 			"range": 3,
 			"attack_rate": 84,
-			"movement_rate": 87
+			"movement_rate": 82
 		},
 		"power": {},
 		"summon_conditions": [
@@ -12054,7 +12054,7 @@
 			"hp": 170,
 			"range": 1,
 			"attack_rate": 94,
-			"movement_rate": 92
+			"movement_rate": 87
 		},
 		"power": {
 			"id": "POWER_SHIELD",
@@ -12092,7 +12092,7 @@
 		"stats": {
 			"atk": 19,
 			"hp": 105,
-			"movement_rate": 90,
+			"movement_rate": 85,
 			"attack_rate": 84,
 			"range": 2
 		},
@@ -12120,7 +12120,7 @@
 		"stats": {
 			"atk": 26,
 			"hp": 200,
-			"movement_rate": 90,
+			"movement_rate": 85,
 			"attack_rate": 91,
 			"range": 2
 		},
@@ -12158,7 +12158,7 @@
 			"hp": 85,
 			"range": 4,
 			"attack_rate": 83,
-			"movement_rate": 72
+			"movement_rate": 67
 		},
 		"power": {
 			"id": "POWER_HEAL",
@@ -12195,7 +12195,7 @@
 		"stats": {
 			"atk": 27,
 			"hp": 155,
-			"movement_rate": 94,
+			"movement_rate": 89,
 			"attack_rate": 80,
 			"range": 3
 		},
@@ -12234,7 +12234,7 @@
 		"stats": {
 			"atk": 45,
 			"hp": 540,
-			"movement_rate": 92,
+			"movement_rate": 87,
 			"attack_rate": 90,
 			"range": 1
 		},
@@ -12274,7 +12274,7 @@
 			"hp": 315,
 			"range": 2,
 			"attack_rate": 84,
-			"movement_rate": 76
+			"movement_rate": 71
 		},
 		"power": {
 			"id": "POWER_AOE_ATTACK",
@@ -12313,7 +12313,7 @@
 			"hp": 530,
 			"range": 1,
 			"attack_rate": 84,
-			"movement_rate": 92
+			"movement_rate": 87
 		},
 		"power": {
 			"id": "POWER_SUPER_ATTACK",
@@ -12353,7 +12353,7 @@
 		"stats": {
 			"atk": 10,
 			"hp": 255,
-			"movement_rate": 72,
+			"movement_rate": 67,
 			"attack_rate": 91,
 			"range": 4
 		},
@@ -12390,7 +12390,7 @@
 		"stats": {
 			"atk": 8,
 			"hp": 55,
-			"movement_rate": 90,
+			"movement_rate": 85,
 			"attack_rate": 94,
 			"range": 2
 		},
@@ -12415,7 +12415,7 @@
 			"hp": 70,
 			"range": 1,
 			"attack_rate": 92,
-			"movement_rate": 86
+			"movement_rate": 81
 		},
 		"power": {
 			"id": "POWER_TAUNT",
@@ -12441,7 +12441,7 @@
 		"stats": {
 			"atk": 16,
 			"hp": 200,
-			"movement_rate": 96,
+			"movement_rate": 91,
 			"attack_rate": 92,
 			"range": 2
 		},
@@ -12469,7 +12469,7 @@
 			"hp": 190,
 			"range": 1,
 			"attack_rate": 88,
-			"movement_rate": 86
+			"movement_rate": 81
 		},
 		"power": {
 			"id": "POWER_SHIELD",
@@ -12495,7 +12495,7 @@
 		"stats": {
 			"atk": 12,
 			"hp": 60,
-			"movement_rate": 99,
+			"movement_rate": 94,
 			"attack_rate": 94,
 			"range": 1
 		},
@@ -12519,7 +12519,7 @@
 		"stats": {
 			"atk": 24,
 			"hp": 205,
-			"movement_rate": 99,
+			"movement_rate": 94,
 			"attack_rate": 94,
 			"range": 2
 		},
@@ -12557,7 +12557,7 @@
 			"hp": 85,
 			"range": 4,
 			"attack_rate": 82,
-			"movement_rate": 86
+			"movement_rate": 81
 		},
 		"power": {
 			"id": "POWER_HEAL",
@@ -12585,7 +12585,7 @@
 			"hp": 125,
 			"range": 2,
 			"attack_rate": 91,
-			"movement_rate": 83
+			"movement_rate": 78
 		},
 		"power": {
 			"id": "POWER_HEAL",
@@ -12614,7 +12614,7 @@
 			"hp": 65,
 			"range": 2,
 			"attack_rate": 94,
-			"movement_rate": 96
+			"movement_rate": 91
 		},
 		"power": {
 			"id": "POWER_TELEPORT",
@@ -12643,7 +12643,7 @@
 		"stats": {
 			"atk": 8,
 			"hp": 245,
-			"movement_rate": 76,
+			"movement_rate": 71,
 			"attack_rate": 86,
 			"range": 2
 		},
@@ -12670,7 +12670,7 @@
 		"stats": {
 			"atk": 24,
 			"hp": 95,
-			"movement_rate": 96,
+			"movement_rate": 91,
 			"attack_rate": 92,
 			"range": 2
 		},
@@ -12705,7 +12705,7 @@
 		"stats": {
 			"atk": 23,
 			"hp": 305,
-			"movement_rate": 76,
+			"movement_rate": 71,
 			"attack_rate": 87,
 			"range": 2
 		},
@@ -12737,7 +12737,7 @@
 		"stats": {
 			"atk": 14,
 			"hp": 120,
-			"movement_rate": 92,
+			"movement_rate": 87,
 			"attack_rate": 90,
 			"range": 2
 		},
@@ -12772,7 +12772,7 @@
 		"stats": {
 			"atk": 28,
 			"hp": 300,
-			"movement_rate": 99,
+			"movement_rate": 94,
 			"attack_rate": 90,
 			"range": 1
 		},
@@ -12806,7 +12806,7 @@
 		"stats": {
 			"atk": 16,
 			"hp": 145,
-			"movement_rate": 86,
+			"movement_rate": 81,
 			"attack_rate": 87,
 			"range": 1
 		},
@@ -12831,7 +12831,7 @@
 			"hp": 120,
 			"range": 1,
 			"attack_rate": 90,
-			"movement_rate": 99
+			"movement_rate": 94
 		},
 		"power": {},
 		"summon_conditions": [],
@@ -12857,7 +12857,7 @@
 			"hp": 210,
 			"range": 2,
 			"attack_rate": 87,
-			"movement_rate": 90
+			"movement_rate": 85
 		},
 		"power": {
 			"id": "POWER_SUPER_ATTACK",
@@ -12891,7 +12891,7 @@
 		"stats": {
 			"atk": 16,
 			"hp": 145,
-			"movement_rate": 92,
+			"movement_rate": 87,
 			"attack_rate": 90,
 			"range": 1
 		},
@@ -12921,7 +12921,7 @@
 		"stats": {
 			"atk": 3,
 			"hp": 60,
-			"movement_rate": 99,
+			"movement_rate": 94,
 			"attack_rate": 96,
 			"range": 1
 		},
@@ -12948,7 +12948,7 @@
 			"hp": 145,
 			"range": 1,
 			"attack_rate": 92,
-			"movement_rate": 99
+			"movement_rate": 94
 		},
 		"power": {},
 		"summon_conditions": [],
@@ -12971,7 +12971,7 @@
 		"stats": {
 			"atk": 21,
 			"hp": 150,
-			"movement_rate": 90,
+			"movement_rate": 85,
 			"attack_rate": 87,
 			"range": 2
 		},
@@ -12999,7 +12999,7 @@
 		"stats": {
 			"atk": 28,
 			"hp": 290,
-			"movement_rate": 99,
+			"movement_rate": 94,
 			"attack_rate": 90,
 			"range": 1
 		},
@@ -13032,7 +13032,7 @@
 		"stats": {
 			"atk": 26,
 			"hp": 170,
-			"movement_rate": 83,
+			"movement_rate": 78,
 			"attack_rate": 87,
 			"range": 2
 		},
@@ -13066,7 +13066,7 @@
 			"hp": 85,
 			"range": 1,
 			"attack_rate": 91,
-			"movement_rate": 92
+			"movement_rate": 87
 		},
 		"power": {},
 		"summon_conditions": [],
@@ -13091,7 +13091,7 @@
 		"stats": {
 			"atk": 24,
 			"hp": 120,
-			"movement_rate": 86,
+			"movement_rate": 81,
 			"attack_rate": 86,
 			"range": 2
 		},
@@ -13123,7 +13123,7 @@
 		"stats": {
 			"atk": 26,
 			"hp": 230,
-			"movement_rate": 90,
+			"movement_rate": 85,
 			"attack_rate": 92,
 			"range": 2
 		},
@@ -13162,7 +13162,7 @@
 			"hp": 265,
 			"range": 1,
 			"attack_rate": 95,
-			"movement_rate": 99
+			"movement_rate": 94
 		},
 		"power": {
 			"id": "POWER_BURN",
@@ -13194,7 +13194,7 @@
 		"stats": {
 			"atk": 20,
 			"hp": 190,
-			"movement_rate": 96,
+			"movement_rate": 91,
 			"attack_rate": 94,
 			"range": 2
 		},
@@ -13231,7 +13231,7 @@
 		"stats": {
 			"atk": 21,
 			"hp": 190,
-			"movement_rate": 99,
+			"movement_rate": 94,
 			"attack_rate": 94,
 			"range": 1
 		},
@@ -13266,7 +13266,7 @@
 		"stats": {
 			"atk": 5,
 			"hp": 50,
-			"movement_rate": 76,
+			"movement_rate": 71,
 			"attack_rate": 90,
 			"range": 1
 		},
@@ -13292,7 +13292,7 @@
 		"stats": {
 			"atk": 15,
 			"hp": 120,
-			"movement_rate": 99,
+			"movement_rate": 94,
 			"attack_rate": 98,
 			"range": 1
 		},
@@ -13331,7 +13331,7 @@
 		"stats": {
 			"atk": 14,
 			"hp": 145,
-			"movement_rate": 86,
+			"movement_rate": 81,
 			"attack_rate": 91,
 			"range": 1
 		},
@@ -13366,7 +13366,7 @@
 		"stats": {
 			"atk": 29,
 			"hp": 230,
-			"movement_rate": 86,
+			"movement_rate": 81,
 			"attack_rate": 87,
 			"range": 1
 		},
@@ -13413,7 +13413,7 @@
 		"stats": {
 			"atk": 23,
 			"hp": 70,
-			"movement_rate": 80,
+			"movement_rate": 75,
 			"attack_rate": 92,
 			"range": 3
 		},
@@ -13452,7 +13452,7 @@
 		"stats": {
 			"atk": 15,
 			"hp": 150,
-			"movement_rate": 76,
+			"movement_rate": 71,
 			"attack_rate": 90,
 			"range": 3
 		},
@@ -13497,7 +13497,7 @@
 			"hp": 190,
 			"range": 1,
 			"attack_rate": 87,
-			"movement_rate": 86
+			"movement_rate": 81
 		},
 		"power": {},
 		"summon_conditions": [],
@@ -13523,7 +13523,7 @@
 			"hp": 180,
 			"range": 2,
 			"attack_rate": 91,
-			"movement_rate": 90
+			"movement_rate": 85
 		},
 		"power": {
 			"id": "POWER_HEAL",
@@ -13554,7 +13554,7 @@
 			"hp": 145,
 			"range": 1,
 			"attack_rate": 92,
-			"movement_rate": 92
+			"movement_rate": 87
 		},
 		"power": {
 			"id": "POWER_TAUNT",
@@ -13584,7 +13584,7 @@
 			"hp": 215,
 			"range": 1,
 			"attack_rate": 87,
-			"movement_rate": 86
+			"movement_rate": 81
 		},
 		"power": {},
 		"summon_conditions": [],
@@ -13610,7 +13610,7 @@
 		"stats": {
 			"atk": 23,
 			"hp": 60,
-			"movement_rate": 99,
+			"movement_rate": 94,
 			"attack_rate": 95,
 			"range": 1
 		},
@@ -13648,7 +13648,7 @@
 			"hp": 350,
 			"range": 2,
 			"attack_rate": 84,
-			"movement_rate": 76
+			"movement_rate": 71
 		},
 		"power": {
 			"id": "POWER_TAUNT",
@@ -13688,7 +13688,7 @@
 		"stats": {
 			"atk": 23,
 			"hp": 120,
-			"movement_rate": 99,
+			"movement_rate": 94,
 			"attack_rate": 91,
 			"range": 1
 		},
@@ -13721,7 +13721,7 @@
 			"hp": 120,
 			"range": 1,
 			"attack_rate": 86,
-			"movement_rate": 79
+			"movement_rate": 74
 		},
 		"power": {
 			"id": "POWER_TAUNT",
@@ -13753,7 +13753,7 @@
 		"stats": {
 			"atk": 30,
 			"hp": 120,
-			"movement_rate": 92,
+			"movement_rate": 87,
 			"attack_rate": 84,
 			"range": 1
 		},
@@ -13784,7 +13784,7 @@
 			"hp": 145,
 			"range": 1,
 			"attack_rate": 87,
-			"movement_rate": 99
+			"movement_rate": 94
 		},
 		"power": {},
 		"summon_conditions": [],
@@ -13809,7 +13809,7 @@
 			"hp": 210,
 			"range": 3,
 			"attack_rate": 86,
-			"movement_rate": 87
+			"movement_rate": 82
 		},
 		"power": {
 			"id": "POWER_SUPER_ATTACK",
@@ -13848,7 +13848,7 @@
 		"stats": {
 			"atk": 20,
 			"hp": 200,
-			"movement_rate": 76,
+			"movement_rate": 71,
 			"attack_rate": 90,
 			"range": 4
 		},
@@ -13893,7 +13893,7 @@
 			"hp": 85,
 			"range": 4,
 			"attack_rate": 75,
-			"movement_rate": 92
+			"movement_rate": 87
 		},
 		"power": {
 			"id": "POWER_DEBUFF",
@@ -13921,7 +13921,7 @@
 			"hp": 95,
 			"range": 2,
 			"attack_rate": 87,
-			"movement_rate": 83
+			"movement_rate": 78
 		},
 		"power": {
 			"id": "POWER_DEBUFF",
@@ -13948,7 +13948,7 @@
 		"stats": {
 			"atk": 5,
 			"hp": 60,
-			"movement_rate": 99,
+			"movement_rate": 94,
 			"attack_rate": 98,
 			"range": 1
 		},
@@ -13974,7 +13974,7 @@
 		"stats": {
 			"atk": 27,
 			"hp": 230,
-			"movement_rate": 90,
+			"movement_rate": 85,
 			"attack_rate": 87,
 			"range": 2
 		},
@@ -14009,7 +14009,7 @@
 		"stats": {
 			"atk": 16,
 			"hp": 200,
-			"movement_rate": 76,
+			"movement_rate": 71,
 			"attack_rate": 87,
 			"range": 2
 		},
@@ -14037,7 +14037,7 @@
 		"stats": {
 			"atk": 10,
 			"hp": 95,
-			"movement_rate": 83,
+			"movement_rate": 78,
 			"attack_rate": 90,
 			"range": 2
 		},
@@ -14066,7 +14066,7 @@
 		"stats": {
 			"atk": 33,
 			"hp": 295,
-			"movement_rate": 83,
+			"movement_rate": 78,
 			"attack_rate": 84,
 			"range": 2
 		},
@@ -14108,7 +14108,7 @@
 		"stats": {
 			"atk": 20,
 			"hp": 180,
-			"movement_rate": 92,
+			"movement_rate": 87,
 			"attack_rate": 87,
 			"range": 1
 		},
@@ -14141,7 +14141,7 @@
 		"stats": {
 			"atk": 10,
 			"hp": 100,
-			"movement_rate": 76,
+			"movement_rate": 71,
 			"attack_rate": 90,
 			"range": 2
 		},
@@ -14187,7 +14187,7 @@
 			"hp": 230,
 			"range": 2,
 			"attack_rate": 83,
-			"movement_rate": 83
+			"movement_rate": 78
 		},
 		"power": {
 			"id": "POWER_TAUNT",
@@ -14218,7 +14218,7 @@
 			"hp": 120,
 			"range": 1,
 			"attack_rate": 82,
-			"movement_rate": 79
+			"movement_rate": 74
 		},
 		"power": {},
 		"summon_conditions": [],
@@ -14241,7 +14241,7 @@
 			"hp": 305,
 			"range": 2,
 			"attack_rate": 87,
-			"movement_rate": 90
+			"movement_rate": 85
 		},
 		"power": {
 			"id": "POWER_TELEPORT",
@@ -14271,7 +14271,7 @@
 			"hp": 385,
 			"range": 1,
 			"attack_rate": 87,
-			"movement_rate": 86
+			"movement_rate": 81
 		},
 		"power": {
 			"id": "POWER_SUPER_ATTACK",
@@ -14304,7 +14304,7 @@
 			"hp": 190,
 			"range": 1,
 			"attack_rate": 83,
-			"movement_rate": 86
+			"movement_rate": 81
 		},
 		"power": {
 			"id": "POWER_SHIELD",
@@ -14337,7 +14337,7 @@
 			"hp": 60,
 			"range": 1,
 			"attack_rate": 94,
-			"movement_rate": 99
+			"movement_rate": 94
 		},
 		"power": {},
 		"summon_conditions": [],
@@ -14361,7 +14361,7 @@
 			"hp": 190,
 			"range": 2,
 			"attack_rate": 92,
-			"movement_rate": 90
+			"movement_rate": 85
 		},
 		"power": {
 			"id": "POWER_TELEPORT",
@@ -14389,7 +14389,7 @@
 			"hp": 70,
 			"range": 3,
 			"attack_rate": 80,
-			"movement_rate": 74
+			"movement_rate": 69
 		},
 		"power": {},
 		"summon_conditions": [
@@ -14419,7 +14419,7 @@
 			"hp": 170,
 			"range": 2,
 			"attack_rate": 82,
-			"movement_rate": 76
+			"movement_rate": 71
 		},
 		"power": {},
 		"summon_conditions": [],
@@ -14444,7 +14444,7 @@
 			"hp": 95,
 			"range": 1,
 			"attack_rate": 87,
-			"movement_rate": 99
+			"movement_rate": 94
 		},
 		"power": {},
 		"summon_conditions": [],
@@ -14472,7 +14472,7 @@
 			"hp": 215,
 			"range": 1,
 			"attack_rate": 83,
-			"movement_rate": 86
+			"movement_rate": 81
 		},
 		"power": {},
 		"summon_conditions": [
@@ -14502,7 +14502,7 @@
 		"stats": {
 			"atk": 22,
 			"hp": 170,
-			"movement_rate": 86,
+			"movement_rate": 81,
 			"attack_rate": 86,
 			"range": 1
 		},
@@ -14546,7 +14546,7 @@
 		"stats": {
 			"atk": 10,
 			"hp": 480,
-			"movement_rate": 79,
+			"movement_rate": 74,
 			"attack_rate": 83,
 			"range": 1
 		},
@@ -14591,7 +14591,7 @@
 		"stats": {
 			"atk": 32,
 			"hp": 430,
-			"movement_rate": 86,
+			"movement_rate": 81,
 			"attack_rate": 86,
 			"range": 2
 		},
@@ -14632,7 +14632,7 @@
 			"hp": 180,
 			"range": 1,
 			"attack_rate": 92,
-			"movement_rate": 99
+			"movement_rate": 94
 		},
 		"power": {},
 		"summon_conditions": [],
@@ -14659,7 +14659,7 @@
 			"hp": 160,
 			"range": 2,
 			"attack_rate": 83,
-			"movement_rate": 83
+			"movement_rate": 78
 		},
 		"power": {},
 		"summon_conditions": [],
@@ -14686,7 +14686,7 @@
 			"hp": 155,
 			"range": 3,
 			"attack_rate": 80,
-			"movement_rate": 74
+			"movement_rate": 69
 		},
 		"power": {},
 		"summon_conditions": [],
@@ -14711,7 +14711,7 @@
 			"hp": 35,
 			"range": 3,
 			"attack_rate": 90,
-			"movement_rate": 87
+			"movement_rate": 82
 		},
 		"power": {},
 		"summon_conditions": [],
@@ -14735,7 +14735,7 @@
 			"hp": 190,
 			"range": 3,
 			"attack_rate": 83,
-			"movement_rate": 80
+			"movement_rate": 75
 		},
 		"power": {
 			"id": "POWER_PARALYSIS",
@@ -14768,7 +14768,7 @@
 			"hp": 455,
 			"range": 1,
 			"attack_rate": 83,
-			"movement_rate": 79
+			"movement_rate": 74
 		},
 		"power": {},
 		"summon_conditions": [
@@ -14798,7 +14798,7 @@
 			"hp": 75,
 			"range": 3,
 			"attack_rate": 84,
-			"movement_rate": 80
+			"movement_rate": 75
 		},
 		"power": {},
 		"summon_conditions": [],
@@ -14820,7 +14820,7 @@
 		"stats": {
 			"atk": 33,
 			"hp": 275,
-			"movement_rate": 86,
+			"movement_rate": 81,
 			"attack_rate": 83,
 			"range": 1
 		},
@@ -14863,7 +14863,7 @@
 			"hp": 145,
 			"range": 1,
 			"attack_rate": 86,
-			"movement_rate": 92
+			"movement_rate": 87
 		},
 		"power": {},
 		"summon_conditions": [],
@@ -14887,7 +14887,7 @@
 			"hp": 200,
 			"range": 2,
 			"attack_rate": 83,
-			"movement_rate": 83
+			"movement_rate": 78
 		},
 		"power": {},
 		"summon_conditions": [],
@@ -14912,7 +14912,7 @@
 			"hp": 215,
 			"range": 1,
 			"attack_rate": 92,
-			"movement_rate": 99
+			"movement_rate": 94
 		},
 		"power": {},
 		"summon_conditions": [],
@@ -14934,7 +14934,7 @@
 		"stats": {
 			"atk": 18,
 			"hp": 240,
-			"movement_rate": 79,
+			"movement_rate": 74,
 			"attack_rate": 80,
 			"range": 1
 		},
@@ -14965,7 +14965,7 @@
 			"hp": 35,
 			"range": 1,
 			"attack_rate": 84,
-			"movement_rate": 86
+			"movement_rate": 81
 		},
 		"power": {
 			"id": "POWER_TELEPORT",
@@ -14995,7 +14995,7 @@
 			"hp": 300,
 			"range": 1,
 			"attack_rate": 94,
-			"movement_rate": 99
+			"movement_rate": 94
 		},
 		"power": {
 			"id": "POWER_BURN",
@@ -15027,7 +15027,7 @@
 		"stats": {
 			"atk": 19,
 			"hp": 360,
-			"movement_rate": 92,
+			"movement_rate": 87,
 			"attack_rate": 83,
 			"range": 1
 		},
@@ -15066,7 +15066,7 @@
 			"hp": 170,
 			"range": 1,
 			"attack_rate": 82,
-			"movement_rate": 79
+			"movement_rate": 74
 		},
 		"power": {},
 		"summon_conditions": [],
@@ -15091,7 +15091,7 @@
 			"hp": 95,
 			"range": 1,
 			"attack_rate": 92,
-			"movement_rate": 99
+			"movement_rate": 94
 		},
 		"power": {},
 		"summon_conditions": [],
@@ -15116,7 +15116,7 @@
 		"stats": {
 			"atk": 10,
 			"hp": 60,
-			"movement_rate": 86,
+			"movement_rate": 81,
 			"attack_rate": 83,
 			"range": 1
 		},
@@ -15144,7 +15144,7 @@
 			"hp": 60,
 			"range": 1,
 			"attack_rate": 84,
-			"movement_rate": 86
+			"movement_rate": 81
 		},
 		"power": {
 			"id": "POWER_BURN",
@@ -15185,7 +15185,7 @@
 			"hp": 360,
 			"range": 1,
 			"attack_rate": 79,
-			"movement_rate": 79
+			"movement_rate": 74
 		},
 		"power": {
 			"id": "POWER_BURN",
@@ -15231,7 +15231,7 @@
 			"hp": 115,
 			"range": 2,
 			"attack_rate": 80,
-			"movement_rate": 76
+			"movement_rate": 71
 		},
 		"power": {
 			"id": "POWER_TAUNT",
@@ -15260,7 +15260,7 @@
 			"hp": 230,
 			"range": 1,
 			"attack_rate": 90,
-			"movement_rate": 92
+			"movement_rate": 87
 		},
 		"power": {},
 		"summon_conditions": [],
@@ -15283,7 +15283,7 @@
 			"hp": 30,
 			"range": 2,
 			"attack_rate": 94,
-			"movement_rate": 96
+			"movement_rate": 91
 		},
 		"power": {},
 		"summon_conditions": [],
@@ -15308,7 +15308,7 @@
 			"hp": 180,
 			"range": 1,
 			"attack_rate": 84,
-			"movement_rate": 79
+			"movement_rate": 74
 		},
 		"power": {
 			"id": "POWER_BURN",
@@ -15343,7 +15343,7 @@
 			"hp": 350,
 			"range": 1,
 			"attack_rate": 76,
-			"movement_rate": 79
+			"movement_rate": 74
 		},
 		"power": {},
 		"summon_conditions": [
@@ -15371,7 +15371,7 @@
 			"hp": 35,
 			"range": 3,
 			"attack_rate": 84,
-			"movement_rate": 87
+			"movement_rate": 82
 		},
 		"power": {},
 		"summon_conditions": [],
@@ -15395,7 +15395,7 @@
 			"hp": 230,
 			"range": 1,
 			"attack_rate": 90,
-			"movement_rate": 99
+			"movement_rate": 94
 		},
 		"power": {},
 		"summon_conditions": [],
@@ -15419,7 +15419,7 @@
 			"hp": 325,
 			"range": 1,
 			"attack_rate": 76,
-			"movement_rate": 79
+			"movement_rate": 74
 		},
 		"power": {},
 		"summon_conditions": [],
@@ -15444,7 +15444,7 @@
 			"hp": 145,
 			"range": 1,
 			"attack_rate": 83,
-			"movement_rate": 86
+			"movement_rate": 81
 		},
 		"power": {},
 		"summon_conditions": [],
@@ -15470,7 +15470,7 @@
 			"hp": 205,
 			"range": 1,
 			"attack_rate": 84,
-			"movement_rate": 92
+			"movement_rate": 87
 		},
 		"power": {},
 		"summon_conditions": [
@@ -15496,7 +15496,7 @@
 		"stats": {
 			"atk": 10,
 			"hp": 300,
-			"movement_rate": 79,
+			"movement_rate": 74,
 			"attack_rate": 79,
 			"range": 1
 		},
@@ -15525,7 +15525,7 @@
 			"hp": 215,
 			"range": 1,
 			"attack_rate": 87,
-			"movement_rate": 86
+			"movement_rate": 81
 		},
 		"power": {},
 		"summon_conditions": [],
@@ -15549,7 +15549,7 @@
 			"hp": 190,
 			"range": 1,
 			"attack_rate": 88,
-			"movement_rate": 99
+			"movement_rate": 94
 		},
 		"power": {},
 		"summon_conditions": [],
@@ -15573,7 +15573,7 @@
 			"hp": 95,
 			"range": 1,
 			"attack_rate": 79,
-			"movement_rate": 86
+			"movement_rate": 81
 		},
 		"power": {},
 		"summon_conditions": [],
@@ -15595,7 +15595,7 @@
 		"stats": {
 			"atk": 12,
 			"hp": 95,
-			"movement_rate": 86,
+			"movement_rate": 81,
 			"attack_rate": 83,
 			"range": 2
 		},
@@ -15625,7 +15625,7 @@
 			"hp": 190,
 			"range": 1,
 			"attack_rate": 84,
-			"movement_rate": 86
+			"movement_rate": 81
 		},
 		"power": {},
 		"summon_conditions": [],
@@ -15654,7 +15654,7 @@
 			"hp": 480,
 			"range": 1,
 			"attack_rate": 86,
-			"movement_rate": 99
+			"movement_rate": 94
 		},
 		"power": {},
 		"summon_conditions": [
@@ -15683,7 +15683,7 @@
 			"hp": 240,
 			"range": 1,
 			"attack_rate": 84,
-			"movement_rate": 79
+			"movement_rate": 74
 		},
 		"power": {},
 		"summon_conditions": [],
@@ -15707,7 +15707,7 @@
 			"hp": 120,
 			"range": 1,
 			"attack_rate": 90,
-			"movement_rate": 92
+			"movement_rate": 87
 		},
 		"power": {},
 		"summon_conditions": [],
@@ -15730,7 +15730,7 @@
 			"hp": 150,
 			"range": 2,
 			"attack_rate": 82,
-			"movement_rate": 76
+			"movement_rate": 71
 		},
 		"power": {},
 		"summon_conditions": [
@@ -15758,7 +15758,7 @@
 			"hp": 135,
 			"range": 2,
 			"attack_rate": 92,
-			"movement_rate": 90
+			"movement_rate": 85
 		},
 		"power": {},
 		"summon_conditions": [],
@@ -15782,7 +15782,7 @@
 			"hp": 45,
 			"range": 4,
 			"attack_rate": 88,
-			"movement_rate": 92
+			"movement_rate": 87
 		},
 		"power": {
 			"id": "POWER_TAUNT",
@@ -15812,7 +15812,7 @@
 			"hp": 180,
 			"range": 1,
 			"attack_rate": 90,
-			"movement_rate": 99
+			"movement_rate": 94
 		},
 		"power": {},
 		"summon_conditions": [],
@@ -15837,7 +15837,7 @@
 			"hp": 180,
 			"range": 1,
 			"attack_rate": 82,
-			"movement_rate": 99
+			"movement_rate": 94
 		},
 		"power": {},
 		"summon_conditions": [],
@@ -15859,7 +15859,7 @@
 		"stats": {
 			"atk": 18,
 			"hp": 50,
-			"movement_rate": 92,
+			"movement_rate": 87,
 			"attack_rate": 91,
 			"range": 2
 		},
@@ -15888,7 +15888,7 @@
 		"stats": {
 			"atk": 27,
 			"hp": 275,
-			"movement_rate": 86,
+			"movement_rate": 81,
 			"attack_rate": 84,
 			"range": 1
 		},
@@ -15919,7 +15919,7 @@
 		"stats": {
 			"atk": 3,
 			"hp": 25,
-			"movement_rate": 99,
+			"movement_rate": 94,
 			"attack_rate": 96,
 			"range": 2
 		},
@@ -15948,7 +15948,7 @@
 			"hp": 240,
 			"range": 1,
 			"attack_rate": 91,
-			"movement_rate": 92
+			"movement_rate": 87
 		},
 		"power": {
 			"id": "POWER_TELEPORT",
@@ -15979,7 +15979,7 @@
 			"hp": 280,
 			"range": 3,
 			"attack_rate": 80,
-			"movement_rate": 74
+			"movement_rate": 69
 		},
 		"power": {
 			"id": "POWER_PARALYSIS",
@@ -16012,7 +16012,7 @@
 			"hp": 275,
 			"range": 1,
 			"attack_rate": 84,
-			"movement_rate": 86
+			"movement_rate": 81
 		},
 		"power": {
 			"id": "POWER_BURN",
@@ -16045,7 +16045,7 @@
 			"hp": 360,
 			"range": 1,
 			"attack_rate": 80,
-			"movement_rate": 79
+			"movement_rate": 74
 		},
 		"power": {},
 		"summon_conditions": [
@@ -16073,7 +16073,7 @@
 			"hp": 180,
 			"range": 1,
 			"attack_rate": 86,
-			"movement_rate": 79
+			"movement_rate": 74
 		},
 		"power": {},
 		"summon_conditions": [],
@@ -16095,7 +16095,7 @@
 		"stats": {
 			"atk": 10,
 			"hp": 470,
-			"movement_rate": 92,
+			"movement_rate": 87,
 			"attack_rate": 90,
 			"range": 2
 		},
@@ -16132,7 +16132,7 @@
 		"stats": {
 			"atk": 14,
 			"hp": 145,
-			"movement_rate": 86,
+			"movement_rate": 81,
 			"attack_rate": 84,
 			"range": 1
 		},
@@ -16168,7 +16168,7 @@
 			"hp": 335,
 			"range": 2,
 			"attack_rate": 86,
-			"movement_rate": 83
+			"movement_rate": 78
 		},
 		"power": {},
 		"summon_conditions": [
@@ -16201,7 +16201,7 @@
 			"hp": 85,
 			"range": 3,
 			"attack_rate": 84,
-			"movement_rate": 94
+			"movement_rate": 89
 		},
 		"power": {
 			"id": "POWER_FREEZE",
@@ -16229,7 +16229,7 @@
 			"hp": 115,
 			"range": 2,
 			"attack_rate": 86,
-			"movement_rate": 90
+			"movement_rate": 85
 		},
 		"power": {
 			"id": "POWER_PUSH",
@@ -16257,7 +16257,7 @@
 			"hp": 145,
 			"range": 1,
 			"attack_rate": 86,
-			"movement_rate": 86
+			"movement_rate": 81
 		},
 		"power": {
 			"id": "POWER_SHIELD",
@@ -16284,7 +16284,7 @@
 			"hp": 205,
 			"range": 1,
 			"attack_rate": 90,
-			"movement_rate": 99
+			"movement_rate": 94
 		},
 		"power": {},
 		"summon_conditions": [],
@@ -16311,7 +16311,7 @@
 			"hp": 180,
 			"range": 1,
 			"attack_rate": 86,
-			"movement_rate": 86
+			"movement_rate": 81
 		},
 		"power": {},
 		"summon_conditions": [],
@@ -16376,7 +16376,7 @@
 			"hp": 210,
 			"range": 3,
 			"attack_rate": 88,
-			"movement_rate": 80
+			"movement_rate": 75
 		},
 		"power": {
 			"id": "POWER_HEAL",
@@ -16418,7 +16418,7 @@
 			"hp": 360,
 			"range": 1,
 			"attack_rate": 90,
-			"movement_rate": 79
+			"movement_rate": 74
 		},
 		"power": {
 			"id": "POWER_POISON",
@@ -16456,7 +16456,7 @@
 			"hp": 205,
 			"range": 1,
 			"attack_rate": 83,
-			"movement_rate": 86
+			"movement_rate": 81
 		},
 		"power": {},
 		"summon_conditions": [],
@@ -16482,7 +16482,7 @@
 			"hp": 215,
 			"range": 1,
 			"attack_rate": 86,
-			"movement_rate": 86
+			"movement_rate": 81
 		},
 		"power": {},
 		"summon_conditions": [],
@@ -16506,7 +16506,7 @@
 			"hp": 170,
 			"range": 1,
 			"attack_rate": 90,
-			"movement_rate": 92
+			"movement_rate": 87
 		},
 		"power": {},
 		"summon_conditions": [],
@@ -16532,7 +16532,7 @@
 			"hp": 265,
 			"range": 1,
 			"attack_rate": 90,
-			"movement_rate": 86
+			"movement_rate": 81
 		},
 		"power": {
 			"id": "POWER_TELEPORT",
@@ -16575,7 +16575,7 @@
 			"hp": 265,
 			"range": 1,
 			"attack_rate": 90,
-			"movement_rate": 99
+			"movement_rate": 94
 		},
 		"power": {
 			"id": "POWER_TELEPORT",
@@ -16617,7 +16617,7 @@
 		"stats": {
 			"atk": 26,
 			"hp": 310,
-			"movement_rate": 86,
+			"movement_rate": 81,
 			"attack_rate": 84,
 			"range": 1
 		},
@@ -16654,7 +16654,7 @@
 			"hp": 215,
 			"range": 1,
 			"attack_rate": 90,
-			"movement_rate": 92
+			"movement_rate": 87
 		},
 		"power": {},
 		"summon_conditions": [],
@@ -16678,7 +16678,7 @@
 			"hp": 130,
 			"range": 1,
 			"attack_rate": 94,
-			"movement_rate": 99
+			"movement_rate": 94
 		},
 		"power": {},
 		"summon_conditions": [
@@ -16706,7 +16706,7 @@
 			"hp": 155,
 			"range": 3,
 			"attack_rate": 82,
-			"movement_rate": 87
+			"movement_rate": 82
 		},
 		"power": {},
 		"summon_conditions": [
@@ -16734,7 +16734,7 @@
 			"hp": 145,
 			"range": 2,
 			"attack_rate": 84,
-			"movement_rate": 90
+			"movement_rate": 85
 		},
 		"power": {},
 		"summon_conditions": [],
@@ -16758,7 +16758,7 @@
 			"hp": 190,
 			"range": 1,
 			"attack_rate": 86,
-			"movement_rate": 86
+			"movement_rate": 81
 		},
 		"power": {
 			"id": "POWER_TELEPORT",
@@ -16787,7 +16787,7 @@
 			"hp": 180,
 			"range": 2,
 			"attack_rate": 82,
-			"movement_rate": 90
+			"movement_rate": 85
 		},
 		"power": {},
 		"summon_conditions": [
@@ -16816,7 +16816,7 @@
 			"hp": 85,
 			"range": 3,
 			"attack_rate": 91,
-			"movement_rate": 87
+			"movement_rate": 82
 		},
 		"power": {},
 		"summon_conditions": [],
@@ -16842,7 +16842,7 @@
 			"hp": 145,
 			"range": 1,
 			"attack_rate": 86,
-			"movement_rate": 99
+			"movement_rate": 94
 		},
 		"power": {},
 		"summon_conditions": [
@@ -16868,7 +16868,7 @@
 		"stats": {
 			"atk": 37,
 			"hp": 240,
-			"movement_rate": 86,
+			"movement_rate": 81,
 			"attack_rate": 80,
 			"range": 2
 		},
@@ -16914,7 +16914,7 @@
 			"hp": 140,
 			"range": 3,
 			"attack_rate": 84,
-			"movement_rate": 94
+			"movement_rate": 89
 		},
 		"power": {
 			"id": "POWER_PUSH",
@@ -16948,7 +16948,7 @@
 			"hp": 35,
 			"range": 1,
 			"attack_rate": 96,
-			"movement_rate": 92
+			"movement_rate": 87
 		},
 		"power": {},
 		"summon_conditions": [],
@@ -16972,7 +16972,7 @@
 			"hp": 120,
 			"range": 1,
 			"attack_rate": 96,
-			"movement_rate": 92
+			"movement_rate": 87
 		},
 		"power": {},
 		"summon_conditions": [
@@ -17007,7 +17007,7 @@
 		"stats": {
 			"atk": 22,
 			"hp": 190,
-			"movement_rate": 86,
+			"movement_rate": 81,
 			"attack_rate": 84,
 			"range": 1
 		},
@@ -17051,7 +17051,7 @@
 			"hp": 145,
 			"range": 1,
 			"attack_rate": 87,
-			"movement_rate": 86
+			"movement_rate": 81
 		},
 		"power": {},
 		"summon_conditions": [
@@ -17080,7 +17080,7 @@
 			"hp": 120,
 			"range": 4,
 			"attack_rate": 78,
-			"movement_rate": 72
+			"movement_rate": 67
 		},
 		"power": {},
 		"summon_conditions": [
@@ -17110,7 +17110,7 @@
 			"hp": 215,
 			"range": 4,
 			"attack_rate": 83,
-			"movement_rate": 79
+			"movement_rate": 74
 		},
 		"power": {
 			"id": "POWER_BLOCK",
@@ -17148,7 +17148,7 @@
 			"hp": 60,
 			"range": 1,
 			"attack_rate": 92,
-			"movement_rate": 99
+			"movement_rate": 94
 		},
 		"power": {},
 		"summon_conditions": [
@@ -17180,7 +17180,7 @@
 			"hp": 190,
 			"range": 2,
 			"attack_rate": 86,
-			"movement_rate": 83
+			"movement_rate": 78
 		},
 		"power": {},
 		"summon_conditions": [
@@ -17208,7 +17208,7 @@
 		"stats": {
 			"atk": 26,
 			"hp": 155,
-			"movement_rate": 86,
+			"movement_rate": 81,
 			"attack_rate": 82,
 			"range": 1
 		},
@@ -17244,7 +17244,7 @@
 			"hp": 120,
 			"range": 1,
 			"attack_rate": 86,
-			"movement_rate": 92
+			"movement_rate": 87
 		},
 		"power": {},
 		"summon_conditions": [],
@@ -17268,7 +17268,7 @@
 			"hp": 70,
 			"range": 3,
 			"attack_rate": 91,
-			"movement_rate": 94
+			"movement_rate": 89
 		},
 		"power": {},
 		"summon_conditions": [],
@@ -17291,7 +17291,7 @@
 		"stats": {
 			"atk": 26,
 			"hp": 155,
-			"movement_rate": 92,
+			"movement_rate": 87,
 			"attack_rate": 94,
 			"range": 2
 		},
@@ -17330,7 +17330,7 @@
 			"hp": 145,
 			"range": 2,
 			"attack_rate": 90,
-			"movement_rate": 83
+			"movement_rate": 78
 		},
 		"power": {},
 		"summon_conditions": [
@@ -17359,7 +17359,7 @@
 			"hp": 265,
 			"range": 1,
 			"attack_rate": 84,
-			"movement_rate": 79
+			"movement_rate": 74
 		},
 		"power": {},
 		"summon_conditions": [
@@ -17387,7 +17387,7 @@
 			"hp": 60,
 			"range": 1,
 			"attack_rate": 82,
-			"movement_rate": 79
+			"movement_rate": 74
 		},
 		"power": {
 			"id": "POWER_HEAL",
@@ -17417,7 +17417,7 @@
 			"hp": 170,
 			"range": 1,
 			"attack_rate": 90,
-			"movement_rate": 92
+			"movement_rate": 87
 		},
 		"power": {},
 		"summon_conditions": [],
@@ -17445,7 +17445,7 @@
 			"hp": 180,
 			"range": 1,
 			"attack_rate": 92,
-			"movement_rate": 92
+			"movement_rate": 87
 		},
 		"power": {},
 		"summon_conditions": [],
@@ -17469,7 +17469,7 @@
 		"stats": {
 			"atk": 20,
 			"hp": 420,
-			"movement_rate": 86,
+			"movement_rate": 81,
 			"attack_rate": 87,
 			"range": 1
 		},
@@ -17506,7 +17506,7 @@
 			"hp": 230,
 			"range": 1,
 			"attack_rate": 86,
-			"movement_rate": 86
+			"movement_rate": 81
 		},
 		"power": {},
 		"summon_conditions": [],
@@ -17532,7 +17532,7 @@
 			"hp": 290,
 			"range": 1,
 			"attack_rate": 84,
-			"movement_rate": 99
+			"movement_rate": 94
 		},
 		"power": {
 			"id": "POWER_TAUNT",
@@ -17567,7 +17567,7 @@
 			"hp": 135,
 			"range": 2,
 			"attack_rate": 86,
-			"movement_rate": 83
+			"movement_rate": 78
 		},
 		"power": {},
 		"summon_conditions": [],
@@ -17589,7 +17589,7 @@
 		"stats": {
 			"atk": 33,
 			"hp": 325,
-			"movement_rate": 83,
+			"movement_rate": 78,
 			"attack_rate": 82,
 			"range": 2
 		},
@@ -17625,7 +17625,7 @@
 			"hp": 430,
 			"range": 1,
 			"attack_rate": 87,
-			"movement_rate": 99
+			"movement_rate": 94
 		},
 		"power": {
 			"id": "POWER_SHIELD",
@@ -17661,7 +17661,7 @@
 			"hp": 120,
 			"range": 1,
 			"attack_rate": 96,
-			"movement_rate": 99
+			"movement_rate": 94
 		},
 		"power": {},
 		"summon_conditions": [],
@@ -17685,7 +17685,7 @@
 			"hp": 150,
 			"range": 2,
 			"attack_rate": 84,
-			"movement_rate": 90
+			"movement_rate": 85
 		},
 		"power": {},
 		"summon_conditions": [],
@@ -17712,7 +17712,7 @@
 			"hp": 305,
 			"range": 2,
 			"attack_rate": 87,
-			"movement_rate": 90
+			"movement_rate": 85
 		},
 		"power": {
 			"id": "POWER_BURN",
@@ -17753,7 +17753,7 @@
 			"hp": 295,
 			"range": 3,
 			"attack_rate": 82,
-			"movement_rate": 80
+			"movement_rate": 75
 		},
 		"power": {
 			"id": "POWER_AOE_ATTACK",
@@ -17795,7 +17795,7 @@
 			"hp": 215,
 			"range": 1,
 			"attack_rate": 87,
-			"movement_rate": 92
+			"movement_rate": 87
 		},
 		"power": {
 			"id": "POWER_SHIELD",
@@ -17840,7 +17840,7 @@
 			"hp": 285,
 			"range": 2,
 			"attack_rate": 87,
-			"movement_rate": 90
+			"movement_rate": 85
 		},
 		"power": {
 			"id": "POWER_SHIELD",
@@ -17882,7 +17882,7 @@
 			"hp": 360,
 			"range": 1,
 			"attack_rate": 87,
-			"movement_rate": 86
+			"movement_rate": 81
 		},
 		"power": {
 			"id": "POWER_TAUNT",
@@ -17923,7 +17923,7 @@
 			"hp": 210,
 			"range": 3,
 			"attack_rate": 91,
-			"movement_rate": 87
+			"movement_rate": 82
 		},
 		"power": {
 			"id": "POWER_TELEPORT",
@@ -17962,7 +17962,7 @@
 			"hp": 220,
 			"range": 4,
 			"attack_rate": 84,
-			"movement_rate": 72
+			"movement_rate": 67
 		},
 		"power": {
 			"id": "POWER_TELEPORT",
@@ -18005,7 +18005,7 @@
 			"hp": 125,
 			"range": 3,
 			"attack_rate": 86,
-			"movement_rate": 80
+			"movement_rate": 75
 		},
 		"power": {
 			"id": "POWER_TAUNT",
@@ -18050,7 +18050,7 @@
 			"hp": 360,
 			"range": 1,
 			"attack_rate": 84,
-			"movement_rate": 79
+			"movement_rate": 74
 		},
 		"power": {
 			"id": "POWER_TAUNT",
@@ -18096,7 +18096,7 @@
 			"hp": 420,
 			"range": 1,
 			"attack_rate": 88,
-			"movement_rate": 86
+			"movement_rate": 81
 		},
 		"power": {
 			"id": "POWER_SUPER_ATTACK",
@@ -18144,7 +18144,7 @@
 			"hp": 480,
 			"range": 1,
 			"attack_rate": 84,
-			"movement_rate": 86
+			"movement_rate": 81
 		},
 		"power": {
 			"id": "POWER_SHIELD",
@@ -18195,7 +18195,7 @@
 			"hp": 565,
 			"range": 1,
 			"attack_rate": 88,
-			"movement_rate": 99
+			"movement_rate": 94
 		},
 		"power": {
 			"id": "POWER_POISON",
@@ -18235,7 +18235,7 @@
 			"hp": 175,
 			"range": 3,
 			"attack_rate": 82,
-			"movement_rate": 74
+			"movement_rate": 69
 		},
 		"power": {
 			"id": "POWER_HEAL",
@@ -18274,7 +18274,7 @@
 			"hp": 35,
 			"range": 3,
 			"attack_rate": 86,
-			"movement_rate": 74
+			"movement_rate": 69
 		},
 		"power": {
 			"id": "POWER_DEBUFF",
@@ -18314,7 +18314,7 @@
 			"hp": 290,
 			"range": 1,
 			"attack_rate": 86,
-			"movement_rate": 92
+			"movement_rate": 87
 		},
 		"power": {
 			"id": "POWER_POISON",
@@ -18360,7 +18360,7 @@
 			"hp": 410,
 			"range": 1,
 			"attack_rate": 84,
-			"movement_rate": 92
+			"movement_rate": 87
 		},
 		"power": {
 			"id": "POWER_POISON",
@@ -18398,7 +18398,7 @@
 			"hp": 120,
 			"range": 1,
 			"attack_rate": 91,
-			"movement_rate": 92
+			"movement_rate": 87
 		},
 		"power": {},
 		"summon_conditions": [],
@@ -18423,7 +18423,7 @@
 			"hp": 230,
 			"range": 1,
 			"attack_rate": 83,
-			"movement_rate": 86
+			"movement_rate": 81
 		},
 		"power": {
 			"id": "POWER_SHIELD",
@@ -18461,7 +18461,7 @@
 			"hp": 85,
 			"range": 1,
 			"attack_rate": 87,
-			"movement_rate": 99
+			"movement_rate": 94
 		},
 		"power": {
 			"id": "POWER_POISON",
@@ -18497,7 +18497,7 @@
 		"stats": {
 			"atk": 16,
 			"hp": 145,
-			"movement_rate": 79,
+			"movement_rate": 74,
 			"attack_rate": 83,
 			"range": 4
 		},
@@ -18538,7 +18538,7 @@
 			"hp": 305,
 			"range": 2,
 			"attack_rate": 86,
-			"movement_rate": 90
+			"movement_rate": 85
 		},
 		"power": {
 			"id": "POWER_BURN",
@@ -18577,7 +18577,7 @@
 		"stats": {
 			"atk": 28,
 			"hp": 290,
-			"movement_rate": 92,
+			"movement_rate": 87,
 			"attack_rate": 87,
 			"range": 1
 		},
@@ -18623,7 +18623,7 @@
 			"hp": 430,
 			"range": 1,
 			"attack_rate": 86,
-			"movement_rate": 86
+			"movement_rate": 81
 		},
 		"power": {
 			"id": "POWER_SHIELD",
@@ -18662,7 +18662,7 @@
 			"hp": 310,
 			"range": 1,
 			"attack_rate": 92,
-			"movement_rate": 99
+			"movement_rate": 94
 		},
 		"power": {
 			"id": "POWER_TELEPORT",
@@ -18700,7 +18700,7 @@
 			"hp": 230,
 			"range": 1,
 			"attack_rate": 87,
-			"movement_rate": 92
+			"movement_rate": 87
 		},
 		"power": {
 			"id": "POWER_BURN",
@@ -18741,7 +18741,7 @@
 			"hp": 430,
 			"range": 1,
 			"attack_rate": 86,
-			"movement_rate": 92
+			"movement_rate": 87
 		},
 		"power": {
 			"id": "POWER_SUPER_ATTACK",
@@ -18785,7 +18785,7 @@
 		"stats": {
 			"atk": 27,
 			"hp": 285,
-			"movement_rate": 90,
+			"movement_rate": 85,
 			"attack_rate": 84,
 			"range": 2
 		},
@@ -18833,7 +18833,7 @@
 			"hp": 420,
 			"range": 1,
 			"attack_rate": 84,
-			"movement_rate": 86
+			"movement_rate": 81
 		},
 		"power": {
 			"id": "POWER_SUPER_ATTACK",
@@ -18877,7 +18877,7 @@
 			"hp": 215,
 			"range": 1,
 			"attack_rate": 92,
-			"movement_rate": 99
+			"movement_rate": 94
 		},
 		"power": {},
 		"summon_conditions": [
@@ -18909,7 +18909,7 @@
 		"stats": {
 			"atk": 22,
 			"hp": 265,
-			"movement_rate": 99,
+			"movement_rate": 94,
 			"attack_rate": 94,
 			"range": 1
 		},
@@ -18943,7 +18943,7 @@
 		"stats": {
 			"atk": 27,
 			"hp": 410,
-			"movement_rate": 92,
+			"movement_rate": 87,
 			"attack_rate": 92,
 			"range": 1
 		},
@@ -18986,7 +18986,7 @@
 		"stats": {
 			"atk": 36,
 			"hp": 420,
-			"movement_rate": 86,
+			"movement_rate": 81,
 			"attack_rate": 87,
 			"range": 1
 		},
@@ -19043,7 +19043,7 @@
 		"stats": {
 			"atk": 45,
 			"hp": 540,
-			"movement_rate": 99,
+			"movement_rate": 94,
 			"attack_rate": 91,
 			"range": 1
 		},
@@ -19093,7 +19093,7 @@
 		"stats": {
 			"atk": 26,
 			"hp": 160,
-			"movement_rate": 87,
+			"movement_rate": 82,
 			"attack_rate": 86,
 			"range": 3
 		},
@@ -19135,7 +19135,7 @@
 			"hp": 275,
 			"range": 1,
 			"attack_rate": 83,
-			"movement_rate": 86
+			"movement_rate": 81
 		},
 		"power": {
 			"id": "POWER_SUPER_ATTACK",
@@ -19181,7 +19181,7 @@
 			"hp": 180,
 			"range": 1,
 			"attack_rate": 96,
-			"movement_rate": 86
+			"movement_rate": 81
 		},
 		"power": {},
 		"summon_conditions": [
@@ -19216,7 +19216,7 @@
 		"stats": {
 			"atk": 23,
 			"hp": 120,
-			"movement_rate": 99,
+			"movement_rate": 94,
 			"attack_rate": 96,
 			"range": 1
 		},
@@ -19258,7 +19258,7 @@
 			"hp": 100,
 			"range": 3,
 			"attack_rate": 86,
-			"movement_rate": 74
+			"movement_rate": 69
 		},
 		"power": {
 			"id": "POWER_PARALYSIS",
@@ -19298,7 +19298,7 @@
 			"hp": 240,
 			"range": 2,
 			"attack_rate": 83,
-			"movement_rate": 76
+			"movement_rate": 71
 		},
 		"power": {},
 		"summon_conditions": [
@@ -19328,7 +19328,7 @@
 			"hp": 190,
 			"range": 2,
 			"attack_rate": 84,
-			"movement_rate": 83
+			"movement_rate": 78
 		},
 		"power": {},
 		"summon_conditions": [
@@ -19356,7 +19356,7 @@
 			"hp": 210,
 			"range": 3,
 			"attack_rate": 84,
-			"movement_rate": 80
+			"movement_rate": 75
 		},
 		"power": {
 			"id": "POWER_HEAL",
@@ -19395,7 +19395,7 @@
 		"stats": {
 			"atk": 29,
 			"hp": 290,
-			"movement_rate": 99,
+			"movement_rate": 94,
 			"attack_rate": 92,
 			"range": 1
 		},
@@ -19439,7 +19439,7 @@
 		"stats": {
 			"atk": 24,
 			"hp": 305,
-			"movement_rate": 96,
+			"movement_rate": 91,
 			"attack_rate": 91,
 			"range": 2
 		},
@@ -19477,7 +19477,7 @@
 		"stats": {
 			"atk": 20,
 			"hp": 480,
-			"movement_rate": 79,
+			"movement_rate": 74,
 			"attack_rate": 82,
 			"range": 1
 		},
@@ -19520,7 +19520,7 @@
 			"hp": 310,
 			"range": 1,
 			"attack_rate": 83,
-			"movement_rate": 92
+			"movement_rate": 87
 		},
 		"power": {
 			"id": "POWER_TAUNT",
@@ -19564,7 +19564,7 @@
 			"hp": 145,
 			"range": 1,
 			"attack_rate": 92,
-			"movement_rate": 99
+			"movement_rate": 94
 		},
 		"power": {
 			"id": "POWER_POISON",
@@ -19607,7 +19607,7 @@
 			"hp": 160,
 			"range": 2,
 			"attack_rate": 83,
-			"movement_rate": 90
+			"movement_rate": 85
 		},
 		"power": {
 			"id": "POWER_PARALYSIS",
@@ -19649,7 +19649,7 @@
 			"hp": 320,
 			"range": 3,
 			"attack_rate": 79,
-			"movement_rate": 74
+			"movement_rate": 69
 		},
 		"power": {
 			"id": "POWER_AOE_ATTACK",
@@ -19691,7 +19691,7 @@
 			"hp": 265,
 			"range": 3,
 			"attack_rate": 82,
-			"movement_rate": 74
+			"movement_rate": 69
 		},
 		"power": {
 			"id": "POWER_SUPER_ATTACK",
@@ -19731,7 +19731,7 @@
 			"hp": 55,
 			"range": 3,
 			"attack_rate": 79,
-			"movement_rate": 80
+			"movement_rate": 75
 		},
 		"power": {},
 		"summon_conditions": [],
@@ -19761,7 +19761,7 @@
 			"hp": 305,
 			"range": 2,
 			"attack_rate": 84,
-			"movement_rate": 90
+			"movement_rate": 85
 		},
 		"power": {
 			"id": "POWER_PARALYSIS",
@@ -19801,7 +19801,7 @@
 		"stats": {
 			"atk": 38,
 			"hp": 515,
-			"movement_rate": 92,
+			"movement_rate": 87,
 			"attack_rate": 83,
 			"range": 1
 		},
@@ -19844,7 +19844,7 @@
 			"hp": 180,
 			"range": 1,
 			"attack_rate": 84,
-			"movement_rate": 86
+			"movement_rate": 81
 		},
 		"power": {},
 		"summon_conditions": [],
@@ -19870,7 +19870,7 @@
 			"hp": 325,
 			"range": 1,
 			"attack_rate": 92,
-			"movement_rate": 99
+			"movement_rate": 94
 		},
 		"power": {
 			"id": "POWER_TELEPORT",
@@ -19905,7 +19905,7 @@
 			"hp": 145,
 			"range": 1,
 			"attack_rate": 83,
-			"movement_rate": 86
+			"movement_rate": 81
 		},
 		"power": {},
 		"summon_conditions": [],
@@ -19930,7 +19930,7 @@
 			"hp": 95,
 			"range": 1,
 			"attack_rate": 86,
-			"movement_rate": 86
+			"movement_rate": 81
 		},
 		"power": {
 			"id": "POWER_POISON",
@@ -19960,7 +19960,7 @@
 			"hp": 350,
 			"range": 1,
 			"attack_rate": 83,
-			"movement_rate": 86
+			"movement_rate": 81
 		},
 		"power": {
 			"id": "POWER_BURN",
@@ -19999,7 +19999,7 @@
 			"hp": 430,
 			"range": 1,
 			"attack_rate": 82,
-			"movement_rate": 86
+			"movement_rate": 81
 		},
 		"power": {
 			"id": "POWER_BURN",
@@ -20037,7 +20037,7 @@
 			"hp": 280,
 			"range": 3,
 			"attack_rate": 88,
-			"movement_rate": 80
+			"movement_rate": 75
 		},
 		"power": {
 			"id": "POWER_HEAL",
@@ -20075,7 +20075,7 @@
 		"stats": {
 			"atk": 24,
 			"hp": 145,
-			"movement_rate": 80,
+			"movement_rate": 75,
 			"attack_rate": 82,
 			"range": 3
 		},
@@ -20128,7 +20128,7 @@
 			"hp": 145,
 			"range": 2,
 			"attack_rate": 83,
-			"movement_rate": 83
+			"movement_rate": 78
 		},
 		"power": {},
 		"summon_conditions": [],
@@ -20156,7 +20156,7 @@
 			"hp": 215,
 			"range": 1,
 			"attack_rate": 87,
-			"movement_rate": 86
+			"movement_rate": 81
 		},
 		"power": {},
 		"summon_conditions": [],
@@ -20180,7 +20180,7 @@
 		"stats": {
 			"atk": 40,
 			"hp": 300,
-			"movement_rate": 72,
+			"movement_rate": 67,
 			"attack_rate": 79,
 			"range": 4
 		},
@@ -20227,7 +20227,7 @@
 		"stats": {
 			"atk": 20,
 			"hp": 250,
-			"movement_rate": 92,
+			"movement_rate": 87,
 			"attack_rate": 87,
 			"range": 2
 		},
@@ -20271,7 +20271,7 @@
 		"stats": {
 			"atk": 40,
 			"hp": 130,
-			"movement_rate": 79,
+			"movement_rate": 74,
 			"attack_rate": 82,
 			"range": 4
 		},
@@ -20311,7 +20311,7 @@
 		"stats": {
 			"atk": 35,
 			"hp": 265,
-			"movement_rate": 86,
+			"movement_rate": 81,
 			"attack_rate": 90,
 			"range": 4
 		},
@@ -20351,7 +20351,7 @@
 			"hp": 205,
 			"range": 4,
 			"attack_rate": 84,
-			"movement_rate": 72
+			"movement_rate": 67
 		},
 		"power": {
 			"id": "POWER_SUPER_ATTACK",
@@ -20396,7 +20396,7 @@
 			"hp": 160,
 			"range": 3,
 			"attack_rate": 84,
-			"movement_rate": 87
+			"movement_rate": 82
 		},
 		"power": {
 			"id": "POWER_SHIELD",
@@ -20442,7 +20442,7 @@
 			"hp": 170,
 			"range": 3,
 			"attack_rate": 83,
-			"movement_rate": 80
+			"movement_rate": 75
 		},
 		"power": {},
 		"summon_conditions": [
@@ -20473,7 +20473,7 @@
 			"hp": 230,
 			"range": 1,
 			"attack_rate": 84,
-			"movement_rate": 86
+			"movement_rate": 81
 		},
 		"power": {},
 		"summon_conditions": [],
@@ -20501,7 +20501,7 @@
 		"stats": {
 			"atk": 36,
 			"hp": 295,
-			"movement_rate": 96,
+			"movement_rate": 91,
 			"attack_rate": 91,
 			"range": 2
 		},
@@ -20541,7 +20541,7 @@
 			"hp": 65,
 			"range": 3,
 			"attack_rate": 88,
-			"movement_rate": 87
+			"movement_rate": 82
 		},
 		"power": {},
 		"summon_conditions": [],
@@ -20567,7 +20567,7 @@
 			"hp": 215,
 			"range": 1,
 			"attack_rate": 83,
-			"movement_rate": 86
+			"movement_rate": 81
 		},
 		"power": {
 			"id": "POWER_POISON",
@@ -20602,7 +20602,7 @@
 			"hp": 275,
 			"range": 1,
 			"attack_rate": 91,
-			"movement_rate": 92
+			"movement_rate": 87
 		},
 		"power": {
 			"id": "POWER_POISON",
@@ -20641,7 +20641,7 @@
 			"hp": 410,
 			"range": 1,
 			"attack_rate": 83,
-			"movement_rate": 79
+			"movement_rate": 74
 		},
 		"power": {
 			"id": "POWER_SHIELD",
@@ -20674,7 +20674,7 @@
 		"stats": {
 			"atk": 38,
 			"hp": 280,
-			"movement_rate": 80,
+			"movement_rate": 75,
 			"attack_rate": 82,
 			"range": 3
 		},
@@ -20714,7 +20714,7 @@
 			"hp": 180,
 			"range": 1,
 			"attack_rate": 84,
-			"movement_rate": 86
+			"movement_rate": 81
 		},
 		"power": {},
 		"summon_conditions": [],
@@ -20739,7 +20739,7 @@
 			"hp": 300,
 			"range": 1,
 			"attack_rate": 83,
-			"movement_rate": 79
+			"movement_rate": 74
 		},
 		"power": {
 			"id": "POWER_AOE_ATTACK",
@@ -20778,7 +20778,7 @@
 			"hp": 245,
 			"range": 3,
 			"attack_rate": 84,
-			"movement_rate": 74
+			"movement_rate": 69
 		},
 		"power": {
 			"id": "POWER_AOE_ATTACK",
@@ -20820,7 +20820,7 @@
 			"hp": 255,
 			"range": 4,
 			"attack_rate": 83,
-			"movement_rate": 72
+			"movement_rate": 67
 		},
 		"power": {
 			"id": "POWER_PUSH",
@@ -20865,7 +20865,7 @@
 			"hp": 175,
 			"range": 3,
 			"attack_rate": 82,
-			"movement_rate": 80
+			"movement_rate": 75
 		},
 		"power": {},
 		"summon_conditions": [
@@ -20896,7 +20896,7 @@
 			"hp": 180,
 			"range": 3,
 			"attack_rate": 83,
-			"movement_rate": 80
+			"movement_rate": 75
 		},
 		"power": {},
 		"summon_conditions": [
@@ -20930,7 +20930,7 @@
 			"hp": 370,
 			"range": 1,
 			"attack_rate": 88,
-			"movement_rate": 92
+			"movement_rate": 87
 		},
 		"power": {
 			"id": "POWER_BURN",
@@ -20971,7 +20971,7 @@
 		"stats": {
 			"atk": 30,
 			"hp": 360,
-			"movement_rate": 92,
+			"movement_rate": 87,
 			"attack_rate": 87,
 			"range": 1
 		},
@@ -21013,7 +21013,7 @@
 		"stats": {
 			"atk": 31,
 			"hp": 350,
-			"movement_rate": 92,
+			"movement_rate": 87,
 			"attack_rate": 84,
 			"range": 1
 		},
@@ -21056,7 +21056,7 @@
 			"hp": 245,
 			"range": 3,
 			"attack_rate": 82,
-			"movement_rate": 80
+			"movement_rate": 75
 		},
 		"power": {
 			"id": "POWER_BLOCK",
@@ -21098,7 +21098,7 @@
 			"hp": 275,
 			"range": 3,
 			"attack_rate": 84,
-			"movement_rate": 80
+			"movement_rate": 75
 		},
 		"power": {
 			"id": "POWER_SUPER_ATTACK",
@@ -21141,7 +21141,7 @@
 		"stats": {
 			"atk": 45,
 			"hp": 540,
-			"movement_rate": 92,
+			"movement_rate": 87,
 			"attack_rate": 90,
 			"range": 1
 		},
@@ -21181,7 +21181,7 @@
 			"hp": 190,
 			"range": 3,
 			"attack_rate": 86,
-			"movement_rate": 87
+			"movement_rate": 82
 		},
 		"power": {
 			"id": "POWER_CONFUSION",
@@ -21225,7 +21225,7 @@
 		"stats": {
 			"atk": 29,
 			"hp": 210,
-			"movement_rate": 87,
+			"movement_rate": 82,
 			"attack_rate": 88,
 			"range": 3
 		},
@@ -21270,7 +21270,7 @@
 			"hp": 195,
 			"range": 3,
 			"attack_rate": 88,
-			"movement_rate": 87
+			"movement_rate": 82
 		},
 		"power": {
 			"id": "POWER_HEAL",
@@ -21308,7 +21308,7 @@
 		"stats": {
 			"atk": 28,
 			"hp": 220,
-			"movement_rate": 90,
+			"movement_rate": 85,
 			"attack_rate": 86,
 			"range": 2
 		},
@@ -21351,7 +21351,7 @@
 		"stats": {
 			"atk": 35,
 			"hp": 335,
-			"movement_rate": 83,
+			"movement_rate": 78,
 			"attack_rate": 87,
 			"range": 2
 		},
@@ -21395,7 +21395,7 @@
 		"stats": {
 			"atk": 26,
 			"hp": 230,
-			"movement_rate": 90,
+			"movement_rate": 85,
 			"attack_rate": 87,
 			"range": 2
 		},
@@ -21438,7 +21438,7 @@
 			"hp": 275,
 			"range": 1,
 			"attack_rate": 86,
-			"movement_rate": 99
+			"movement_rate": 94
 		},
 		"power": {
 			"id": "POWER_PUSH",
@@ -21480,7 +21480,7 @@
 			"hp": 190,
 			"range": 2,
 			"attack_rate": 95,
-			"movement_rate": 96
+			"movement_rate": 91
 		},
 		"power": {
 			"id": "POWER_DEBUFF",
@@ -21520,7 +21520,7 @@
 			"hp": 360,
 			"range": 2,
 			"attack_rate": 84,
-			"movement_rate": 90
+			"movement_rate": 85
 		},
 		"power": {
 			"id": "POWER_AOE_ATTACK",
@@ -21566,7 +21566,7 @@
 		"stats": {
 			"atk": 19,
 			"hp": 245,
-			"movement_rate": 87,
+			"movement_rate": 82,
 			"attack_rate": 86,
 			"range": 3
 		},
@@ -21614,7 +21614,7 @@
 			"hp": 270,
 			"range": 4,
 			"attack_rate": 92,
-			"movement_rate": 92
+			"movement_rate": 87
 		},
 		"power": {
 			"id": "POWER_PARALYSIS",
@@ -21659,7 +21659,7 @@
 		"stats": {
 			"atk": 25,
 			"hp": 300,
-			"movement_rate": 79,
+			"movement_rate": 74,
 			"attack_rate": 90,
 			"range": 4
 		},
@@ -21702,7 +21702,7 @@
 		"stats": {
 			"atk": 25,
 			"hp": 420,
-			"movement_rate": 99,
+			"movement_rate": 94,
 			"attack_rate": 94,
 			"range": 2
 		},
@@ -21742,7 +21742,7 @@
 			"hp": 240,
 			"range": 2,
 			"attack_rate": 86,
-			"movement_rate": 76
+			"movement_rate": 71
 		},
 		"power": {
 			"id": "POWER_SHIELD",
@@ -21776,7 +21776,7 @@
 			"hp": 215,
 			"range": 1,
 			"attack_rate": 90,
-			"movement_rate": 92
+			"movement_rate": 87
 		},
 		"power": {
 			"id": "POWER_BURN",
@@ -21816,7 +21816,7 @@
 			"hp": 60,
 			"range": 1,
 			"attack_rate": 95,
-			"movement_rate": 92
+			"movement_rate": 87
 		},
 		"power": {},
 		"summon_conditions": [],
@@ -21841,7 +21841,7 @@
 			"hp": 40,
 			"range": 3,
 			"attack_rate": 86,
-			"movement_rate": 87
+			"movement_rate": 82
 		},
 		"power": {},
 		"summon_conditions": [],
@@ -21865,7 +21865,7 @@
 			"hp": 290,
 			"range": 1,
 			"attack_rate": 82,
-			"movement_rate": 79
+			"movement_rate": 74
 		},
 		"power": {},
 		"summon_conditions": [
@@ -21895,7 +21895,7 @@
 			"hp": 215,
 			"range": 1,
 			"attack_rate": 83,
-			"movement_rate": 86
+			"movement_rate": 81
 		},
 		"power": {
 			"id": "POWER_POISON",
@@ -21933,7 +21933,7 @@
 		"stats": {
 			"atk": 16,
 			"hp": 215,
-			"movement_rate": 86,
+			"movement_rate": 81,
 			"attack_rate": 86,
 			"range": 1
 		},
@@ -21960,7 +21960,7 @@
 			"hp": 210,
 			"range": 3,
 			"attack_rate": 83,
-			"movement_rate": 80
+			"movement_rate": 75
 		},
 		"power": {
 			"id": "POWER_HEAL",
@@ -21995,7 +21995,7 @@
 			"hp": 265,
 			"range": 1,
 			"attack_rate": 86,
-			"movement_rate": 86
+			"movement_rate": 81
 		},
 		"power": {},
 		"summon_conditions": [
@@ -22024,7 +22024,7 @@
 			"hp": 215,
 			"range": 1,
 			"attack_rate": 90,
-			"movement_rate": 92
+			"movement_rate": 87
 		},
 		"power": {},
 		"summon_conditions": [],
@@ -22049,7 +22049,7 @@
 			"hp": 290,
 			"range": 1,
 			"attack_rate": 86,
-			"movement_rate": 86
+			"movement_rate": 81
 		},
 		"power": {
 			"id": "POWER_TAUNT",
@@ -22082,7 +22082,7 @@
 			"hp": 150,
 			"range": 2,
 			"attack_rate": 88,
-			"movement_rate": 96
+			"movement_rate": 91
 		},
 		"power": {},
 		"summon_conditions": [
@@ -22109,7 +22109,7 @@
 			"hp": 210,
 			"range": 3,
 			"attack_rate": 80,
-			"movement_rate": 74
+			"movement_rate": 69
 		},
 		"power": {},
 		"summon_conditions": [
@@ -22138,7 +22138,7 @@
 			"hp": 300,
 			"range": 1,
 			"attack_rate": 92,
-			"movement_rate": 99
+			"movement_rate": 94
 		},
 		"power": {
 			"id": "POWER_TELEPORT",
@@ -22173,7 +22173,7 @@
 			"hp": 170,
 			"range": 4,
 			"attack_rate": 75,
-			"movement_rate": 72
+			"movement_rate": 67
 		},
 		"power": {
 			"id": "POWER_SHIELD",
@@ -22201,7 +22201,7 @@
 		"stats": {
 			"atk": 40,
 			"hp": 360,
-			"movement_rate": 99,
+			"movement_rate": 94,
 			"attack_rate": 88,
 			"range": 1
 		},
@@ -22243,7 +22243,7 @@
 		"stats": {
 			"atk": 12,
 			"hp": 155,
-			"movement_rate": 99,
+			"movement_rate": 94,
 			"attack_rate": 92,
 			"range": 1
 		},
@@ -22271,7 +22271,7 @@
 		"stats": {
 			"atk": 8,
 			"hp": 150,
-			"movement_rate": 90,
+			"movement_rate": 85,
 			"attack_rate": 91,
 			"range": 2
 		},
@@ -22299,7 +22299,7 @@
 			"hp": 95,
 			"range": 2,
 			"attack_rate": 84,
-			"movement_rate": 76
+			"movement_rate": 71
 		},
 		"power": {},
 		"summon_conditions": [],
@@ -22326,7 +22326,7 @@
 			"hp": 190,
 			"range": 1,
 			"attack_rate": 94,
-			"movement_rate": 92
+			"movement_rate": 87
 		},
 		"power": {
 			"id": "POWER_BURN",
@@ -22360,7 +22360,7 @@
 		"stats": {
 			"atk": 10,
 			"hp": 85,
-			"movement_rate": 87,
+			"movement_rate": 82,
 			"attack_rate": 90,
 			"range": 3
 		},
@@ -22393,7 +22393,7 @@
 			"hp": 170,
 			"range": 1,
 			"attack_rate": 92,
-			"movement_rate": 92
+			"movement_rate": 87
 		},
 		"power": {},
 		"summon_conditions": [],
@@ -22418,7 +22418,7 @@
 			"hp": 180,
 			"range": 1,
 			"attack_rate": 87,
-			"movement_rate": 86
+			"movement_rate": 81
 		},
 		"power": {},
 		"summon_conditions": [],
@@ -22444,7 +22444,7 @@
 			"hp": 50,
 			"range": 1,
 			"attack_rate": 94,
-			"movement_rate": 92
+			"movement_rate": 87
 		},
 		"power": {},
 		"summon_conditions": [],
@@ -22467,7 +22467,7 @@
 			"hp": 170,
 			"range": 2,
 			"attack_rate": 87,
-			"movement_rate": 83
+			"movement_rate": 78
 		},
 		"power": {
 			"id": "POWER_BURN",
@@ -22501,7 +22501,7 @@
 			"hp": 85,
 			"range": 1,
 			"attack_rate": 92,
-			"movement_rate": 92
+			"movement_rate": 87
 		},
 		"power": {},
 		"summon_conditions": [],
@@ -22525,7 +22525,7 @@
 			"hp": 310,
 			"range": 1,
 			"attack_rate": 90,
-			"movement_rate": 92
+			"movement_rate": 87
 		},
 		"power": {},
 		"summon_conditions": [
@@ -22559,7 +22559,7 @@
 			"hp": 85,
 			"range": 1,
 			"attack_rate": 95,
-			"movement_rate": 99
+			"movement_rate": 94
 		},
 		"power": {},
 		"summon_conditions": [],
@@ -22584,7 +22584,7 @@
 			"hp": 190,
 			"range": 3,
 			"attack_rate": 84,
-			"movement_rate": 80
+			"movement_rate": 75
 		},
 		"power": {
 			"id": "POWER_SHIELD",
@@ -22616,7 +22616,7 @@
 			"hp": 155,
 			"range": 1,
 			"attack_rate": 91,
-			"movement_rate": 99
+			"movement_rate": 94
 		},
 		"power": {},
 		"summon_conditions": [],
@@ -22641,7 +22641,7 @@
 			"hp": 170,
 			"range": 1,
 			"attack_rate": 91,
-			"movement_rate": 92
+			"movement_rate": 87
 		},
 		"power": {},
 		"summon_conditions": [],
@@ -22666,7 +22666,7 @@
 			"hp": 215,
 			"range": 1,
 			"attack_rate": 84,
-			"movement_rate": 86
+			"movement_rate": 81
 		},
 		"power": {},
 		"summon_conditions": [],
@@ -22691,7 +22691,7 @@
 			"hp": 60,
 			"range": 4,
 			"attack_rate": 90,
-			"movement_rate": 86
+			"movement_rate": 81
 		},
 		"power": {},
 		"summon_conditions": [],
@@ -22716,7 +22716,7 @@
 			"hp": 100,
 			"range": 3,
 			"attack_rate": 91,
-			"movement_rate": 80
+			"movement_rate": 75
 		},
 		"power": {},
 		"summon_conditions": [],
@@ -22740,7 +22740,7 @@
 			"hp": 70,
 			"range": 3,
 			"attack_rate": 80,
-			"movement_rate": 74
+			"movement_rate": 69
 		},
 		"power": {},
 		"summon_conditions": [],
@@ -22763,7 +22763,7 @@
 			"hp": 190,
 			"range": 1,
 			"attack_rate": 94,
-			"movement_rate": 99
+			"movement_rate": 94
 		},
 		"power": {
 			"id": "POWER_TAUNT",
@@ -22793,7 +22793,7 @@
 			"hp": 75,
 			"range": 2,
 			"attack_rate": 92,
-			"movement_rate": 90
+			"movement_rate": 85
 		},
 		"power": {},
 		"summon_conditions": [],
@@ -22820,7 +22820,7 @@
 			"hp": 180,
 			"range": 1,
 			"attack_rate": 87,
-			"movement_rate": 86
+			"movement_rate": 81
 		},
 		"power": {},
 		"summon_conditions": [],
@@ -22846,7 +22846,7 @@
 			"hp": 215,
 			"range": 1,
 			"attack_rate": 87,
-			"movement_rate": 86
+			"movement_rate": 81
 		},
 		"power": {},
 		"summon_conditions": [],
@@ -22870,7 +22870,7 @@
 			"hp": 180,
 			"range": 1,
 			"attack_rate": 84,
-			"movement_rate": 86
+			"movement_rate": 81
 		},
 		"power": {},
 		"summon_conditions": [],
@@ -22893,7 +22893,7 @@
 		"stats": {
 			"atk": 17,
 			"hp": 130,
-			"movement_rate": 86,
+			"movement_rate": 81,
 			"attack_rate": 91,
 			"range": 4
 		},
@@ -22926,7 +22926,7 @@
 			"hp": 230,
 			"range": 2,
 			"attack_rate": 84,
-			"movement_rate": 90
+			"movement_rate": 85
 		},
 		"power": {},
 		"summon_conditions": [
@@ -22954,7 +22954,7 @@
 			"hp": 215,
 			"range": 1,
 			"attack_rate": 88,
-			"movement_rate": 99
+			"movement_rate": 94
 		},
 		"power": {},
 		"summon_conditions": [
@@ -22980,7 +22980,7 @@
 		"stats": {
 			"atk": 11,
 			"hp": 95,
-			"movement_rate": 92,
+			"movement_rate": 87,
 			"attack_rate": 95,
 			"range": 2
 		},
@@ -23009,7 +23009,7 @@
 			"hp": 210,
 			"range": 3,
 			"attack_rate": 86,
-			"movement_rate": 80
+			"movement_rate": 75
 		},
 		"power": {
 			"id": "POWER_AOE_ATTACK",
@@ -23047,7 +23047,7 @@
 			"hp": 300,
 			"range": 1,
 			"attack_rate": 83,
-			"movement_rate": 79
+			"movement_rate": 74
 		},
 		"power": {},
 		"summon_conditions": [
@@ -23076,7 +23076,7 @@
 			"hp": 205,
 			"range": 1,
 			"attack_rate": 90,
-			"movement_rate": 92
+			"movement_rate": 87
 		},
 		"power": {},
 		"summon_conditions": [],
@@ -23101,7 +23101,7 @@
 			"hp": 215,
 			"range": 1,
 			"attack_rate": 87,
-			"movement_rate": 86
+			"movement_rate": 81
 		},
 		"power": {},
 		"summon_conditions": [],
@@ -23126,7 +23126,7 @@
 			"hp": 105,
 			"range": 3,
 			"attack_rate": 84,
-			"movement_rate": 87
+			"movement_rate": 82
 		},
 		"power": {},
 		"summon_conditions": [],
@@ -23152,7 +23152,7 @@
 			"hp": 95,
 			"range": 2,
 			"attack_rate": 94,
-			"movement_rate": 90
+			"movement_rate": 85
 		},
 		"power": {},
 		"summon_conditions": [],
@@ -23177,7 +23177,7 @@
 			"hp": 180,
 			"range": 3,
 			"attack_rate": 83,
-			"movement_rate": 80
+			"movement_rate": 75
 		},
 		"power": {},
 		"summon_conditions": [
@@ -23205,7 +23205,7 @@
 			"hp": 50,
 			"range": 1,
 			"attack_rate": 91,
-			"movement_rate": 99
+			"movement_rate": 94
 		},
 		"power": {},
 		"summon_conditions": [],
@@ -23230,7 +23230,7 @@
 			"hp": 60,
 			"range": 1,
 			"attack_rate": 87,
-			"movement_rate": 86
+			"movement_rate": 81
 		},
 		"power": {},
 		"summon_conditions": [],
@@ -23253,7 +23253,7 @@
 			"hp": 120,
 			"range": 1,
 			"attack_rate": 87,
-			"movement_rate": 92
+			"movement_rate": 87
 		},
 		"power": {},
 		"summon_conditions": [],
@@ -23276,7 +23276,7 @@
 			"hp": 180,
 			"range": 1,
 			"attack_rate": 87,
-			"movement_rate": 92
+			"movement_rate": 87
 		},
 		"power": {},
 		"summon_conditions": [],
@@ -23301,7 +23301,7 @@
 			"hp": 230,
 			"range": 1,
 			"attack_rate": 92,
-			"movement_rate": 99
+			"movement_rate": 94
 		},
 		"power": {
 			"id": "POWER_SHIELD",
@@ -23335,7 +23335,7 @@
 			"hp": 210,
 			"range": 3,
 			"attack_rate": 84,
-			"movement_rate": 80
+			"movement_rate": 75
 		},
 		"power": {},
 		"summon_conditions": [
@@ -23371,7 +23371,7 @@
 			"hp": 110,
 			"range": 1,
 			"attack_rate": 90,
-			"movement_rate": 92
+			"movement_rate": 87
 		},
 		"power": {},
 		"summon_conditions": [],
@@ -23395,7 +23395,7 @@
 			"hp": 310,
 			"range": 1,
 			"attack_rate": 87,
-			"movement_rate": 92
+			"movement_rate": 87
 		},
 		"power": {
 			"id": "POWER_SHIELD",
@@ -23427,7 +23427,7 @@
 			"hp": 240,
 			"range": 1,
 			"attack_rate": 86,
-			"movement_rate": 92
+			"movement_rate": 87
 		},
 		"power": {},
 		"summon_conditions": [
@@ -23457,7 +23457,7 @@
 			"hp": 145,
 			"range": 1,
 			"attack_rate": 88,
-			"movement_rate": 92
+			"movement_rate": 87
 		},
 		"power": {},
 		"summon_conditions": [],
@@ -23481,7 +23481,7 @@
 			"hp": 145,
 			"range": 2,
 			"attack_rate": 86,
-			"movement_rate": 76
+			"movement_rate": 71
 		},
 		"power": {
 			"id": "POWER_TELEPORT",
@@ -23510,7 +23510,7 @@
 			"hp": 240,
 			"range": 2,
 			"attack_rate": 88,
-			"movement_rate": 83
+			"movement_rate": 78
 		},
 		"power": {
 			"id": "POWER_PARALYSIS",
@@ -23543,7 +23543,7 @@
 			"hp": 100,
 			"range": 4,
 			"attack_rate": 75,
-			"movement_rate": 86
+			"movement_rate": 81
 		},
 		"power": {
 			"id": "POWER_HEAL",
@@ -23574,7 +23574,7 @@
 			"hp": 350,
 			"range": 1,
 			"attack_rate": 86,
-			"movement_rate": 86
+			"movement_rate": 81
 		},
 		"power": {
 			"id": "POWER_SUPER_ATTACK",
@@ -23621,7 +23621,7 @@
 			"hp": 385,
 			"range": 1,
 			"attack_rate": 90,
-			"movement_rate": 92
+			"movement_rate": 87
 		},
 		"power": {},
 		"summon_conditions": [
@@ -23653,7 +23653,7 @@
 			"hp": 275,
 			"range": 1,
 			"attack_rate": 90,
-			"movement_rate": 92
+			"movement_rate": 87
 		},
 		"power": {
 			"id": "POWER_SHIELD",
@@ -23681,7 +23681,7 @@
 			"hp": 255,
 			"range": 2,
 			"attack_rate": 83,
-			"movement_rate": 83
+			"movement_rate": 78
 		},
 		"power": {},
 		"summon_conditions": [
@@ -23708,7 +23708,7 @@
 			"hp": 130,
 			"range": 1,
 			"attack_rate": 84,
-			"movement_rate": 92
+			"movement_rate": 87
 		},
 		"power": {},
 		"summon_conditions": [],
@@ -23734,7 +23734,7 @@
 			"hp": 120,
 			"range": 1,
 			"attack_rate": 88,
-			"movement_rate": 92
+			"movement_rate": 87
 		},
 		"power": {},
 		"summon_conditions": [],
@@ -23761,7 +23761,7 @@
 			"hp": 145,
 			"range": 4,
 			"attack_rate": 84,
-			"movement_rate": 79
+			"movement_rate": 74
 		},
 		"power": {},
 		"summon_conditions": [],
@@ -23786,7 +23786,7 @@
 			"hp": 145,
 			"range": 2,
 			"attack_rate": 90,
-			"movement_rate": 83
+			"movement_rate": 78
 		},
 		"power": {},
 		"summon_conditions": [],
@@ -23809,7 +23809,7 @@
 		"stats": {
 			"atk": 26,
 			"hp": 385,
-			"movement_rate": 99,
+			"movement_rate": 94,
 			"attack_rate": 91,
 			"range": 1
 		},
@@ -23847,7 +23847,7 @@
 			"hp": 205,
 			"range": 1,
 			"attack_rate": 84,
-			"movement_rate": 86
+			"movement_rate": 81
 		},
 		"power": {},
 		"summon_conditions": [],
@@ -23874,7 +23874,7 @@
 			"hp": 85,
 			"range": 1,
 			"attack_rate": 92,
-			"movement_rate": 99
+			"movement_rate": 94
 		},
 		"power": {},
 		"summon_conditions": [],
@@ -23899,7 +23899,7 @@
 			"hp": 55,
 			"range": 3,
 			"attack_rate": 84,
-			"movement_rate": 87
+			"movement_rate": 82
 		},
 		"power": {},
 		"summon_conditions": [],
@@ -23923,7 +23923,7 @@
 			"hp": 95,
 			"range": 1,
 			"attack_rate": 92,
-			"movement_rate": 99
+			"movement_rate": 94
 		},
 		"power": {},
 		"summon_conditions": [],
@@ -23948,7 +23948,7 @@
 			"hp": 240,
 			"range": 1,
 			"attack_rate": 82,
-			"movement_rate": 79
+			"movement_rate": 74
 		},
 		"power": {},
 		"summon_conditions": [],
@@ -23975,7 +23975,7 @@
 			"hp": 95,
 			"range": 1,
 			"attack_rate": 92,
-			"movement_rate": 99
+			"movement_rate": 94
 		},
 		"power": {},
 		"summon_conditions": [],
@@ -23999,7 +23999,7 @@
 			"hp": 120,
 			"range": 1,
 			"attack_rate": 87,
-			"movement_rate": 86
+			"movement_rate": 81
 		},
 		"power": {},
 		"summon_conditions": [],
@@ -24025,7 +24025,7 @@
 			"hp": 85,
 			"range": 1,
 			"attack_rate": 90,
-			"movement_rate": 92
+			"movement_rate": 87
 		},
 		"power": {},
 		"summon_conditions": [],
@@ -24049,7 +24049,7 @@
 			"hp": 190,
 			"range": 2,
 			"attack_rate": 87,
-			"movement_rate": 90
+			"movement_rate": 85
 		},
 		"power": {
 			"id": "POWER_BURN",
@@ -24079,7 +24079,7 @@
 		"stats": {
 			"atk": 5,
 			"hp": 230,
-			"movement_rate": 86,
+			"movement_rate": 81,
 			"attack_rate": 87,
 			"range": 1
 		},
@@ -24111,7 +24111,7 @@
 			"hp": 210,
 			"range": 3,
 			"attack_rate": 86,
-			"movement_rate": 87
+			"movement_rate": 82
 		},
 		"power": {
 			"id": "POWER_FREEZE",
@@ -24151,7 +24151,7 @@
 		"stats": {
 			"atk": 16,
 			"hp": 95,
-			"movement_rate": 92,
+			"movement_rate": 87,
 			"attack_rate": 90,
 			"range": 1
 		},
@@ -24184,7 +24184,7 @@
 		"stats": {
 			"atk": 23,
 			"hp": 160,
-			"movement_rate": 90,
+			"movement_rate": 85,
 			"attack_rate": 90,
 			"range": 2
 		},
@@ -24232,7 +24232,7 @@
 		"stats": {
 			"atk": 29,
 			"hp": 195,
-			"movement_rate": 87,
+			"movement_rate": 82,
 			"attack_rate": 88,
 			"range": 3
 		},
@@ -24271,7 +24271,7 @@
 		"stats": {
 			"atk": 9,
 			"hp": 120,
-			"movement_rate": 92,
+			"movement_rate": 87,
 			"attack_rate": 90,
 			"range": 1
 		},
@@ -24303,7 +24303,7 @@
 		"stats": {
 			"atk": 19,
 			"hp": 190,
-			"movement_rate": 92,
+			"movement_rate": 87,
 			"attack_rate": 90,
 			"range": 1
 		},
@@ -24350,7 +24350,7 @@
 		"stats": {
 			"atk": 12,
 			"hp": 95,
-			"movement_rate": 92,
+			"movement_rate": 87,
 			"attack_rate": 92,
 			"range": 1
 		},
@@ -24383,7 +24383,7 @@
 		"stats": {
 			"atk": 24,
 			"hp": 160,
-			"movement_rate": 83,
+			"movement_rate": 78,
 			"attack_rate": 90,
 			"range": 2
 		},
@@ -24433,7 +24433,7 @@
 		"stats": {
 			"atk": 28,
 			"hp": 160,
-			"movement_rate": 90,
+			"movement_rate": 85,
 			"attack_rate": 92,
 			"range": 2
 		},
@@ -24484,7 +24484,7 @@
 			"hp": 255,
 			"range": 4,
 			"attack_rate": 88,
-			"movement_rate": 79
+			"movement_rate": 74
 		},
 		"power": {
 			"id": "POWER_SUPER_ATTACK",
@@ -24521,7 +24521,7 @@
 			"hp": 85,
 			"range": 4,
 			"attack_rate": 91,
-			"movement_rate": 86
+			"movement_rate": 81
 		},
 		"power": {},
 		"summon_conditions": [],
@@ -24545,7 +24545,7 @@
 			"hp": 115,
 			"range": 2,
 			"attack_rate": 91,
-			"movement_rate": 90
+			"movement_rate": 85
 		},
 		"power": {},
 		"summon_conditions": [],
@@ -24567,7 +24567,7 @@
 		"stats": {
 			"atk": 28,
 			"hp": 190,
-			"movement_rate": 86,
+			"movement_rate": 81,
 			"attack_rate": 90,
 			"range": 1
 		},
@@ -24606,7 +24606,7 @@
 			"hp": 170,
 			"range": 1,
 			"attack_rate": 84,
-			"movement_rate": 86
+			"movement_rate": 81
 		},
 		"power": {
 			"id": "POWER_SHIELD",
@@ -24634,7 +24634,7 @@
 		"stats": {
 			"atk": 20,
 			"hp": 125,
-			"movement_rate": 94,
+			"movement_rate": 89,
 			"attack_rate": 90,
 			"range": 3
 		},
@@ -24683,7 +24683,7 @@
 			"hp": 420,
 			"range": 1,
 			"attack_rate": 83,
-			"movement_rate": 86
+			"movement_rate": 81
 		},
 		"power": {
 			"id": "POWER_BURN",
@@ -24727,7 +24727,7 @@
 		"stats": {
 			"atk": 5,
 			"hp": 145,
-			"movement_rate": 86,
+			"movement_rate": 81,
 			"attack_rate": 90,
 			"range": 1
 		},
@@ -24759,7 +24759,7 @@
 			"hp": 205,
 			"range": 1,
 			"attack_rate": 94,
-			"movement_rate": 99
+			"movement_rate": 94
 		},
 		"power": {
 			"id": "POWER_TELEPORT",
@@ -24796,7 +24796,7 @@
 			"hp": 170,
 			"range": 1,
 			"attack_rate": 91,
-			"movement_rate": 92
+			"movement_rate": 87
 		},
 		"power": {},
 		"summon_conditions": [
@@ -24826,7 +24826,7 @@
 			"hp": 95,
 			"range": 2,
 			"attack_rate": 90,
-			"movement_rate": 90
+			"movement_rate": 85
 		},
 		"power": {
 			"id": "POWER_BURN",
@@ -24861,7 +24861,7 @@
 			"hp": 190,
 			"range": 2,
 			"attack_rate": 83,
-			"movement_rate": 83
+			"movement_rate": 78
 		},
 		"power": {},
 		"summon_conditions": [],
@@ -24887,7 +24887,7 @@
 			"hp": 120,
 			"range": 1,
 			"attack_rate": 86,
-			"movement_rate": 79
+			"movement_rate": 74
 		},
 		"power": {},
 		"summon_conditions": [],
@@ -24912,7 +24912,7 @@
 		"stats": {
 			"atk": 25,
 			"hp": 190,
-			"movement_rate": 96,
+			"movement_rate": 91,
 			"attack_rate": 87,
 			"range": 2
 		},
@@ -24950,7 +24950,7 @@
 			"hp": 95,
 			"range": 2,
 			"attack_rate": 82,
-			"movement_rate": 96
+			"movement_rate": 91
 		},
 		"power": {},
 		"summon_conditions": [],
@@ -24974,7 +24974,7 @@
 			"hp": 215,
 			"range": 1,
 			"attack_rate": 82,
-			"movement_rate": 86
+			"movement_rate": 81
 		},
 		"power": {},
 		"summon_conditions": [],
@@ -25002,7 +25002,7 @@
 			"hp": 230,
 			"range": 2,
 			"attack_rate": 90,
-			"movement_rate": 96
+			"movement_rate": 91
 		},
 		"power": {
 			"id": "POWER_PUSH",
@@ -25042,7 +25042,7 @@
 			"hp": 60,
 			"range": 1,
 			"attack_rate": 92,
-			"movement_rate": 99
+			"movement_rate": 94
 		},
 		"power": {},
 		"summon_conditions": [],
@@ -25070,7 +25070,7 @@
 			"hp": 145,
 			"range": 1,
 			"attack_rate": 91,
-			"movement_rate": 99
+			"movement_rate": 94
 		},
 		"power": {},
 		"summon_conditions": [
@@ -25097,7 +25097,7 @@
 		"stats": {
 			"atk": 30,
 			"hp": 155,
-			"movement_rate": 80,
+			"movement_rate": 75,
 			"attack_rate": 83,
 			"range": 3
 		},
@@ -25135,7 +25135,7 @@
 			"hp": 120,
 			"range": 1,
 			"attack_rate": 94,
-			"movement_rate": 99
+			"movement_rate": 94
 		},
 		"power": {},
 		"summon_conditions": [],
@@ -25160,7 +25160,7 @@
 		"stats": {
 			"atk": 28,
 			"hp": 240,
-			"movement_rate": 99,
+			"movement_rate": 94,
 			"attack_rate": 95,
 			"range": 2
 		},
@@ -25201,7 +25201,7 @@
 			"hp": 105,
 			"range": 3,
 			"attack_rate": 82,
-			"movement_rate": 94
+			"movement_rate": 89
 		},
 		"power": {},
 		"summon_conditions": [],
@@ -25225,7 +25225,7 @@
 			"hp": 60,
 			"range": 1,
 			"attack_rate": 84,
-			"movement_rate": 86
+			"movement_rate": 81
 		},
 		"power": {},
 		"summon_conditions": [],
@@ -25249,7 +25249,7 @@
 			"hp": 170,
 			"range": 1,
 			"attack_rate": 91,
-			"movement_rate": 99
+			"movement_rate": 94
 		},
 		"power": {},
 		"summon_conditions": [],
@@ -25274,7 +25274,7 @@
 			"hp": 70,
 			"range": 1,
 			"attack_rate": 87,
-			"movement_rate": 86
+			"movement_rate": 81
 		},
 		"power": {},
 		"summon_conditions": [],
@@ -25298,7 +25298,7 @@
 			"hp": 145,
 			"range": 1,
 			"attack_rate": 92,
-			"movement_rate": 92
+			"movement_rate": 87
 		},
 		"power": {},
 		"summon_conditions": [],
@@ -25323,7 +25323,7 @@
 			"hp": 170,
 			"range": 1,
 			"attack_rate": 86,
-			"movement_rate": 86
+			"movement_rate": 81
 		},
 		"power": {},
 		"summon_conditions": [],
@@ -25347,7 +25347,7 @@
 			"hp": 250,
 			"range": 1,
 			"attack_rate": 87,
-			"movement_rate": 92
+			"movement_rate": 87
 		},
 		"power": {},
 		"summon_conditions": [],
@@ -25371,7 +25371,7 @@
 			"hp": 145,
 			"range": 2,
 			"attack_rate": 86,
-			"movement_rate": 90
+			"movement_rate": 85
 		},
 		"power": {
 			"id": "POWER_TELEPORT",
@@ -25396,7 +25396,7 @@
 		"stats": {
 			"atk": 33,
 			"hp": 140,
-			"movement_rate": 87,
+			"movement_rate": 82,
 			"attack_rate": 86,
 			"range": 3
 		},
@@ -25431,7 +25431,7 @@
 			"hp": 180,
 			"range": 1,
 			"attack_rate": 86,
-			"movement_rate": 92
+			"movement_rate": 87
 		},
 		"power": {},
 		"summon_conditions": [],
@@ -25457,7 +25457,7 @@
 			"hp": 360,
 			"range": 1,
 			"attack_rate": 86,
-			"movement_rate": 92
+			"movement_rate": 87
 		},
 		"power": {
 			"id": "POWER_BURN",
@@ -25503,7 +25503,7 @@
 			"hp": 180,
 			"range": 1,
 			"attack_rate": 84,
-			"movement_rate": 86
+			"movement_rate": 81
 		},
 		"power": {},
 		"summon_conditions": [],
@@ -25525,7 +25525,7 @@
 		"stats": {
 			"atk": 23,
 			"hp": 140,
-			"movement_rate": 87,
+			"movement_rate": 82,
 			"attack_rate": 88,
 			"range": 3
 		},
@@ -25566,7 +25566,7 @@
 		"stats": {
 			"atk": 10,
 			"hp": 70,
-			"movement_rate": 86,
+			"movement_rate": 81,
 			"attack_rate": 87,
 			"range": 1
 		},
@@ -25597,7 +25597,7 @@
 		"stats": {
 			"atk": 21,
 			"hp": 145,
-			"movement_rate": 92,
+			"movement_rate": 87,
 			"attack_rate": 91,
 			"range": 1
 		},
@@ -25644,7 +25644,7 @@
 		"stats": {
 			"atk": 28,
 			"hp": 210,
-			"movement_rate": 90,
+			"movement_rate": 85,
 			"attack_rate": 87,
 			"range": 2
 		},
@@ -25687,7 +25687,7 @@
 		"stats": {
 			"atk": 34,
 			"hp": 225,
-			"movement_rate": 94,
+			"movement_rate": 89,
 			"attack_rate": 91,
 			"range": 3
 		},
@@ -25728,7 +25728,7 @@
 			"hp": 115,
 			"range": 2,
 			"attack_rate": 88,
-			"movement_rate": 90
+			"movement_rate": 85
 		},
 		"power": {},
 		"summon_conditions": [
@@ -25757,7 +25757,7 @@
 			"hp": 290,
 			"range": 1,
 			"attack_rate": 87,
-			"movement_rate": 86
+			"movement_rate": 81
 		},
 		"power": {},
 		"summon_conditions": [],
@@ -25781,7 +25781,7 @@
 			"hp": 230,
 			"range": 1,
 			"attack_rate": 87,
-			"movement_rate": 92
+			"movement_rate": 87
 		},
 		"power": {},
 		"summon_conditions": [],
@@ -25805,7 +25805,7 @@
 			"hp": 275,
 			"range": 2,
 			"attack_rate": 84,
-			"movement_rate": 76
+			"movement_rate": 71
 		},
 		"power": {
 			"id": "POWER_SHIELD",
@@ -25840,7 +25840,7 @@
 			"hp": 120,
 			"range": 1,
 			"attack_rate": 91,
-			"movement_rate": 99
+			"movement_rate": 94
 		},
 		"power": {},
 		"summon_conditions": [],
@@ -25864,7 +25864,7 @@
 			"hp": 180,
 			"range": 1,
 			"attack_rate": 92,
-			"movement_rate": 99
+			"movement_rate": 94
 		},
 		"power": {
 			"id": "POWER_SHIELD",
@@ -25903,7 +25903,7 @@
 			"hp": 170,
 			"range": 1,
 			"attack_rate": 87,
-			"movement_rate": 86
+			"movement_rate": 81
 		},
 		"power": {
 			"id": "POWER_TAUNT",
@@ -25934,7 +25934,7 @@
 			"hp": 335,
 			"range": 1,
 			"attack_rate": 88,
-			"movement_rate": 86
+			"movement_rate": 81
 		},
 		"power": {
 			"id": "POWER_TAUNT",
@@ -25975,7 +25975,7 @@
 			"hp": 170,
 			"range": 2,
 			"attack_rate": 92,
-			"movement_rate": 96
+			"movement_rate": 91
 		},
 		"power": {},
 		"summon_conditions": [],
@@ -26000,7 +26000,7 @@
 			"hp": 95,
 			"range": 1,
 			"attack_rate": 94,
-			"movement_rate": 99
+			"movement_rate": 94
 		},
 		"power": {
 			"id": "POWER_TELEPORT",
@@ -26031,7 +26031,7 @@
 			"hp": 130,
 			"range": 4,
 			"attack_rate": 83,
-			"movement_rate": 72
+			"movement_rate": 67
 		},
 		"power": {
 			"id": "POWER_AOE_ATTACK",
@@ -26068,7 +26068,7 @@
 			"hp": 140,
 			"range": 3,
 			"attack_rate": 86,
-			"movement_rate": 87
+			"movement_rate": 82
 		},
 		"power": {
 			"id": "POWER_HEAL",
@@ -26123,7 +26123,7 @@
 			"hp": 125,
 			"range": 3,
 			"attack_rate": 86,
-			"movement_rate": 80
+			"movement_rate": 75
 		},
 		"power": {
 			"id": "POWER_PUSH",
@@ -26153,7 +26153,7 @@
 			"hp": 250,
 			"range": 1,
 			"attack_rate": 87,
-			"movement_rate": 92
+			"movement_rate": 87
 		},
 		"power": {},
 		"summon_conditions": [
@@ -26181,7 +26181,7 @@
 		"stats": {
 			"atk": 27,
 			"hp": 240,
-			"movement_rate": 76,
+			"movement_rate": 71,
 			"attack_rate": 84,
 			"range": 2
 		},
@@ -26217,7 +26217,7 @@
 			"hp": 290,
 			"range": 1,
 			"attack_rate": 86,
-			"movement_rate": 86
+			"movement_rate": 81
 		},
 		"power": {
 			"id": "POWER_BURN",
@@ -26252,7 +26252,7 @@
 			"hp": 190,
 			"range": 2,
 			"attack_rate": 91,
-			"movement_rate": 90
+			"movement_rate": 85
 		},
 		"power": {
 			"id": "POWER_FREEZE",
@@ -26290,7 +26290,7 @@
 			"hp": 65,
 			"range": 2,
 			"attack_rate": 92,
-			"movement_rate": 96
+			"movement_rate": 91
 		},
 		"power": {},
 		"summon_conditions": [],
@@ -26315,7 +26315,7 @@
 			"hp": 120,
 			"range": 1,
 			"attack_rate": 94,
-			"movement_rate": 99
+			"movement_rate": 94
 		},
 		"power": {},
 		"summon_conditions": [],
@@ -26340,7 +26340,7 @@
 			"hp": 240,
 			"range": 2,
 			"attack_rate": 83,
-			"movement_rate": 83
+			"movement_rate": 78
 		},
 		"power": {},
 		"summon_conditions": [
@@ -26367,7 +26367,7 @@
 			"hp": 190,
 			"range": 2,
 			"attack_rate": 80,
-			"movement_rate": 76
+			"movement_rate": 71
 		},
 		"power": {},
 		"summon_conditions": [],
@@ -26390,7 +26390,7 @@
 		"stats": {
 			"atk": 22,
 			"hp": 285,
-			"movement_rate": 83,
+			"movement_rate": 78,
 			"attack_rate": 83,
 			"range": 2
 		},
@@ -26430,7 +26430,7 @@
 			"hp": 240,
 			"range": 1,
 			"attack_rate": 84,
-			"movement_rate": 86
+			"movement_rate": 81
 		},
 		"power": {},
 		"summon_conditions": [],
@@ -26455,7 +26455,7 @@
 			"hp": 75,
 			"range": 2,
 			"attack_rate": 92,
-			"movement_rate": 90
+			"movement_rate": 85
 		},
 		"power": {},
 		"summon_conditions": [],
@@ -26480,7 +26480,7 @@
 			"hp": 190,
 			"range": 1,
 			"attack_rate": 84,
-			"movement_rate": 86
+			"movement_rate": 81
 		},
 		"power": {},
 		"summon_conditions": [],
@@ -26506,7 +26506,7 @@
 			"hp": 370,
 			"range": 1,
 			"attack_rate": 84,
-			"movement_rate": 86
+			"movement_rate": 81
 		},
 		"power": {
 			"id": "POWER_POISON",
@@ -26540,7 +26540,7 @@
 			"hp": 160,
 			"range": 2,
 			"attack_rate": 84,
-			"movement_rate": 76
+			"movement_rate": 71
 		},
 		"power": {
 			"id": "POWER_DEBUFF",
@@ -26569,7 +26569,7 @@
 			"hp": 85,
 			"range": 4,
 			"attack_rate": 75,
-			"movement_rate": 72
+			"movement_rate": 67
 		},
 		"power": {
 			"id": "POWER_CONFUSION",
@@ -26597,7 +26597,7 @@
 		"stats": {
 			"atk": 12,
 			"hp": 170,
-			"movement_rate": 79,
+			"movement_rate": 74,
 			"attack_rate": 86,
 			"range": 2
 		},
@@ -26634,7 +26634,7 @@
 			"hp": 95,
 			"range": 2,
 			"attack_rate": 87,
-			"movement_rate": 90
+			"movement_rate": 85
 		},
 		"power": {},
 		"summon_conditions": [
@@ -26664,7 +26664,7 @@
 			"hp": 240,
 			"range": 1,
 			"attack_rate": 84,
-			"movement_rate": 79
+			"movement_rate": 74
 		},
 		"power": {
 			"id": "POWER_SHIELD",
@@ -26697,7 +26697,7 @@
 			"hp": 60,
 			"range": 1,
 			"attack_rate": 83,
-			"movement_rate": 92
+			"movement_rate": 87
 		},
 		"power": {},
 		"summon_conditions": [
@@ -26730,7 +26730,7 @@
 			"hp": 60,
 			"range": 1,
 			"attack_rate": 92,
-			"movement_rate": 99
+			"movement_rate": 94
 		},
 		"power": {},
 		"summon_conditions": [],
@@ -26755,7 +26755,7 @@
 			"hp": 200,
 			"range": 2,
 			"attack_rate": 94,
-			"movement_rate": 96
+			"movement_rate": 91
 		},
 		"power": {},
 		"summon_conditions": [],
@@ -26779,7 +26779,7 @@
 			"hp": 155,
 			"range": 1,
 			"attack_rate": 91,
-			"movement_rate": 99
+			"movement_rate": 94
 		},
 		"power": {},
 		"summon_conditions": [],
@@ -26800,7 +26800,7 @@
 		"stats": {
 			"atk": 14,
 			"hp": 85,
-			"movement_rate": 99,
+			"movement_rate": 94,
 			"attack_rate": 92,
 			"range": 2
 		},
@@ -26829,7 +26829,7 @@
 			"hp": 145,
 			"range": 1,
 			"attack_rate": 90,
-			"movement_rate": 99
+			"movement_rate": 94
 		},
 		"power": {},
 		"summon_conditions": [],
@@ -26853,7 +26853,7 @@
 			"hp": 65,
 			"range": 2,
 			"attack_rate": 92,
-			"movement_rate": 96
+			"movement_rate": 91
 		},
 		"power": {},
 		"summon_conditions": [],
@@ -26879,7 +26879,7 @@
 			"hp": 140,
 			"range": 3,
 			"attack_rate": 88,
-			"movement_rate": 80
+			"movement_rate": 75
 		},
 		"power": {},
 		"summon_conditions": [
@@ -26915,7 +26915,7 @@
 			"hp": 70,
 			"range": 3,
 			"attack_rate": 91,
-			"movement_rate": 87
+			"movement_rate": 82
 		},
 		"power": {},
 		"summon_conditions": [],
@@ -26938,7 +26938,7 @@
 		"stats": {
 			"atk": 4,
 			"hp": 60,
-			"movement_rate": 92,
+			"movement_rate": 87,
 			"attack_rate": 92,
 			"range": 1
 		},
@@ -26971,7 +26971,7 @@
 		"stats": {
 			"atk": 18,
 			"hp": 215,
-			"movement_rate": 92,
+			"movement_rate": 87,
 			"attack_rate": 92,
 			"range": 1
 		},
@@ -27018,7 +27018,7 @@
 		"stats": {
 			"atk": 29,
 			"hp": 350,
-			"movement_rate": 92,
+			"movement_rate": 87,
 			"attack_rate": 92,
 			"range": 1
 		},
@@ -27063,7 +27063,7 @@
 		"stats": {
 			"atk": 38,
 			"hp": 455,
-			"movement_rate": 92,
+			"movement_rate": 87,
 			"attack_rate": 92,
 			"range": 1
 		},
@@ -27114,7 +27114,7 @@
 		"stats": {
 			"atk": 45,
 			"hp": 540,
-			"movement_rate": 92,
+			"movement_rate": 87,
 			"attack_rate": 92,
 			"range": 1
 		},
@@ -27151,7 +27151,7 @@
 		"stats": {
 			"atk": 12,
 			"hp": 170,
-			"movement_rate": 86,
+			"movement_rate": 81,
 			"attack_rate": 86,
 			"range": 1
 		},
@@ -27175,7 +27175,7 @@
 		"stats": {
 			"atk": 27,
 			"hp": 125,
-			"movement_rate": 80,
+			"movement_rate": 75,
 			"attack_rate": 82,
 			"range": 3
 		},
@@ -27210,7 +27210,7 @@
 			"hp": 115,
 			"range": 2,
 			"attack_rate": 86,
-			"movement_rate": 90
+			"movement_rate": 85
 		},
 		"power": {},
 		"summon_conditions": [],
@@ -27237,7 +27237,7 @@
 		"stats": {
 			"atk": 26,
 			"hp": 335,
-			"movement_rate": 86,
+			"movement_rate": 81,
 			"attack_rate": 87,
 			"range": 1
 		},
@@ -27279,7 +27279,7 @@
 		"stats": {
 			"atk": 19,
 			"hp": 215,
-			"movement_rate": 79,
+			"movement_rate": 74,
 			"attack_rate": 84,
 			"range": 1
 		},
@@ -27308,7 +27308,7 @@
 		"stats": {
 			"atk": 36,
 			"hp": 340,
-			"movement_rate": 83,
+			"movement_rate": 78,
 			"attack_rate": 86,
 			"range": 2
 		},
@@ -27350,7 +27350,7 @@
 			"hp": 240,
 			"range": 1,
 			"attack_rate": 90,
-			"movement_rate": 86
+			"movement_rate": 81
 		},
 		"power": {
 			"id": "POWER_POISON",
@@ -27388,7 +27388,7 @@
 		"stats": {
 			"atk": 40,
 			"hp": 170,
-			"movement_rate": 72,
+			"movement_rate": 67,
 			"attack_rate": 80,
 			"range": 4
 		},
@@ -27428,7 +27428,7 @@
 			"hp": 240,
 			"range": 3,
 			"attack_rate": 84,
-			"movement_rate": 87
+			"movement_rate": 82
 		},
 		"power": {
 			"id": "POWER_BLOCK",
@@ -27462,7 +27462,7 @@
 			"hp": 265,
 			"range": 1,
 			"attack_rate": 88,
-			"movement_rate": 92
+			"movement_rate": 87
 		},
 		"power": {},
 		"summon_conditions": [
@@ -27490,7 +27490,7 @@
 		"stats": {
 			"atk": 43,
 			"hp": 315,
-			"movement_rate": 80,
+			"movement_rate": 75,
 			"attack_rate": 83,
 			"range": 3
 		},
@@ -27530,7 +27530,7 @@
 		"stats": {
 			"atk": 33,
 			"hp": 300,
-			"movement_rate": 99,
+			"movement_rate": 94,
 			"attack_rate": 86,
 			"range": 1
 		},
@@ -27569,7 +27569,7 @@
 			"hp": 195,
 			"range": 3,
 			"attack_rate": 90,
-			"movement_rate": 87
+			"movement_rate": 82
 		},
 		"power": {
 			"id": "POWER_BURN",
@@ -27608,7 +27608,7 @@
 			"hp": 170,
 			"range": 4,
 			"attack_rate": 82,
-			"movement_rate": 72
+			"movement_rate": 67
 		},
 		"power": {
 			"id": "POWER_CONFUSION",
@@ -27648,7 +27648,7 @@
 			"hp": 360,
 			"range": 1,
 			"attack_rate": 87,
-			"movement_rate": 86
+			"movement_rate": 81
 		},
 		"power": {
 			"id": "POWER_TAUNT",
@@ -27692,7 +27692,7 @@
 			"hp": 240,
 			"range": 1,
 			"attack_rate": 91,
-			"movement_rate": 99
+			"movement_rate": 94
 		},
 		"power": {
 			"id": "POWER_TAUNT",
@@ -27728,7 +27728,7 @@
 		"stats": {
 			"atk": 32,
 			"hp": 255,
-			"movement_rate": 86,
+			"movement_rate": 81,
 			"attack_rate": 90,
 			"range": 4
 		},
@@ -27767,7 +27767,7 @@
 			"hp": 170,
 			"range": 2,
 			"attack_rate": 87,
-			"movement_rate": 96
+			"movement_rate": 91
 		},
 		"power": {},
 		"summon_conditions": [
@@ -27797,7 +27797,7 @@
 			"hp": 140,
 			"range": 3,
 			"attack_rate": 84,
-			"movement_rate": 87
+			"movement_rate": 82
 		},
 		"power": {
 			"id": "POWER_AOE_ATTACK",
@@ -27837,7 +27837,7 @@
 			"hp": 240,
 			"range": 2,
 			"attack_rate": 87,
-			"movement_rate": 90
+			"movement_rate": 85
 		},
 		"power": {
 			"id": "POWER_BURN",
@@ -27872,7 +27872,7 @@
 			"hp": 145,
 			"range": 2,
 			"attack_rate": 87,
-			"movement_rate": 83
+			"movement_rate": 78
 		},
 		"power": {
 			"id": "POWER_FREEZE",
@@ -27906,7 +27906,7 @@
 			"hp": 95,
 			"range": 2,
 			"attack_rate": 86,
-			"movement_rate": 90
+			"movement_rate": 85
 		},
 		"power": {},
 		"summon_conditions": [],
@@ -27932,7 +27932,7 @@
 			"hp": 60,
 			"range": 1,
 			"attack_rate": 91,
-			"movement_rate": 99
+			"movement_rate": 94
 		},
 		"power": {},
 		"summon_conditions": [],
@@ -27960,7 +27960,7 @@
 			"hp": 360,
 			"range": 1,
 			"attack_rate": 91,
-			"movement_rate": 99
+			"movement_rate": 94
 		},
 		"power": {
 			"id": "POWER_TAUNT",
@@ -28000,7 +28000,7 @@
 		"stats": {
 			"atk": 21,
 			"hp": 150,
-			"movement_rate": 90,
+			"movement_rate": 85,
 			"attack_rate": 87,
 			"range": 2
 		},
@@ -28027,7 +28027,7 @@
 		"stats": {
 			"atk": 11,
 			"hp": 55,
-			"movement_rate": 90,
+			"movement_rate": 85,
 			"attack_rate": 87,
 			"range": 2
 		},
@@ -28057,7 +28057,7 @@
 		"stats": {
 			"atk": 28,
 			"hp": 230,
-			"movement_rate": 83,
+			"movement_rate": 78,
 			"attack_rate": 87,
 			"range": 2
 		},
@@ -28101,7 +28101,7 @@
 		"stats": {
 			"atk": 8,
 			"hp": 265,
-			"movement_rate": 83,
+			"movement_rate": 78,
 			"attack_rate": 87,
 			"range": 2
 		},
@@ -28144,7 +28144,7 @@
 			"hp": 125,
 			"range": 3,
 			"attack_rate": 91,
-			"movement_rate": 94
+			"movement_rate": 89
 		},
 		"power": {
 			"id": "POWER_TELEPORT",
@@ -28182,7 +28182,7 @@
 		"stats": {
 			"atk": 38,
 			"hp": 195,
-			"movement_rate": 74,
+			"movement_rate": 69,
 			"attack_rate": 82,
 			"range": 3
 		},
@@ -28229,7 +28229,7 @@
 		"stats": {
 			"atk": 32,
 			"hp": 305,
-			"movement_rate": 76,
+			"movement_rate": 71,
 			"attack_rate": 83,
 			"range": 2
 		},
@@ -28272,7 +28272,7 @@
 			"hp": 95,
 			"range": 1,
 			"attack_rate": 92,
-			"movement_rate": 92
+			"movement_rate": 87
 		},
 		"power": {},
 		"summon_conditions": [],
@@ -28298,7 +28298,7 @@
 			"hp": 95,
 			"range": 1,
 			"attack_rate": 92,
-			"movement_rate": 92
+			"movement_rate": 87
 		},
 		"power": {},
 		"summon_conditions": [],
@@ -28324,7 +28324,7 @@
 			"hp": 95,
 			"range": 1,
 			"attack_rate": 92,
-			"movement_rate": 92
+			"movement_rate": 87
 		},
 		"power": {},
 		"summon_conditions": [],
@@ -28349,7 +28349,7 @@
 		"stats": {
 			"atk": 30,
 			"hp": 285,
-			"movement_rate": 96,
+			"movement_rate": 91,
 			"attack_rate": 92,
 			"range": 2
 		},
@@ -28396,7 +28396,7 @@
 		"stats": {
 			"atk": 50,
 			"hp": 425,
-			"movement_rate": 72,
+			"movement_rate": 67,
 			"attack_rate": 82,
 			"range": 4
 		},
@@ -28435,7 +28435,7 @@
 		"stats": {
 			"atk": 38,
 			"hp": 280,
-			"movement_rate": 80,
+			"movement_rate": 75,
 			"attack_rate": 86,
 			"range": 3
 		},
@@ -28481,7 +28481,7 @@
 			"hp": 75,
 			"range": 2,
 			"attack_rate": 92,
-			"movement_rate": 96
+			"movement_rate": 91
 		},
 		"power": {},
 		"summon_conditions": [],
@@ -28508,7 +28508,7 @@
 			"hp": 250,
 			"range": 1,
 			"attack_rate": 90,
-			"movement_rate": 92
+			"movement_rate": 87
 		},
 		"power": {},
 		"summon_conditions": [],
@@ -28534,7 +28534,7 @@
 			"hp": 95,
 			"range": 1,
 			"attack_rate": 94,
-			"movement_rate": 99
+			"movement_rate": 94
 		},
 		"power": {},
 		"summon_conditions": [],
@@ -28562,7 +28562,7 @@
 			"hp": 250,
 			"range": 1,
 			"attack_rate": 87,
-			"movement_rate": 86
+			"movement_rate": 81
 		},
 		"power": {},
 		"summon_conditions": [],
@@ -28589,7 +28589,7 @@
 		"stats": {
 			"atk": 12,
 			"hp": 150,
-			"movement_rate": 90,
+			"movement_rate": 85,
 			"attack_rate": 83,
 			"range": 2
 		},
@@ -28621,7 +28621,7 @@
 			"hp": 300,
 			"range": 4,
 			"attack_rate": 75,
-			"movement_rate": 72
+			"movement_rate": 67
 		},
 		"power": {},
 		"summon_conditions": [
@@ -28654,7 +28654,7 @@
 			"hp": 50,
 			"range": 2,
 			"attack_rate": 94,
-			"movement_rate": 96
+			"movement_rate": 91
 		},
 		"power": {
 			"id": "POWER_TELEPORT",
@@ -28682,7 +28682,7 @@
 		"stats": {
 			"atk": 26,
 			"hp": 245,
-			"movement_rate": 96,
+			"movement_rate": 91,
 			"attack_rate": 87,
 			"range": 2
 		},
@@ -28725,7 +28725,7 @@
 			"hp": 50,
 			"range": 4,
 			"attack_rate": 76,
-			"movement_rate": 96
+			"movement_rate": 91
 		},
 		"power": {
 			"id": "POWER_HEAL",
@@ -28756,7 +28756,7 @@
 			"hp": 50,
 			"range": 4,
 			"attack_rate": 76,
-			"movement_rate": 96
+			"movement_rate": 91
 		},
 		"power": {
 			"id": "POWER_FREEZE",
@@ -28786,7 +28786,7 @@
 			"hp": 190,
 			"range": 2,
 			"attack_rate": 92,
-			"movement_rate": 96
+			"movement_rate": 91
 		},
 		"power": {
 			"id": "POWER_CONFUSION",
@@ -28829,7 +28829,7 @@
 			"hp": 190,
 			"range": 2,
 			"attack_rate": 92,
-			"movement_rate": 96
+			"movement_rate": 91
 		},
 		"power": {},
 		"summon_conditions": [
@@ -28868,7 +28868,7 @@
 			"hp": 180,
 			"range": 1,
 			"attack_rate": 90,
-			"movement_rate": 92
+			"movement_rate": 87
 		},
 		"power": {},
 		"summon_conditions": [
@@ -28907,7 +28907,7 @@
 			"hp": 290,
 			"range": 1,
 			"attack_rate": 83,
-			"movement_rate": 86
+			"movement_rate": 81
 		},
 		"power": {
 			"id": "POWER_SUPER_ATTACK",
@@ -28956,7 +28956,7 @@
 			"hp": 250,
 			"range": 3,
 			"attack_rate": 86,
-			"movement_rate": 87
+			"movement_rate": 82
 		},
 		"power": {
 			"id": "POWER_AOE_ATTACK",
@@ -29006,7 +29006,7 @@
 			"hp": 280,
 			"range": 3,
 			"attack_rate": 88,
-			"movement_rate": 87
+			"movement_rate": 82
 		},
 		"power": {
 			"id": "POWER_AOE_ATTACK",
@@ -29047,7 +29047,7 @@
 		"stats": {
 			"atk": 12,
 			"hp": 190,
-			"movement_rate": 92,
+			"movement_rate": 87,
 			"attack_rate": 90,
 			"range": 1
 		},
@@ -29074,7 +29074,7 @@
 			"hp": 180,
 			"range": 1,
 			"attack_rate": 90,
-			"movement_rate": 92
+			"movement_rate": 87
 		},
 		"power": {},
 		"summon_conditions": [],
@@ -29098,7 +29098,7 @@
 		"stats": {
 			"atk": 27,
 			"hp": 215,
-			"movement_rate": 96,
+			"movement_rate": 91,
 			"attack_rate": 94,
 			"range": 1
 		},
@@ -29138,7 +29138,7 @@
 			"hp": 95,
 			"range": 1,
 			"attack_rate": 94,
-			"movement_rate": 92
+			"movement_rate": 87
 		},
 		"power": {},
 		"summon_conditions": [],
@@ -29161,7 +29161,7 @@
 		"stats": {
 			"atk": 8,
 			"hp": 190,
-			"movement_rate": 90,
+			"movement_rate": 85,
 			"attack_rate": 95,
 			"range": 1
 		},
@@ -29193,7 +29193,7 @@
 			"hp": 150,
 			"range": 2,
 			"attack_rate": 86,
-			"movement_rate": 90
+			"movement_rate": 85
 		},
 		"power": {
 			"id": "POWER_DEBUFF",
@@ -29226,7 +29226,7 @@
 		"stats": {
 			"atk": 20,
 			"hp": 215,
-			"movement_rate": 96,
+			"movement_rate": 91,
 			"attack_rate": 94,
 			"range": 1
 		},
@@ -29271,7 +29271,7 @@
 			"hp": 115,
 			"range": 2,
 			"attack_rate": 82,
-			"movement_rate": 83
+			"movement_rate": 78
 		},
 		"power": {},
 		"summon_conditions": [],
@@ -29297,7 +29297,7 @@
 			"hp": 145,
 			"range": 3,
 			"attack_rate": 88,
-			"movement_rate": 87
+			"movement_rate": 82
 		},
 		"power": {
 			"id": "POWER_FREEZE",
@@ -29335,7 +29335,7 @@
 			"hp": 200,
 			"range": 2,
 			"attack_rate": 86,
-			"movement_rate": 83
+			"movement_rate": 78
 		},
 		"power": {
 			"id": "POWER_FREEZE",
@@ -29378,7 +29378,7 @@
 			"hp": 285,
 			"range": 2,
 			"attack_rate": 88,
-			"movement_rate": 83
+			"movement_rate": 78
 		},
 		"power": {
 			"id": "POWER_FREEZE",
@@ -29420,7 +29420,7 @@
 			"hp": 85,
 			"range": 2,
 			"attack_rate": 84,
-			"movement_rate": 76
+			"movement_rate": 71
 		},
 		"power": {},
 		"summon_conditions": [],
@@ -29444,7 +29444,7 @@
 			"hp": 125,
 			"range": 3,
 			"attack_rate": 86,
-			"movement_rate": 80
+			"movement_rate": 75
 		},
 		"power": {
 			"id": "POWER_PUSH",
@@ -29482,7 +29482,7 @@
 		"stats": {
 			"atk": 35,
 			"hp": 255,
-			"movement_rate": 86,
+			"movement_rate": 81,
 			"attack_rate": 88,
 			"range": 4
 		},
@@ -29530,7 +29530,7 @@
 			"hp": 145,
 			"range": 3,
 			"attack_rate": 90,
-			"movement_rate": 94
+			"movement_rate": 89
 		},
 		"power": {
 			"id": "POWER_FREEZE",
@@ -29573,7 +29573,7 @@
 		"stats": {
 			"atk": 1,
 			"hp": 100,
-			"movement_rate": 96,
+			"movement_rate": 91,
 			"attack_rate": 96,
 			"range": 1
 		},
@@ -29600,7 +29600,7 @@
 		"stats": {
 			"atk": 1,
 			"hp": 100,
-			"movement_rate": 96,
+			"movement_rate": 91,
 			"attack_rate": 96,
 			"range": 1
 		},
@@ -29627,7 +29627,7 @@
 		"stats": {
 			"atk": 1,
 			"hp": 100,
-			"movement_rate": 96,
+			"movement_rate": 91,
 			"attack_rate": 96,
 			"range": 1
 		},
@@ -29656,7 +29656,7 @@
 		"stats": {
 			"atk": 10,
 			"hp": 300,
-			"movement_rate": 99,
+			"movement_rate": 94,
 			"attack_rate": 96,
 			"range": 1
 		},
@@ -29699,7 +29699,7 @@
 		"stats": {
 			"atk": 15,
 			"hp": 360,
-			"movement_rate": 99,
+			"movement_rate": 94,
 			"attack_rate": 96,
 			"range": 1
 		},
@@ -29745,7 +29745,7 @@
 		"stats": {
 			"atk": 1,
 			"hp": 100,
-			"movement_rate": 96,
+			"movement_rate": 91,
 			"attack_rate": 96,
 			"range": 1
 		},
@@ -29775,7 +29775,7 @@
 		"stats": {
 			"atk": 1,
 			"hp": 100,
-			"movement_rate": 96,
+			"movement_rate": 91,
 			"attack_rate": 96,
 			"range": 1
 		},
@@ -29806,7 +29806,7 @@
 		"stats": {
 			"atk": 1,
 			"hp": 100,
-			"movement_rate": 96,
+			"movement_rate": 91,
 			"attack_rate": 96,
 			"range": 1
 		},
@@ -29842,7 +29842,7 @@
 		"stats": {
 			"atk": 30,
 			"hp": 360,
-			"movement_rate": 99,
+			"movement_rate": 94,
 			"attack_rate": 96,
 			"range": 3
 		},
@@ -29893,7 +29893,7 @@
 		"stats": {
 			"atk": 16,
 			"hp": 120,
-			"movement_rate": 86,
+			"movement_rate": 81,
 			"attack_rate": 86,
 			"range": 1
 		},
@@ -29920,7 +29920,7 @@
 		"stats": {
 			"atk": 18,
 			"hp": 115,
-			"movement_rate": 83,
+			"movement_rate": 78,
 			"attack_rate": 83,
 			"range": 2
 		},
@@ -29944,7 +29944,7 @@
 		"stats": {
 			"atk": 28,
 			"hp": 220,
-			"movement_rate": 86,
+			"movement_rate": 81,
 			"attack_rate": 92,
 			"range": 4
 		},
@@ -29988,7 +29988,7 @@
 		"stats": {
 			"atk": 20,
 			"hp": 190,
-			"movement_rate": 86,
+			"movement_rate": 81,
 			"attack_rate": 86,
 			"range": 1
 		},
@@ -30023,7 +30023,7 @@
 		"stats": {
 			"atk": 8,
 			"hp": 70,
-			"movement_rate": 99,
+			"movement_rate": 94,
 			"attack_rate": 94,
 			"range": 1
 		},
@@ -30052,7 +30052,7 @@
 		"stats": {
 			"atk": 26,
 			"hp": 190,
-			"movement_rate": 87,
+			"movement_rate": 82,
 			"attack_rate": 90,
 			"range": 3
 		},
@@ -30095,7 +30095,7 @@
 			"hp": 305,
 			"range": 4,
 			"attack_rate": 91,
-			"movement_rate": 86
+			"movement_rate": 81
 		},
 		"power": {
 			"id": "POWER_AOE_ATTACK",
@@ -30132,7 +30132,7 @@
 		"stats": {
 			"atk": 45,
 			"hp": 330,
-			"movement_rate": 86,
+			"movement_rate": 81,
 			"attack_rate": 91,
 			"range": 4
 		},
@@ -30178,7 +30178,7 @@
 			"hp": 210,
 			"range": 3,
 			"attack_rate": 84,
-			"movement_rate": 74
+			"movement_rate": 69
 		},
 		"power": {
 			"id": "POWER_HEAL",
@@ -30212,7 +30212,7 @@
 		"stats": {
 			"atk": 21,
 			"hp": 265,
-			"movement_rate": 90,
+			"movement_rate": 85,
 			"attack_rate": 86,
 			"range": 2
 		},
@@ -30245,7 +30245,7 @@
 		"stats": {
 			"atk": 30,
 			"hp": 480,
-			"movement_rate": 99,
+			"movement_rate": 94,
 			"attack_rate": 92,
 			"range": 1
 		},
@@ -30282,7 +30282,7 @@
 			"hp": 180,
 			"range": 2,
 			"attack_rate": 87,
-			"movement_rate": 83
+			"movement_rate": 78
 		},
 		"power": {},
 		"summon_conditions": [],
@@ -30307,7 +30307,7 @@
 			"hp": 180,
 			"range": 1,
 			"attack_rate": 83,
-			"movement_rate": 86
+			"movement_rate": 81
 		},
 		"power": {},
 		"summon_conditions": [],
@@ -30332,7 +30332,7 @@
 			"hp": 215,
 			"range": 1,
 			"attack_rate": 83,
-			"movement_rate": 79
+			"movement_rate": 74
 		},
 		"power": {},
 		"summon_conditions": [],
@@ -30355,7 +30355,7 @@
 		"stats": {
 			"atk": 25,
 			"hp": 300,
-			"movement_rate": 86,
+			"movement_rate": 81,
 			"attack_rate": 83,
 			"range": 1
 		},
@@ -30398,7 +30398,7 @@
 			"hp": 195,
 			"range": 3,
 			"attack_rate": 82,
-			"movement_rate": 80
+			"movement_rate": 75
 		},
 		"power": {
 			"id": "POWER_PARALYSIS",
@@ -30433,7 +30433,7 @@
 		"stats": {
 			"atk": 27,
 			"hp": 325,
-			"movement_rate": 79,
+			"movement_rate": 74,
 			"attack_rate": 84,
 			"range": 4
 		},
@@ -30470,7 +30470,7 @@
 			"hp": 145,
 			"range": 2,
 			"attack_rate": 91,
-			"movement_rate": 90
+			"movement_rate": 85
 		},
 		"power": {
 			"id": "POWER_TELEPORT",
@@ -30496,7 +30496,7 @@
 		"stats": {
 			"atk": 16,
 			"hp": 170,
-			"movement_rate": 92,
+			"movement_rate": 87,
 			"attack_rate": 92,
 			"range": 1
 		},
@@ -30526,7 +30526,7 @@
 			"hp": 110,
 			"range": 3,
 			"attack_rate": 91,
-			"movement_rate": 94
+			"movement_rate": 89
 		},
 		"power": {
 			"id": "POWER_AOE_ATTACK",
@@ -30557,7 +30557,7 @@
 		"stats": {
 			"atk": 5,
 			"hp": 60,
-			"movement_rate": 99,
+			"movement_rate": 94,
 			"attack_rate": 96,
 			"range": 1
 		},
@@ -30583,7 +30583,7 @@
 			"hp": 60,
 			"range": 1,
 			"attack_rate": 94,
-			"movement_rate": 99
+			"movement_rate": 94
 		},
 		"power": {},
 		"summon_conditions": [],
@@ -30607,7 +30607,7 @@
 			"hp": 180,
 			"range": 1,
 			"attack_rate": 87,
-			"movement_rate": 92
+			"movement_rate": 87
 		},
 		"power": {},
 		"summon_conditions": [],
@@ -30632,7 +30632,7 @@
 			"hp": 145,
 			"range": 2,
 			"attack_rate": 83,
-			"movement_rate": 90
+			"movement_rate": 85
 		},
 		"power": {},
 		"summon_conditions": [],
@@ -30656,7 +30656,7 @@
 			"hp": 75,
 			"range": 2,
 			"attack_rate": 94,
-			"movement_rate": 90
+			"movement_rate": 85
 		},
 		"power": {
 			"id": "POWER_TELEPORT",
@@ -30682,7 +30682,7 @@
 		"stats": {
 			"atk": 30,
 			"hp": 250,
-			"movement_rate": 92,
+			"movement_rate": 87,
 			"attack_rate": 91,
 			"range": 3
 		},
@@ -30725,7 +30725,7 @@
 		"stats": {
 			"atk": 22,
 			"hp": 265,
-			"movement_rate": 99,
+			"movement_rate": 94,
 			"attack_rate": 94,
 			"range": 1
 		},
@@ -30763,7 +30763,7 @@
 			"hp": 120,
 			"range": 1,
 			"attack_rate": 90,
-			"movement_rate": 99
+			"movement_rate": 94
 		},
 		"power": {},
 		"summon_conditions": [
@@ -30793,7 +30793,7 @@
 			"hp": 60,
 			"range": 1,
 			"attack_rate": 94,
-			"movement_rate": 92
+			"movement_rate": 87
 		},
 		"power": {
 			"id": "POWER_SHIELD",
@@ -30822,7 +30822,7 @@
 			"hp": 120,
 			"range": 1,
 			"attack_rate": 94,
-			"movement_rate": 99
+			"movement_rate": 94
 		},
 		"power": {
 			"id": "POWER_SHIELD",
@@ -30864,7 +30864,7 @@
 			"hp": 135,
 			"range": 4,
 			"attack_rate": 92,
-			"movement_rate": 92
+			"movement_rate": 87
 		},
 		"power": {
 			"id": "POWER_HEAL",
@@ -30903,7 +30903,7 @@
 			"hp": 240,
 			"range": 1,
 			"attack_rate": 94,
-			"movement_rate": 92
+			"movement_rate": 87
 		},
 		"power": {
 			"id": "POWER_POISON",
@@ -30941,7 +30941,7 @@
 			"hp": 145,
 			"range": 1,
 			"attack_rate": 91,
-			"movement_rate": 99
+			"movement_rate": 94
 		},
 		"power": {
 			"id": "POWER_BURN",
@@ -30984,7 +30984,7 @@
 			"hp": 95,
 			"range": 2,
 			"attack_rate": 83,
-			"movement_rate": 83
+			"movement_rate": 78
 		},
 		"power": {},
 		"summon_conditions": [
@@ -31013,7 +31013,7 @@
 			"hp": 335,
 			"range": 3,
 			"attack_rate": 87,
-			"movement_rate": 87
+			"movement_rate": 82
 		},
 		"power": {
 			"id": "POWER_BURN",
@@ -31050,7 +31050,7 @@
 		"stats": {
 			"atk": 25,
 			"hp": 250,
-			"movement_rate": 92,
+			"movement_rate": 87,
 			"attack_rate": 82,
 			"range": 1
 		},
@@ -31082,7 +31082,7 @@
 		"stats": {
 			"atk": 6,
 			"hp": 95,
-			"movement_rate": 92,
+			"movement_rate": 87,
 			"attack_rate": 91,
 			"range": 1
 		},
@@ -31109,7 +31109,7 @@
 		"stats": {
 			"atk": 4,
 			"hp": 65,
-			"movement_rate": 90,
+			"movement_rate": 85,
 			"attack_rate": 92,
 			"range": 2
 		},
@@ -31135,7 +31135,7 @@
 		"stats": {
 			"atk": 10,
 			"hp": 95,
-			"movement_rate": 92,
+			"movement_rate": 87,
 			"attack_rate": 90,
 			"range": 1
 		},
@@ -31163,7 +31163,7 @@
 		"stats": {
 			"atk": 8,
 			"hp": 55,
-			"movement_rate": 90,
+			"movement_rate": 85,
 			"attack_rate": 94,
 			"range": 2
 		},
@@ -31190,7 +31190,7 @@
 		"stats": {
 			"atk": 8,
 			"hp": 70,
-			"movement_rate": 86,
+			"movement_rate": 81,
 			"attack_rate": 90,
 			"range": 1
 		},
@@ -31218,7 +31218,7 @@
 		"stats": {
 			"atk": 3,
 			"hp": 95,
-			"movement_rate": 90,
+			"movement_rate": 85,
 			"attack_rate": 94,
 			"range": 2
 		},
@@ -31246,7 +31246,7 @@
 		"stats": {
 			"atk": 30,
 			"hp": 250,
-			"movement_rate": 92,
+			"movement_rate": 87,
 			"attack_rate": 90,
 			"range": 2
 		},
@@ -31288,7 +31288,7 @@
 		"stats": {
 			"atk": 30,
 			"hp": 200,
-			"movement_rate": 90,
+			"movement_rate": 85,
 			"attack_rate": 91,
 			"range": 2
 		},
@@ -31331,7 +31331,7 @@
 		"stats": {
 			"atk": 30,
 			"hp": 250,
-			"movement_rate": 92,
+			"movement_rate": 87,
 			"attack_rate": 90,
 			"range": 2
 		},
@@ -31373,7 +31373,7 @@
 		"stats": {
 			"atk": 30,
 			"hp": 250,
-			"movement_rate": 92,
+			"movement_rate": 87,
 			"attack_rate": 87,
 			"range": 1
 		},
@@ -31417,7 +31417,7 @@
 		"stats": {
 			"atk": 30,
 			"hp": 200,
-			"movement_rate": 90,
+			"movement_rate": 85,
 			"attack_rate": 91,
 			"range": 2
 		},
@@ -31460,7 +31460,7 @@
 		"stats": {
 			"atk": 30,
 			"hp": 200,
-			"movement_rate": 90,
+			"movement_rate": 85,
 			"attack_rate": 93,
 			"range": 2
 		},
@@ -31504,7 +31504,7 @@
 		"stats": {
 			"atk": 33,
 			"hp": 175,
-			"movement_rate": 87,
+			"movement_rate": 82,
 			"attack_rate": 88,
 			"range": 3
 		},
@@ -31553,7 +31553,7 @@
 		"stats": {
 			"atk": 35,
 			"hp": 240,
-			"movement_rate": 83,
+			"movement_rate": 78,
 			"attack_rate": 90,
 			"range": 2
 		},
@@ -31600,7 +31600,7 @@
 		"stats": {
 			"atk": 35,
 			"hp": 300,
-			"movement_rate": 99,
+			"movement_rate": 94,
 			"attack_rate": 94,
 			"range": 1
 		},
@@ -31647,7 +31647,7 @@
 		"stats": {
 			"atk": 35,
 			"hp": 240,
-			"movement_rate": 90,
+			"movement_rate": 85,
 			"attack_rate": 90,
 			"range": 2
 		},
@@ -31695,7 +31695,7 @@
 		"stats": {
 			"atk": 35,
 			"hp": 300,
-			"movement_rate": 99,
+			"movement_rate": 94,
 			"attack_rate": 94,
 			"range": 2
 		},
@@ -31742,7 +31742,7 @@
 		"stats": {
 			"atk": 33,
 			"hp": 175,
-			"movement_rate": 86,
+			"movement_rate": 81,
 			"attack_rate": 91,
 			"range": 3
 		},
@@ -31793,7 +31793,7 @@
 		"stats": {
 			"atk": 38,
 			"hp": 210,
-			"movement_rate": 94,
+			"movement_rate": 89,
 			"attack_rate": 95,
 			"range": 3
 		},
@@ -31836,7 +31836,7 @@
 		"stats": {
 			"atk": 30,
 			"hp": 300,
-			"movement_rate": 92,
+			"movement_rate": 87,
 			"attack_rate": 82,
 			"range": 1
 		},
@@ -31878,7 +31878,7 @@
 		"stats": {
 			"atk": 33,
 			"hp": 210,
-			"movement_rate": 94,
+			"movement_rate": 89,
 			"attack_rate": 91,
 			"range": 3
 		},
@@ -31928,7 +31928,7 @@
 		"stats": {
 			"atk": 12,
 			"hp": 120,
-			"movement_rate": 92,
+			"movement_rate": 87,
 			"attack_rate": 82,
 			"range": 2
 		},
@@ -31957,7 +31957,7 @@
 		"stats": {
 			"atk": 19,
 			"hp": 340,
-			"movement_rate": 86,
+			"movement_rate": 81,
 			"attack_rate": 88,
 			"range": 4
 		},
@@ -31996,7 +31996,7 @@
 		"stats": {
 			"atk": 34,
 			"hp": 335,
-			"movement_rate": 92,
+			"movement_rate": 87,
 			"attack_rate": 90,
 			"range": 1
 		},
@@ -32033,7 +32033,7 @@
 		"stats": {
 			"atk": 8,
 			"hp": 95,
-			"movement_rate": 86,
+			"movement_rate": 81,
 			"attack_rate": 91,
 			"range": 1
 		},
@@ -32064,7 +32064,7 @@
 		"stats": {
 			"atk": 14,
 			"hp": 190,
-			"movement_rate": 92,
+			"movement_rate": 87,
 			"attack_rate": 87,
 			"range": 2
 		},
@@ -32094,7 +32094,7 @@
 		"stats": {
 			"atk": 6,
 			"hp": 75,
-			"movement_rate": 90,
+			"movement_rate": 85,
 			"attack_rate": 91,
 			"range": 2
 		},
@@ -32126,7 +32126,7 @@
 		"stats": {
 			"atk": 30,
 			"hp": 360,
-			"movement_rate": 79,
+			"movement_rate": 74,
 			"attack_rate": 83,
 			"range": 1
 		},
@@ -32166,7 +32166,7 @@
 		"stats": {
 			"atk": 4,
 			"hp": 85,
-			"movement_rate": 92,
+			"movement_rate": 87,
 			"attack_rate": 90,
 			"range": 1
 		},
@@ -32197,7 +32197,7 @@
 		"stats": {
 			"atk": 10,
 			"hp": 120,
-			"movement_rate": 92,
+			"movement_rate": 87,
 			"attack_rate": 90,
 			"range": 1
 		},
@@ -32229,7 +32229,7 @@
 		"stats": {
 			"atk": 21,
 			"hp": 120,
-			"movement_rate": 99,
+			"movement_rate": 94,
 			"attack_rate": 97,
 			"range": 1
 		},
@@ -32262,7 +32262,7 @@
 		"stats": {
 			"atk": 3,
 			"hp": 325,
-			"movement_rate": 52,
+			"movement_rate": 47,
 			"attack_rate": 77,
 			"range": 1
 		},
@@ -32297,7 +32297,7 @@
 		"stats": {
 			"atk": 16,
 			"hp": 190,
-			"movement_rate": 92,
+			"movement_rate": 87,
 			"attack_rate": 87,
 			"range": 1
 		},
@@ -32338,7 +32338,7 @@
 		"stats": {
 			"atk": 24,
 			"hp": 145,
-			"movement_rate": 87,
+			"movement_rate": 82,
 			"attack_rate": 92,
 			"range": 3
 		},
@@ -32395,7 +32395,7 @@
 		"stats": {
 			"atk": 27,
 			"hp": 160,
-			"movement_rate": 90,
+			"movement_rate": 85,
 			"attack_rate": 92,
 			"range": 3
 		},
@@ -32451,7 +32451,7 @@
 		"stats": {
 			"atk": 29,
 			"hp": 180,
-			"movement_rate": 87,
+			"movement_rate": 82,
 			"attack_rate": 92,
 			"range": 3
 		},
@@ -32493,7 +32493,7 @@
 		"stats": {
 			"atk": 3,
 			"hp": 30,
-			"movement_rate": 90,
+			"movement_rate": 85,
 			"attack_rate": 92,
 			"range": 2
 		},
@@ -32526,7 +32526,7 @@
 		"stats": {
 			"atk": 3,
 			"hp": 70,
-			"movement_rate": 92,
+			"movement_rate": 87,
 			"attack_rate": 94,
 			"range": 2
 		},
@@ -32556,7 +32556,7 @@
 		"stats": {
 			"atk": 11,
 			"hp": 110,
-			"movement_rate": 80,
+			"movement_rate": 75,
 			"attack_rate": 84,
 			"range": 3
 		},
@@ -32583,7 +32583,7 @@
 		"stats": {
 			"atk": 16,
 			"hp": 170,
-			"movement_rate": 86,
+			"movement_rate": 81,
 			"attack_rate": 82,
 			"range": 1
 		},
@@ -32656,7 +32656,7 @@
 		"stats": {
 			"atk": 38,
 			"hp": 280,
-			"movement_rate": 87,
+			"movement_rate": 82,
 			"attack_rate": 88,
 			"range": 3
 		},
@@ -32700,7 +32700,7 @@
 		"stats": {
 			"atk": 38,
 			"hp": 280,
-			"movement_rate": 80,
+			"movement_rate": 75,
 			"attack_rate": 84,
 			"range": 3
 		},
@@ -32745,7 +32745,7 @@
 		"stats": {
 			"atk": 5,
 			"hp": 60,
-			"movement_rate": 92,
+			"movement_rate": 87,
 			"attack_rate": 94,
 			"range": 2
 		},
@@ -32777,7 +32777,7 @@
 		"stats": {
 			"atk": 17,
 			"hp": 190,
-			"movement_rate": 79,
+			"movement_rate": 74,
 			"attack_rate": 83,
 			"range": 1
 		},
@@ -32809,7 +32809,7 @@
 		"stats": {
 			"atk": 12,
 			"hp": 95,
-			"movement_rate": 99,
+			"movement_rate": 94,
 			"attack_rate": 92,
 			"range": 1
 		},
@@ -32838,7 +32838,7 @@
 		"stats": {
 			"atk": 14,
 			"hp": 95,
-			"movement_rate": 92,
+			"movement_rate": 87,
 			"attack_rate": 89,
 			"range": 1
 		},
@@ -32867,7 +32867,7 @@
 		"stats": {
 			"atk": 8,
 			"hp": 240,
-			"movement_rate": 79,
+			"movement_rate": 74,
 			"attack_rate": 84,
 			"range": 1
 		},
@@ -32899,7 +32899,7 @@
 		"stats": {
 			"atk": 18,
 			"hp": 170,
-			"movement_rate": 92,
+			"movement_rate": 87,
 			"attack_rate": 87,
 			"range": 1
 		},
@@ -32929,7 +32929,7 @@
 		"stats": {
 			"atk": 18,
 			"hp": 145,
-			"movement_rate": 92,
+			"movement_rate": 87,
 			"attack_rate": 85,
 			"range": 1
 		},
@@ -32958,7 +32958,7 @@
 		"stats": {
 			"atk": 10,
 			"hp": 120,
-			"movement_rate": 92,
+			"movement_rate": 87,
 			"attack_rate": 94,
 			"range": 1
 		},
@@ -33006,7 +33006,7 @@
 		"stats": {
 			"atk": 22,
 			"hp": 250,
-			"movement_rate": 79,
+			"movement_rate": 74,
 			"attack_rate": 83,
 			"range": 1
 		},
@@ -33054,7 +33054,7 @@
 		"stats": {
 			"atk": 19,
 			"hp": 155,
-			"movement_rate": 99,
+			"movement_rate": 94,
 			"attack_rate": 92,
 			"range": 1
 		},
@@ -33099,7 +33099,7 @@
 		"stats": {
 			"atk": 19,
 			"hp": 125,
-			"movement_rate": 90,
+			"movement_rate": 85,
 			"attack_rate": 89,
 			"range": 2
 		},
@@ -33144,7 +33144,7 @@
 		"stats": {
 			"atk": 10,
 			"hp": 335,
-			"movement_rate": 79,
+			"movement_rate": 74,
 			"attack_rate": 84,
 			"range": 1
 		},
@@ -33192,7 +33192,7 @@
 		"stats": {
 			"atk": 23,
 			"hp": 230,
-			"movement_rate": 92,
+			"movement_rate": 87,
 			"attack_rate": 87,
 			"range": 1
 		},
@@ -33242,7 +33242,7 @@
 		"stats": {
 			"atk": 23,
 			"hp": 205,
-			"movement_rate": 92,
+			"movement_rate": 87,
 			"attack_rate": 85,
 			"range": 1
 		},
@@ -33282,7 +33282,7 @@
 		"stats": {
 			"atk": 29,
 			"hp": 140,
-			"movement_rate": 80,
+			"movement_rate": 75,
 			"attack_rate": 83,
 			"range": 3
 		},
@@ -33311,7 +33311,7 @@
 		"stats": {
 			"atk": 40,
 			"hp": 215,
-			"movement_rate": 72,
+			"movement_rate": 67,
 			"attack_rate": 82,
 			"range": 4
 		},
@@ -33354,7 +33354,7 @@
 		"stats": {
 			"atk": 40,
 			"hp": 130,
-			"movement_rate": 72,
+			"movement_rate": 67,
 			"attack_rate": 82,
 			"range": 4
 		},
@@ -33396,7 +33396,7 @@
 		"stats": {
 			"atk": 50,
 			"hp": 300,
-			"movement_rate": 72,
+			"movement_rate": 67,
 			"attack_rate": 82,
 			"range": 4
 		},
@@ -33441,7 +33441,7 @@
 		"stats": {
 			"atk": 25,
 			"hp": 300,
-			"movement_rate": 92,
+			"movement_rate": 87,
 			"attack_rate": 89,
 			"range": 2
 		},
@@ -33480,7 +33480,7 @@
 		"stats": {
 			"atk": 24,
 			"hp": 175,
-			"movement_rate": 80,
+			"movement_rate": 75,
 			"attack_rate": 83,
 			"range": 3
 		},
@@ -33527,7 +33527,7 @@
 		"stats": {
 			"atk": 21,
 			"hp": 115,
-			"movement_rate": 90,
+			"movement_rate": 85,
 			"attack_rate": 91,
 			"range": 2
 		},
@@ -33576,7 +33576,7 @@
 		"stats": {
 			"atk": 23,
 			"hp": 105,
-			"movement_rate": 80,
+			"movement_rate": 75,
 			"attack_rate": 86,
 			"range": 3
 		},
@@ -33626,7 +33626,7 @@
 		"stats": {
 			"atk": 20,
 			"hp": 215,
-			"movement_rate": 72,
+			"movement_rate": 67,
 			"attack_rate": 82,
 			"range": 4
 		},
@@ -33676,7 +33676,7 @@
 		"stats": {
 			"atk": 19,
 			"hp": 200,
-			"movement_rate": 90,
+			"movement_rate": 85,
 			"attack_rate": 88,
 			"range": 2
 		},
@@ -33723,7 +33723,7 @@
 		"stats": {
 			"atk": 16,
 			"hp": 60,
-			"movement_rate": 92,
+			"movement_rate": 87,
 			"attack_rate": 89,
 			"range": 1
 		},
@@ -33751,7 +33751,7 @@
 		"stats": {
 			"atk": 26,
 			"hp": 215,
-			"movement_rate": 92,
+			"movement_rate": 87,
 			"attack_rate": 85,
 			"range": 1
 		},
@@ -33789,7 +33789,7 @@
 		"stats": {
 			"atk": 3,
 			"hp": 60,
-			"movement_rate": 92,
+			"movement_rate": 87,
 			"attack_rate": 94,
 			"range": 1
 		},
@@ -33822,7 +33822,7 @@
 		"stats": {
 			"atk": 17,
 			"hp": 155,
-			"movement_rate": 87,
+			"movement_rate": 82,
 			"attack_rate": 91,
 			"range": 3
 		},
@@ -33868,7 +33868,7 @@
 		"stats": {
 			"atk": 21,
 			"hp": 95,
-			"movement_rate": 99,
+			"movement_rate": 94,
 			"attack_rate": 86,
 			"range": 1
 		},
@@ -33901,7 +33901,7 @@
 		"stats": {
 			"atk": 25,
 			"hp": 300,
-			"movement_rate": 92,
+			"movement_rate": 87,
 			"attack_rate": 86,
 			"range": 1
 		},
@@ -33934,7 +33934,7 @@
 		"stats": {
 			"atk": 16,
 			"hp": 300,
-			"movement_rate": 99,
+			"movement_rate": 94,
 			"attack_rate": 93,
 			"range": 1
 		},
@@ -33977,7 +33977,7 @@
 		"stats": {
 			"atk": 35,
 			"hp": 200,
-			"movement_rate": 90,
+			"movement_rate": 85,
 			"attack_rate": 91,
 			"range": 2
 		},
@@ -34019,7 +34019,7 @@
 		"stats": {
 			"atk": 36,
 			"hp": 265,
-			"movement_rate": 80,
+			"movement_rate": 75,
 			"attack_rate": 87,
 			"range": 3
 		},
@@ -34067,7 +34067,7 @@
 		"stats": {
 			"atk": 25,
 			"hp": 380,
-			"movement_rate": 83,
+			"movement_rate": 78,
 			"attack_rate": 89,
 			"range": 2
 		},
@@ -34109,7 +34109,7 @@
 		"stats": {
 			"atk": 21,
 			"hp": 95,
-			"movement_rate": 92,
+			"movement_rate": 87,
 			"attack_rate": 84,
 			"range": 1
 		},
@@ -34142,7 +34142,7 @@
 		"stats": {
 			"atk": 26,
 			"hp": 335,
-			"movement_rate": 86,
+			"movement_rate": 81,
 			"attack_rate": 90,
 			"range": 1
 		},
@@ -34177,7 +34177,7 @@
 		"stats": {
 			"atk": 21,
 			"hp": 205,
-			"movement_rate": 66,
+			"movement_rate": 61,
 			"attack_rate": 77,
 			"range": 1
 		},
@@ -34222,7 +34222,7 @@
 		"stats": {
 			"atk": 40,
 			"hp": 480,
-			"movement_rate": 84,
+			"movement_rate": 79,
 			"attack_rate": 91,
 			"range": 1
 		},
@@ -34268,7 +34268,7 @@
 		"stats": {
 			"atk": 16,
 			"hp": 215,
-			"movement_rate": 86,
+			"movement_rate": 81,
 			"attack_rate": 90,
 			"range": 1
 		},
@@ -34296,7 +34296,7 @@
 		"stats": {
 			"atk": 20,
 			"hp": 240,
-			"movement_rate": 99,
+			"movement_rate": 94,
 			"attack_rate": 91,
 			"range": 1
 		},
@@ -34335,7 +34335,7 @@
 		"stats": {
 			"atk": 5,
 			"hp": 60,
-			"movement_rate": 99,
+			"movement_rate": 94,
 			"attack_rate": 95,
 			"range": 1
 		},
@@ -34360,7 +34360,7 @@
 		"stats": {
 			"atk": 15,
 			"hp": 180,
-			"movement_rate": 99,
+			"movement_rate": 94,
 			"attack_rate": 95,
 			"range": 1
 		},
@@ -34458,7 +34458,7 @@
 		"stats": {
 			"atk": 30,
 			"hp": 170,
-			"movement_rate": 90,
+			"movement_rate": 85,
 			"attack_rate": 94,
 			"range": 2
 		},
@@ -34496,7 +34496,7 @@
 		"stats": {
 			"atk": 39,
 			"hp": 170,
-			"movement_rate": 87,
+			"movement_rate": 82,
 			"attack_rate": 92,
 			"range": 3
 		},
@@ -34543,7 +34543,7 @@
 		"stats": {
 			"atk": 5,
 			"hp": 155,
-			"movement_rate": 92,
+			"movement_rate": 87,
 			"attack_rate": 90,
 			"range": 1
 		},
@@ -34574,7 +34574,7 @@
 		"stats": {
 			"atk": 10,
 			"hp": 120,
-			"movement_rate": 92,
+			"movement_rate": 87,
 			"attack_rate": 90,
 			"range": 1
 		},
@@ -34604,7 +34604,7 @@
 		"stats": {
 			"atk": 18,
 			"hp": 145,
-			"movement_rate": 92,
+			"movement_rate": 87,
 			"attack_rate": 83,
 			"range": 1
 		},
@@ -34629,7 +34629,7 @@
 		"stats": {
 			"atk": 24,
 			"hp": 180,
-			"movement_rate": 86,
+			"movement_rate": 81,
 			"attack_rate": 87,
 			"range": 1
 		},
@@ -34664,7 +34664,7 @@
 		"stats": {
 			"atk": 19,
 			"hp": 170,
-			"movement_rate": 99,
+			"movement_rate": 94,
 			"attack_rate": 87,
 			"range": 1
 		},
@@ -34692,7 +34692,7 @@
 		"stats": {
 			"atk": 12,
 			"hp": 135,
-			"movement_rate": 72,
+			"movement_rate": 67,
 			"attack_rate": 86,
 			"range": 4
 		},
@@ -34722,7 +34722,7 @@
 		"stats": {
 			"atk": 23,
 			"hp": 120,
-			"movement_rate": 99,
+			"movement_rate": 94,
 			"attack_rate": 87,
 			"range": 1
 		},
@@ -34755,7 +34755,7 @@
 		"stats": {
 			"atk": 25,
 			"hp": 100,
-			"movement_rate": 79,
+			"movement_rate": 74,
 			"attack_rate": 86,
 			"range": 4
 		},
@@ -34791,7 +34791,7 @@
 		"stats": {
 			"atk": 20,
 			"hp": 190,
-			"movement_rate": 96,
+			"movement_rate": 91,
 			"attack_rate": 93,
 			"range": 2
 		},
@@ -34862,7 +34862,7 @@
 		"stats": {
 			"atk": 29,
 			"hp": 410,
-			"movement_rate": 86,
+			"movement_rate": 81,
 			"attack_rate": 85,
 			"range": 1
 		},
@@ -34903,7 +34903,7 @@
 		"stats": {
 			"atk": 36,
 			"hp": 160,
-			"movement_rate": 87,
+			"movement_rate": 82,
 			"attack_rate": 87,
 			"range": 3
 		},
@@ -34942,7 +34942,7 @@
 		"stats": {
 			"atk": 11,
 			"hp": 125,
-			"movement_rate": 74,
+			"movement_rate": 69,
 			"attack_rate": 79,
 			"range": 3
 		},
@@ -34969,7 +34969,7 @@
 		"stats": {
 			"atk": 20,
 			"hp": 60,
-			"movement_rate": 79,
+			"movement_rate": 74,
 			"attack_rate": 80,
 			"range": 1
 		},
@@ -35001,7 +35001,7 @@
 		"stats": {
 			"atk": 5,
 			"hp": 240,
-			"movement_rate": 86,
+			"movement_rate": 81,
 			"attack_rate": 87,
 			"range": 1
 		},
@@ -35033,7 +35033,7 @@
 		"stats": {
 			"atk": 24,
 			"hp": 175,
-			"movement_rate": 80,
+			"movement_rate": 75,
 			"attack_rate": 83,
 			"range": 3
 		},
@@ -35072,7 +35072,7 @@
 		"stats": {
 			"atk": 20,
 			"hp": 240,
-			"movement_rate": 92,
+			"movement_rate": 87,
 			"attack_rate": 89,
 			"range": 1
 		},
@@ -35112,7 +35112,7 @@
 		"stats": {
 			"atk": 14,
 			"hp": 300,
-			"movement_rate": 99,
+			"movement_rate": 94,
 			"attack_rate": 91,
 			"range": 1
 		},
@@ -35152,7 +35152,7 @@
 		"stats": {
 			"atk": 24,
 			"hp": 290,
-			"movement_rate": 92,
+			"movement_rate": 87,
 			"attack_rate": 93,
 			"range": 1
 		},
@@ -35199,7 +35199,7 @@
 		"stats": {
 			"atk": 19,
 			"hp": 360,
-			"movement_rate": 99,
+			"movement_rate": 94,
 			"attack_rate": 94,
 			"range": 1
 		},
@@ -35245,7 +35245,7 @@
 		"stats": {
 			"atk": 34,
 			"hp": 410,
-			"movement_rate": 92,
+			"movement_rate": 87,
 			"attack_rate": 93,
 			"range": 1
 		},
@@ -35292,7 +35292,7 @@
 		"stats": {
 			"atk": 24,
 			"hp": 480,
-			"movement_rate": 99,
+			"movement_rate": 94,
 			"attack_rate": 94,
 			"range": 1
 		},
@@ -35339,7 +35339,7 @@
 		"stats": {
 			"atk": 35,
 			"hp": 335,
-			"movement_rate": 90,
+			"movement_rate": 85,
 			"attack_rate": 90,
 			"range": 2
 		},
@@ -35381,7 +35381,7 @@
 		"stats": {
 			"atk": 28,
 			"hp": 240,
-			"movement_rate": 86,
+			"movement_rate": 81,
 			"attack_rate": 87,
 			"range": 1
 		},
@@ -35417,7 +35417,7 @@
 		"stats": {
 			"atk": 5,
 			"hp": 275,
-			"movement_rate": 86,
+			"movement_rate": 81,
 			"attack_rate": 87,
 			"range": 1
 		},
@@ -35445,7 +35445,7 @@
 		"stats": {
 			"atk": 19,
 			"hp": 35,
-			"movement_rate": 79,
+			"movement_rate": 74,
 			"attack_rate": 80,
 			"range": 1
 		},
@@ -35469,7 +35469,7 @@
 		"stats": {
 			"atk": 22,
 			"hp": 120,
-			"movement_rate": 86,
+			"movement_rate": 81,
 			"attack_rate": 85,
 			"range": 1
 		},
@@ -35498,7 +35498,7 @@
 		"stats": {
 			"atk": 28,
 			"hp": 275,
-			"movement_rate": 86,
+			"movement_rate": 81,
 			"attack_rate": 85,
 			"range": 1
 		},
@@ -35527,7 +35527,7 @@
 		"stats": {
 			"atk": 40,
 			"hp": 420,
-			"movement_rate": 86,
+			"movement_rate": 81,
 			"attack_rate": 85,
 			"range": 1
 		},
@@ -35556,7 +35556,7 @@
 		"stats": {
 			"atk": 40,
 			"hp": 380,
-			"movement_rate": 90,
+			"movement_rate": 85,
 			"attack_rate": 90,
 			"range": 2
 		},
@@ -35604,7 +35604,7 @@
 		"stats": {
 			"atk": 29,
 			"hp": 210,
-			"movement_rate": 87,
+			"movement_rate": 82,
 			"attack_rate": 84,
 			"range": 3
 		},
@@ -35651,7 +35651,7 @@
 		"stats": {
 			"atk": 40,
 			"hp": 480,
-			"movement_rate": 92,
+			"movement_rate": 87,
 			"attack_rate": 88,
 			"range": 1
 		},
@@ -35750,7 +35750,7 @@
 		"stats": {
 			"atk": 50,
 			"hp": 475,
-			"movement_rate": 77,
+			"movement_rate": 72,
 			"attack_rate": 83,
 			"range": 2
 		},
@@ -35791,7 +35791,7 @@
 		"stats": {
 			"atk": 5,
 			"hp": 50,
-			"movement_rate": 77,
+			"movement_rate": 72,
 			"attack_rate": 77,
 			"range": 1
 		},
@@ -35822,7 +35822,7 @@
 		"stats": {
 			"atk": 5,
 			"hp": 50,
-			"movement_rate": 77,
+			"movement_rate": 72,
 			"attack_rate": 77,
 			"range": 1
 		},
@@ -35853,7 +35853,7 @@
 		"stats": {
 			"atk": 5,
 			"hp": 50,
-			"movement_rate": 77,
+			"movement_rate": 72,
 			"attack_rate": 77,
 			"range": 1
 		},
@@ -35886,7 +35886,7 @@
 		"stats": {
 			"atk": 5,
 			"hp": 600,
-			"movement_rate": 79,
+			"movement_rate": 74,
 			"attack_rate": 77,
 			"range": 1
 		},
@@ -35929,7 +35929,7 @@
 		"stats": {
 			"atk": 5,
 			"hp": 50,
-			"movement_rate": 77,
+			"movement_rate": 72,
 			"attack_rate": 77,
 			"range": 1
 		},
@@ -35968,7 +35968,7 @@
 		"stats": {
 			"atk": 5,
 			"hp": 50,
-			"movement_rate": 77,
+			"movement_rate": 72,
 			"attack_rate": 77,
 			"range": 1
 		},
@@ -35994,7 +35994,7 @@
 		"stats": {
 			"atk": 5,
 			"hp": 50,
-			"movement_rate": 50,
+			"movement_rate": 45,
 			"attack_rate": 50,
 			"range": 1
 		},
@@ -36020,7 +36020,7 @@
 		"stats": {
 			"atk": 5,
 			"hp": 50,
-			"movement_rate": 50,
+			"movement_rate": 45,
 			"attack_rate": 50,
 			"range": 1
 		},
@@ -36046,7 +36046,7 @@
 		"stats": {
 			"atk": 5,
 			"hp": 50,
-			"movement_rate": 50,
+			"movement_rate": 45,
 			"attack_rate": 50,
 			"range": 1
 		},
@@ -36072,7 +36072,7 @@
 		"stats": {
 			"atk": 5,
 			"hp": 50,
-			"movement_rate": 50,
+			"movement_rate": 45,
 			"attack_rate": 50,
 			"range": 1
 		},
@@ -36098,7 +36098,7 @@
 		"stats": {
 			"atk": 5,
 			"hp": 50,
-			"movement_rate": 50,
+			"movement_rate": 45,
 			"attack_rate": 50,
 			"range": 1
 		},
@@ -36125,7 +36125,7 @@
 		"stats": {
 			"atk": 5,
 			"hp": 200,
-			"movement_rate": 77,
+			"movement_rate": 72,
 			"attack_rate": 90,
 			"range": 1
 		},
@@ -36150,7 +36150,7 @@
 		"stats": {
 			"atk": 10,
 			"hp": 100,
-			"movement_rate": 90,
+			"movement_rate": 85,
 			"attack_rate": 90,
 			"range": 1
 		},
@@ -36179,7 +36179,7 @@
 		"stats": {
 			"atk": 15,
 			"hp": 80,
-			"movement_rate": 90,
+			"movement_rate": 85,
 			"attack_rate": 87,
 			"range": 1
 		},
@@ -36204,7 +36204,7 @@
 		"stats": {
 			"atk": 16,
 			"hp": 160,
-			"movement_rate": 83,
+			"movement_rate": 78,
 			"attack_rate": 90,
 			"range": 2
 		},
@@ -36241,7 +36241,7 @@
 		"stats": {
 			"atk": 30,
 			"hp": 300,
-			"movement_rate": 83,
+			"movement_rate": 78,
 			"attack_rate": 90,
 			"range": 2
 		},
@@ -36279,7 +36279,7 @@
 		"stats": {
 			"atk": 40,
 			"hp": 400,
-			"movement_rate": 83,
+			"movement_rate": 78,
 			"attack_rate": 93,
 			"range": 3
 		},
