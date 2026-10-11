@@ -1160,6 +1160,7 @@ function buildQuerySchemas() {
       txt('id', 'Identifiant', m => m.id),
       txt('nom', 'Nom', m => m.name, ['name']),
       txt('emplacement', 'Emplacement', m => m.theme, ['theme']),
+      num('tour', 'Tour', m => SOUND?.musicRounds(m) ?? [], ['tours', 'round']),
       txt('theme_partie', 'Thème de partie', m => m.game_theme, ['game_theme']),
       bool('audio', 'A un fichier', m => !!m._has_audio, ['son']),
     ],
@@ -1505,6 +1506,9 @@ async function init() {
     apiFetch('/api/music'),
     apiFetch('/api/music-themes'),
   ]);
+  // Les anciennes pistes `game_early` / `game_mid` / `game_late` s'affichent
+  // (et s'enregistrent) dans la forme neuve `game` + `rounds`.
+  if (Array.isArray(music) && SOUND?.normalizeMusic) music = music.map(m => SOUND.normalizeMusic(m));
   buildQuerySchemas();
   attachQueryBars();
   Object.assign(QUERY_REFRESH, {
@@ -6558,6 +6562,8 @@ function renderMusicList(list = music) {
     const isActive = selectedMusic?.id === m.id;
     const theme = SOUND?.musicTheme(m.theme);
     const gameThemeName = m.game_theme ? (musicThemes.find(t => t.id === m.game_theme)?.name || m.game_theme) : '';
+    const isGame = SOUND?.isGameMusic(m);
+    const rounds = isGame ? SOUND.musicRounds(m) : [];
     return `
       <div class="list-item ${isActive ? 'selected' : ''}" onclick="selectMusic('${m.id}')">
         <div class="list-thumb-placeholder"><span style="font-size:14px;opacity:.4">${m._has_audio ? '🎵' : '🎶'}</span></div>
@@ -6566,6 +6572,7 @@ function renderMusicList(list = music) {
           <div style="display:flex;gap:4px;margin-top:3px;align-items:center">
             <span class="item-id">${esc(m.id)}</span>
             <span class="item-id">${esc(theme?.label || m.theme || '—')}</span>
+            ${isGame ? `<span class="item-id">${rounds.length ? '' : '⚠️ '}${esc(SOUND.roundsLabel(rounds))}</span>` : ''}
             ${gameThemeName ? `<span class="item-id">${esc(gameThemeName)}</span>` : ''}
           </div>
         </div>
@@ -6639,15 +6646,27 @@ function renderMusicDetail() {
       </span>
     </div>
 
-    ${(SOUND?.GAME_MUSIC_SLOTS || []).includes(m.theme) ? `
+    ${SOUND?.isGameMusic(m) ? `
+    <div class="field">
+      <label>Tours</label>
+      <div style="display:flex;flex-wrap:wrap;gap:4px 14px">
+        ${(SOUND?.GAME_ROUNDS || []).map(r => `
+          <label class="field-check"><input type="checkbox" class="music-round" value="${r}" ${SOUND.musicRounds(m).includes(r) ? 'checked' : ''}> Tour ${r}</label>`).join('')}
+      </div>
+      <span style="font-size:11px;color:var(--muted);margin-top:4px">
+        Les tours qu'accompagne cette piste — un, plusieurs ou tous. Une piste qui couvre aussi le tour
+        suivant continue sans repartir de zéro ; si deux pistes du thème couvrent le même tour, celle
+        qui joue déjà continue (sinon l'une est tirée au hasard).
+      </span>
+    </div>
+
     <div class="field">
       <label>Thème de partie</label>
       <select id="music-game-theme">${gameThemeOpts}</select>
       <span style="font-size:11px;color:var(--muted);margin-top:4px">
         Un match tire un thème au hasard (onglet 🎨 Thèmes de partie) et le garde du premier au
-        dernier tour ; cette piste ne sort que pour ce moment précis de la partie (l'emplacement
-        ci-dessus) ET ce thème. Sans thème, la piste rejoint le repli commun de son emplacement —
-        jouée quel que soit le thème tiré.
+        dernier tour ; cette piste ne sort qu'aux tours cochés ci-dessus ET pour ce thème. Sans
+        thème, la piste rejoint le repli commun de ses tours — jouée quel que soit le thème tiré.
       </span>
     </div>` : ''}
 
@@ -6667,7 +6686,10 @@ function renderMusicDetail() {
 function _syncMusicThemeField() {
   const name = document.getElementById('music-name')?.value;
   const theme = document.getElementById('music-theme')?.value;
-  selectedMusic = { ...selectedMusic, name, theme, game_theme: undefined };
+  const next = { ...selectedMusic, name, theme, game_theme: undefined };
+  delete next.rounds;
+  if (theme === SOUND?.GAME_MUSIC_THEME) next.rounds = (SOUND?.GAME_ROUNDS || []).slice();
+  selectedMusic = next;
   renderMusicDetail();
 }
 
@@ -6680,7 +6702,9 @@ function _collectMusicFields() {
     theme,
   };
   delete out.game_theme;
-  if ((SOUND?.GAME_MUSIC_SLOTS || []).includes(theme)) {
+  delete out.rounds;
+  if (theme === SOUND?.GAME_MUSIC_THEME) {
+    out.rounds = [...document.querySelectorAll('#music-detail .music-round:checked')].map(el => parseInt(el.value, 10));
     const v = document.getElementById('music-game-theme')?.value;
     if (v) out.game_theme = v;
   }
@@ -6689,8 +6713,17 @@ function _collectMusicFields() {
   return out;
 }
 
+// Une piste de partie sans aucun tour ne jouerait jamais : refusée ici
+// plutôt qu'enregistrée muette.
+function _musicRoundsMissing(item) {
+  if (item.theme !== SOUND?.GAME_MUSIC_THEME || item.rounds?.length) return false;
+  toast('Coche au moins un tour pour cette piste de partie', 'err');
+  return true;
+}
+
 async function saveMusic() {
   const item = _collectMusicFields();
+  if (_musicRoundsMissing(item)) return;
   const res = await apiFetch(`/api/music/${selectedMusic.id}`, { method: 'PUT', body: item });
   if (res.error) return toast(res.error, 'err');
   const idx = music.findIndex(m => m.id === selectedMusic.id);
@@ -6714,6 +6747,7 @@ async function deleteMusic() {
 
 function openNewMusic() {
   selectedMusic = { id: nextIdFor('music'), name: '', theme: (SOUND?.MUSIC_THEMES || [])[0]?.id || '', _has_audio: false };
+  if (selectedMusic.theme === SOUND?.GAME_MUSIC_THEME) selectedMusic.rounds = (SOUND?.GAME_ROUNDS || []).slice();
   isNewMusic = true;
   renderMusicList();
   renderMusicDetail();
@@ -6722,6 +6756,7 @@ function openNewMusic() {
 
 async function createMusic() {
   const item = _collectMusicFields();
+  if (_musicRoundsMissing(item)) return;
   const res = await apiFetch('/api/music', { method: 'POST', body: item });
   if (res.error) return toast(res.error, 'err');
   music.push({ ...item, _has_audio: false });
@@ -6773,16 +6808,16 @@ async function deleteMusicAudio() {
 
 // ---- Thèmes de partie ----
 // Catalogue léger — id + nom, aucun asset propre — qui range les musiques
-// des TROIS emplacements `game_early` / `game_mid` / `game_late` (champ
-// `music.game_theme`, partagé par les trois). Même rôle que les Packs pour
+// de partie (champ `music.game_theme`), chacune sur les tours qu'elle coche
+// (`music.rounds`). Même rôle que les Packs pour
 // les cartes (`card.set`), en plus simple : un thème ne POSSÈDE pas ses
 // pistes, c'est la fiche Musique qui choisit son thème (cf. le champ
 // « Thème de partie » de `renderMusicDetail`), donc rien à réaligner ici.
 //
-// ⚠️ Un thème n'a pas besoin de couvrir les trois moments : une piste
-// manquante pour l'un d'eux retombe sur le repli commun de CET emplacement
-// (`MusicDatabase.tracksForGameTheme`) — le détail liste donc les pistes par
-// emplacement pour que l'admin voie d'un coup d'œil ce qui manque.
+// ⚠️ Un thème n'a pas besoin de couvrir tous les tours : un tour sans piste
+// retombe sur le repli commun de CE tour (`MusicDatabase.tracksForGameRound`)
+// — le détail liste donc les pistes tour par tour pour que l'admin voie d'un
+// coup d'œil ce qui manque (et ce qui se chevauche).
 
 function filterMusicThemes() { renderMusicThemeList(runQuery('musictheme', musicThemes)); }
 
@@ -6848,12 +6883,11 @@ function renderMusicThemeDetail() {
     <div class="field">
       <label>Pistes de ce thème</label>
       ${tracks.length
-        ? `<div style="display:flex;flex-direction:column;gap:10px">${(SOUND?.GAME_MUSIC_SLOTS || []).map(slot => {
-             const slotLabel = (SOUND?.MUSIC_THEMES || []).find(x => x.id === slot)?.label || slot;
-             const slotTracks = tracks.filter(m => m.theme === slot);
+        ? `<div style="display:flex;flex-direction:column;gap:10px">${(SOUND?.GAME_ROUNDS || []).map(round => {
+             const slotTracks = tracks.filter(m => SOUND.musicRounds(m).includes(round));
              return `
                <div>
-                 <div style="font-size:11px;color:var(--muted);margin-bottom:2px">${esc(slotLabel)}</div>
+                 <div style="font-size:11px;color:var(--muted);margin-bottom:2px">Tour ${round}</div>
                  ${slotTracks.length
                    ? slotTracks.map(m => `<span class="item-id" style="display:block">${esc(m.name || m.id)} ${m._has_audio ? '' : '⚠️ sans fichier'}</span>`).join('')
                    : `<span class="item-id" style="opacity:.6">Aucune — repli commun</span>`}

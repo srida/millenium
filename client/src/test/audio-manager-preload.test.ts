@@ -26,7 +26,15 @@ vi.mock('../data/MusicDatabase.js', () => ({
   // suspend/resume sans reproduire toute la logique de sélection déjà
   // couverte par `music-database.test.ts`.
   tracksForTheme: (theme: string) => (theme === 'menu' ? [{ id: 'MUSIC_MENU', theme: 'menu', _has_audio: true }] : []),
-  tracksForGameTheme: () => [],
+  // Deux pistes de partie qui se CHEVAUCHENT au tour 3 (« 1-2-3 » et
+  // « 3-4 »), et rien au tour 5.
+  tracksForGameRound: (round: number) => ({
+    1: [{ id: 'MUSIC_A', theme: 'game', rounds: [1, 2, 3], _has_audio: true }],
+    2: [{ id: 'MUSIC_A', theme: 'game', rounds: [1, 2, 3], _has_audio: true }],
+    3: [{ id: 'MUSIC_A', theme: 'game', rounds: [1, 2, 3], _has_audio: true },
+        { id: 'MUSIC_B', theme: 'game', rounds: [3, 4], _has_audio: true }],
+    4: [{ id: 'MUSIC_B', theme: 'game', rounds: [3, 4], _has_audio: true }],
+  } as Record<number, unknown[]>)[round] ?? [],
   playableGameThemeIds: () => [],
   musicUrl: (id: string) => `/audio/${id}`,
 }));
@@ -252,6 +260,51 @@ describe('AudioManager — la musique est une piste DÉCODÉE, jamais un <audio>
     } finally { vi.useRealTimers(); }
     expect(first.stopped).toBe(true);
     expect(musicSources().filter(src => !src.stopped)).toHaveLength(1);
+  });
+});
+
+describe('AudioManager — musique de partie par tour', () => {
+  it('une piste qui couvre plusieurs tours CONTINUE, puis cède au tour qu\'elle ne couvre pas', async () => {
+    const Audio = await import('../audio/AudioManager.js');
+    Audio.unlock();
+    Audio.setGameMusicRound(1);
+    await settle();
+    const a = playingMusic()!;
+    expect(fetchCalls.filter(u => u.includes('MUSIC_'))).toEqual(['/audio/MUSIC_A']);
+
+    // Tours 2 et 3 : la même piste joue toujours, rien n'est rechargé —
+    // y compris au tour 3, que MUSIC_B couvre aussi.
+    Audio.setGameMusicRound(2);
+    Audio.setGameMusicRound(3);
+    await settle();
+    expect(a.stopped).toBe(false);
+    expect(fetchCalls.filter(u => u.includes('MUSIC_'))).toEqual(['/audio/MUSIC_A']);
+
+    vi.useFakeTimers();
+    try {
+      Audio.setGameMusicRound(4);
+      vi.advanceTimersByTime(1000);
+      await settle();
+    } finally { vi.useRealTimers(); }
+    expect(a.stopped).toBe(true);
+    expect(fetchCalls).toContain('/audio/MUSIC_B');
+    expect(musicSources().filter(src => !src.stopped)).toHaveLength(1);
+  });
+
+  it('un tour qu\'aucune piste ne couvre part en silence', async () => {
+    const Audio = await import('../audio/AudioManager.js');
+    Audio.unlock();
+    Audio.setGameMusicRound(4);
+    await settle();
+    const b = playingMusic()!;
+    vi.useFakeTimers();
+    try {
+      Audio.setGameMusicRound(5);
+      vi.advanceTimersByTime(1000);
+      await settle();
+    } finally { vi.useRealTimers(); }
+    expect(b.stopped).toBe(true);
+    expect(playingMusic()).toBeNull();
   });
 });
 

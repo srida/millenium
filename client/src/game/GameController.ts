@@ -246,11 +246,10 @@ export class GameController {
     if (this._introTimer) { clearTimeout(this._introTimer); this._introTimer = null; }
     if (!draw) return;                       // partie finie : rien à ouvrir
     this._pendingDraw = draw;
-    // Emplacement musical du MOMENT (tours 1-2 / 3-4 / 5), à l'intérieur du
-    // thème de partie verrouillé par `Audio.rollGameTheme()` dans `begin()` —
-    // NO-OP si c'est déjà l'emplacement en cours (deux tours du même palier
-    // de suite), donc appelable à chaque tour sans jamais relancer la piste.
-    Audio.setMusicTheme(draw.round <= 2 ? 'game_early' : draw.round <= 4 ? 'game_mid' : 'game_late');
+    // Musique du TOUR, à l'intérieur du thème de partie verrouillé par
+    // `Audio.rollGameTheme()` dans `begin()` — une piste qui couvre aussi ce
+    // tour continue sans repartir de zéro, donc appelable à chaque tour.
+    Audio.setGameMusicRound(draw.round);
     // ⚠️ Le round 1 est le DÉBUT de la partie, pas un « changement » de tour.
     if (draw.round > 1) Audio.playSfx('round_change');
     this.sync({ roundIntro: { round: draw.round }, drawPopup: null });

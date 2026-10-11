@@ -81,26 +81,79 @@ export const SFX_TRIGGERS = [
  * du catalogue `music.json` qui font la variété, pas des emplacements
  * séparés).
  *
- * ⚠️ Les trois emplacements « Partie » suivent toujours la progression du
- * match (tours 1-2 / 3-4 / 5), CROISÉE avec un THÈME DE PARTIE — tiré au
- * hasard une fois par match parmi le catalogue `data/music_themes.json`
- * (comme un pack pour les cartes). Le thème choisit la PALETTE (quelles
- * pistes sont éligibles), l'emplacement choisit LE MOMENT ; les deux jouent
- * ensemble, et le thème reste le même du premier au dernier tour — seule la
- * piste change en suivant les trois emplacements. Le champ `game_theme`
- * d'une entrée `music.json` la range dans ce catalogue ; une entrée d'un
- * emplacement `game_*` sans `game_theme` sert de repli commun tant qu'aucune
- * piste du thème tiré ne couvre ce moment (cf. `MusicDatabase.tracksForGameTheme`).
+ * ⚠️ L'emplacement « Partie » (`game`) ne découpe plus la partie en trois
+ * moments figés : chaque piste porte la LISTE DES TOURS qu'elle accompagne
+ * (`rounds`, entiers de 1 à `GAME_ROUNDS.length`). Un thème de partie peut
+ * donc tenir en une piste pour tous les tours, ou en deux pistes « 1-2-3 » et
+ * « 3-4 ». Le thème — tiré au hasard une fois par match parmi le catalogue
+ * `data/music_themes.json` (comme un pack pour les cartes) — choisit la
+ * PALETTE, le tour choisit la piste. Le champ `game_theme` d'une entrée
+ * `music.json` la range dans ce catalogue ; une piste de partie sans
+ * `game_theme` sert de repli commun tant qu'aucune piste du thème tiré ne
+ * couvre ce tour (cf. `MusicDatabase.tracksForGameRound`).
  */
 export const MUSIC_THEMES = [
   { id: 'menu', label: 'Menu (principal, connexion, autres menus)' },
-  { id: 'game_early', label: 'Partie — Tours 1-2' },
-  { id: 'game_mid', label: 'Partie — Tours 3-4' },
-  { id: 'game_late', label: 'Partie — Tour 5' },
+  { id: 'game', label: 'Partie' },
 ];
 
-/** Les emplacements « Partie », dans l'ordre où une partie les traverse. */
-export const GAME_MUSIC_SLOTS = ['game_early', 'game_mid', 'game_late'];
+/** L'emplacement des pistes de partie. */
+export const GAME_MUSIC_THEME = 'game';
+
+/** Les tours d'une partie, dans l'ordre — ceux qu'une piste peut couvrir. */
+export const GAME_ROUNDS = [1, 2, 3, 4, 5];
+
+/**
+ * Les trois anciens emplacements de partie et les tours qu'ils couvraient.
+ * ⚠️ Lus seulement par `normalizeMusic` : une installation existante (le
+ * volume n'est jamais réécrit par `initial-data/`) garde ses pistes
+ * `game_early` / `game_mid` / `game_late`, qui doivent continuer de jouer
+ * exactement aux mêmes tours sans migration. L'admin réécrit la forme neuve
+ * au premier enregistrement.
+ */
+export const LEGACY_GAME_SLOTS = {
+  game_early: [1, 2],
+  game_mid: [3, 4],
+  game_late: [5],
+};
+
+/** Vrai pour une piste de partie, forme neuve comme ancienne. */
+export function isGameMusic(entry) {
+  const theme = entry?.theme;
+  return theme === GAME_MUSIC_THEME || Object.prototype.hasOwnProperty.call(LEGACY_GAME_SLOTS, theme);
+}
+
+/**
+ * Les tours qu'accompagne une piste — triés, sans doublon, bornés à
+ * `GAME_ROUNDS`. LE seul lecteur de `rounds` (et des anciens emplacements).
+ * Une piste hors partie, ou de partie sans aucun tour, rend `[]` : elle ne
+ * joue jamais en partie.
+ */
+export function musicRounds(entry) {
+  if (!entry) return [];
+  if (Object.prototype.hasOwnProperty.call(LEGACY_GAME_SLOTS, entry.theme)) return LEGACY_GAME_SLOTS[entry.theme].slice();
+  if (entry.theme !== GAME_MUSIC_THEME || !Array.isArray(entry.rounds)) return [];
+  const set = new Set();
+  for (const r of entry.rounds) {
+    const n = Number(r);
+    if (GAME_ROUNDS.includes(n)) set.add(n);
+  }
+  return [...set].sort((a, b) => a - b);
+}
+
+/** Une entrée `music.json` dans la forme neuve (`theme: 'game'` + `rounds`).
+ *  Rend un objet NEUF ; une piste hors partie est rendue telle quelle. */
+export function normalizeMusic(entry) {
+  if (!isGameMusic(entry)) return entry;
+  return { ...entry, theme: GAME_MUSIC_THEME, rounds: musicRounds(entry) };
+}
+
+/** « Tours 1, 2, 3 » / « Tour 5 » / « Tous les tours » — pour l'admin. */
+export function roundsLabel(rounds) {
+  if (!rounds?.length) return 'Aucun tour';
+  if (rounds.length === GAME_ROUNDS.length) return 'Tous les tours';
+  return `${rounds.length > 1 ? 'Tours' : 'Tour'} ${rounds.join(', ')}`;
+}
 
 export const SFX_TRIGGER_IDS = SFX_TRIGGERS.map(t => t.id);
 export const MUSIC_THEME_IDS = MUSIC_THEMES.map(t => t.id);
