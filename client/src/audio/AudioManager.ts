@@ -49,8 +49,8 @@
 // quand l'onglet passe en arrière-plan (`visibilitychange`) : sans ça, une
 // PWA installée peut continuer à jouer du son hors champ.
 import { resolveSfx, sfxUrl, getAllSfx, type SfxVariant } from '../data/SfxDatabase.js';
-import { tracksForTheme, tracksForGameTheme, playableGameThemeIds, musicUrl } from '../data/MusicDatabase.js';
-import { GAME_MUSIC_SLOTS } from '../../../sound-schema.mjs';
+import { tracksForTheme, tracksForGameRound, playableGameThemeIds, musicUrl } from '../data/MusicDatabase.js';
+import { GAME_MUSIC_THEME } from '../../../sound-schema.mjs';
 
 const SETTINGS_KEY = 'millenium_audio_settings_v1';
 // Durée de CHAQUE demi-fondu (descente puis montée) d'une transition
@@ -493,6 +493,10 @@ function retainUntilDone(el: HTMLAudioElement): void {
 
 let currentTheme: string | null = null;
 let current: MusicTrack | null = null;
+/** L'id de la piste en cours (`null` dès qu'elle part en fondu vers le
+ *  silence) — c'est ce qui permet à une piste qui couvre plusieurs tours de
+ *  CONTINUER d'un tour à l'autre au lieu de repartir de zéro. */
+let currentTrackId: string | null = null;
 /** Le thème de PARTIE verrouillé pour le match en cours — tiré une fois par
  *  `rollGameTheme()`, jamais rejoué à chaque round. */
 let lockedGameTheme: string | null = null;
@@ -848,8 +852,8 @@ export function resumeFromBackground(): void {
  * Le thème choisi par le joueur (`setGameThemePreference`) l'emporte s'il est
  * jouable ; sinon tirage au sort.
  *
- * `null` quand aucun thème n'a de piste : `setMusicTheme('game')` retombe
- * alors sur le pool commun (`MusicDatabase.tracksForGameTheme`).
+ * `null` quand aucun thème n'a de piste : `setGameMusicRound` retombe
+ * alors sur le pool commun (`MusicDatabase.tracksForGameRound`).
  */
 export function rollGameTheme(): void {
   const ids = playableGameThemeIds();
@@ -859,17 +863,10 @@ export function rollGameTheme(): void {
 }
 
 /**
- * Bascule l'EMPLACEMENT musical courant (`menu` / `game_early` / `game_mid` /
- * `game_late`). NO-OP si c'est déjà l'emplacement en cours (sinon chaque
- * round rejouerait la piste depuis zéro) ; `force: true` pour retirer une
- * nouvelle piste du même emplacement (playlist).
- *
- * Un emplacement `game_*` joue les pistes du thème de partie VERROUILLÉ par
- * `rollGameTheme()` pour CE moment — c'est lui, pas cette fonction, qui
- * choisit LEQUEL. Le thème ne change jamais en cours de match : seul
- * l'emplacement avance (tours 1-2 → 3-4 → 5), et `tracksForGameTheme`
- * retombe sur le pool commun de l'emplacement si le thème verrouillé n'a
- * rien pour ce moment précis.
+ * Bascule l'EMPLACEMENT musical courant hors partie (`menu`). NO-OP si c'est
+ * déjà l'emplacement en cours (sinon chaque écran rejouerait la piste depuis
+ * zéro) ; `force: true` pour retirer une nouvelle piste du même emplacement
+ * (playlist). La musique de PARTIE passe par `setGameMusicRound`.
  *
  * `theme: null` coupe la musique (fondu vers le silence).
  */
@@ -877,9 +874,29 @@ export function setMusicTheme(theme: string | null, opts: { force?: boolean } = 
   if (typeof Audio === 'undefined') return;
   if (!opts.force && theme === currentTheme) return;
   currentTheme = theme;
-  const tracks = theme && GAME_MUSIC_SLOTS.includes(theme) ? tracksForGameTheme(theme, lockedGameTheme)
-    : theme ? tracksForTheme(theme) : [];
+  const tracks = theme ? tracksForTheme(theme) : [];
   if (!tracks.length) { fadeOutCurrent(); return; }
+  const pick = tracks[Math.floor(Math.random() * tracks.length)];
+  crossfadeTo(pick.id);
+}
+
+/**
+ * La musique du TOUR `round` (1 à 5), dans le thème de partie verrouillé par
+ * `rollGameTheme()` — appelée à chaque ouverture de tour.
+ *
+ * ⚠️ **La piste en cours CONTINUE si elle couvre aussi ce tour** : une piste
+ * « tours 1-2-3 » joue d'un seul tenant sur les trois, et c'est aussi ce qui
+ * tranche quand deux pistes couvrent le même tour (« 1-2-3 » puis « 3-4 » :
+ * au tour 3, la première continue ; au tour 4, la seconde prend le relais).
+ * Sinon, une piste est tirée au hasard parmi celles qui couvrent ce tour
+ * (playlist), et aucune → fondu vers le silence.
+ */
+export function setGameMusicRound(round: number): void {
+  if (typeof Audio === 'undefined') return;
+  currentTheme = GAME_MUSIC_THEME;
+  const tracks = tracksForGameRound(round, lockedGameTheme);
+  if (!tracks.length) { fadeOutCurrent(); return; }
+  if (currentTrackId && tracks.some(t => t.id === currentTrackId)) return;
   const pick = tracks[Math.floor(Math.random() * tracks.length)];
   crossfadeTo(pick.id);
 }
@@ -922,6 +939,7 @@ function releaseDeferredPauses(): void {
 function fadeOutCurrent(): void {
   const outgoing = current;
   current = null;
+  currentTrackId = null;
   if (!outgoing) return;
   const startVolume = effectiveMusicVolume();
   runFade((t) => outgoing.setVolume(startVolume * (1 - t)), () => pauseWhenSfxIdle(outgoing));
@@ -938,6 +956,7 @@ function fadeOutCurrent(): void {
 function crossfadeTo(id: string): void {
   const outgoing = current;
   current = null;
+  currentTrackId = id;
   if (!outgoing) { startIncoming(id); return; }
   const startVolume = effectiveMusicVolume();
   runFade((t) => outgoing.setVolume(startVolume * (1 - t)), () => {
