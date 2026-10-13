@@ -449,6 +449,9 @@ export interface DrawSummary {
   handSizeAfter: number;
   /** D'où viennent les bonus — vide au tour d'ouverture. */
   sources: DrawSourceEntry[];
+  /** La main redistribuée par un MULLIGAN, pas l'ouverture du tour : la popup
+   *  rejoue la pioche, mais le terrain est déjà annoncé. */
+  mulligan?: boolean;
 }
 
 // ── Événements de combat (CombatManager.step()) ──

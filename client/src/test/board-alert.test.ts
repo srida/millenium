@@ -166,6 +166,23 @@ describe('Annonce de terrain — quand elle tombe', () => {
     expect(useGameStore.getState().terrainAlert).toBeNull();
   });
 
+  // Mutation : `mulligan()` sans `drawPopup` → ROUGE.
+  it('le mulligan rejoue la popup de pioche, sans réannoncer le terrain', () => {
+    const { session, controller } = opened();
+    vi.advanceTimersByTime(ROUND_INTRO_MS);
+    controller.dismissDrawPopup();
+    controller.dismissTerrainAlert();
+
+    controller.mulligan();
+    const popup = useGameStore.getState().drawPopup;
+    expect(popup?.mulligan).toBe(true);
+    expect(popup?.drawnCount).toBe(session.hand.length);
+
+    controller.dismissDrawPopup();
+    expect(useGameStore.getState().drawPopup).toBeNull();
+    expect(useGameStore.getState().terrainAlert).toBeNull();
+  });
+
   it('le tap la retire tout de suite', () => {
     const { controller } = opened();
     vi.advanceTimersByTime(ROUND_INTRO_MS);

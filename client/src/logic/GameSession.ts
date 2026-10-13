@@ -575,7 +575,13 @@ export class GameSession {
    * ⚠️ `prepId` n'est PAS incrémenté : c'est le même tour de préparation.
    */
   mulligan(): boolean {
-    if (!this.canMulligan()) return false;
+    return this.mulliganDraw() !== null;
+  }
+
+  /** Le même geste que `mulligan()`, qui rend ce que la popup de pioche
+   *  rejoue (`null` quand le geste n'est pas disponible). */
+  mulliganDraw(): DrawSummary | null {
+    if (!this.canMulligan()) return null;
     this._mulliganUsed = true;
     const count = this.hand.length - MULLIGAN_CARD_PENALTY;
     // ⚠️ Le mulligan REND la main au deck : une Unique qu'on tenait encore
@@ -586,7 +592,17 @@ export class GameSession {
     this._recordUniqueDraws(drawn);
     // Le point de retour AVANCE : ce qui est payé n'est jamais annulable.
     this._prepSnapshot = this._capturePreparation();
-    return true;
+    return {
+      round: this.gameState.round,
+      tiers: tiersForRound(this.gameState.round),
+      baseCount: drawn.length,
+      extraDraws: 0,
+      guaranteed: [],
+      drawnCount: drawn.length,
+      handSizeAfter: this.hand.length,
+      sources: [],
+      mulligan: true,
+    };
   }
 
   // ── Réserve d'énergie ────────────────────────────────────────────────────

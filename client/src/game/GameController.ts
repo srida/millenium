@@ -318,8 +318,12 @@ export class GameController {
    *  CLIC, pas l'animation qui le suit — il part donc dans le composant, au
    *  moment exact du tap. */
   dismissDrawPopup(): void {
-    if (!useGameStore.getState().drawPopup) return;
+    const popup = useGameStore.getState().drawPopup;
+    if (!popup) return;
     this.sync({ drawPopup: null });
+    // Un mulligan rejoue la pioche, pas l'ouverture du tour : le terrain est
+    // déjà annoncé.
+    if (popup.mulligan) return;
     this._showRoundTerrain();
     this._announceTerrain();
   }
@@ -710,10 +714,13 @@ export class GameController {
    */
   mulligan(): void {
     if (!this.canMulligan()) return;
-    if (!this.session.mulligan()) return;
+    const draw = this.session.mulliganDraw();
+    if (!draw) return;
     Audio.playSfx('mulligan_reroll');
     this._clearSelection();
-    this.sync();
+    // La nouvelle main arrive par la popup de pioche, comme en début de tour :
+    // `HandBar` reste masquée tant qu'elle est posée.
+    this.sync({ drawPopup: draw });
   }
 
   /**

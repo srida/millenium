@@ -140,7 +140,9 @@ export function DrawPopup({ autoDismissMs = 0 }: { autoDismissMs?: number } = {}
   return (
     <Modal onClose={deal}>
       <div className="flex flex-col items-center gap-3">
-        <div className="text-[9px] uppercase tracking-widest text-white/40">Pioche du tour {summary.round}</div>
+        <div className="text-[9px] uppercase tracking-widest text-white/40">
+          {summary.mulligan ? 'Mulligan — nouvelle main' : `Pioche du tour ${summary.round}`}
+        </div>
 
         <button
           type="button"

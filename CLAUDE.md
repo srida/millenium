@@ -698,6 +698,7 @@ Bouton `UI_MULLIGAN` + prix de `PhaseControls`, **à chaque tour** : remet la ma
 | Disponibilité | main d'au moins 2 cartes **et tour INTACT** (`!canUndoPreparation()`) |
 
 - ⚠️ **Le tour doit être intact, et c'est ce qui rend les deux règles compatibles** : le mulligan n'est pas annulable (la carte perdue ne revient pas avec `undoPreparation`), il **re-capture donc le `_prepSnapshot`**. Le déplacer sur un tour déjà joué confisquerait l'annulation des invocations ; ne pas le déplacer rendrait la main d'avant, carte perdue comprise. Même doctrine que la Phase Shopping, qui a lieu **avant** la capture.
+- **La nouvelle main arrive par la popup de pioche** (`GameSession.mulliganDraw()` rend un `DrawSummary` marqué `mulligan: true`) : `HandBar` reste masquée jusqu'au tap, et `dismissDrawPopup` ne réannonce pas le terrain.
 - **Corollaire visible** : mulligan et ↺ ne sont **jamais** à l'écran ensemble — le premier cède sa place au second à la première invocation.
 - ⚠️ **`prepId` n'est PAS incrémenté** : c'est le même tour. Le bouger périmerait la marque d'événements de missions et le verrou d'engagement PvP, tous deux parfaitement valides.
 - ⚠️ **On repioche `hand.length − 1`, jamais `HAND_SIZE` en dur** : la main s'accumule d'un tour à l'autre.
