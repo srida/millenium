@@ -178,11 +178,11 @@ describe('MagieEffect — effets sur unité', () => {
 });
 
 describe('MagieEffect — effets globaux (gameState)', () => {
-  it('player_hp_bonus cappé à 1000', () => {
+  it('player_hp_bonus cappé à PLAYER_HP_CAP', () => {
     const gs = new (GameState as any)();
-    gs.player_hp = 950;
+    gs.player_hp = 450;
     applyEffect(magie({ type: 'player_hp_bonus', value: 100 }), { gameState: gs });
-    expect(gs.player_hp).toBe(1000);
+    expect(gs.player_hp).toBe(500);
   });
 
   it('energy_bonus est cumulable, sans plafond', () => {
@@ -207,8 +207,8 @@ describe('MagieEffect — effets globaux (gameState)', () => {
     const before = { ...u };
     const gs = new (GameState as any)();
     // player_hp est SOUS son plafond, sinon un crédit parasite serait masqué
-    // par le `min(…, 1000)` et le test passerait à vide.
-    gs.player_hp = 500;
+    // par le `min(…, PLAYER_HP_CAP)` et le test passerait à vide.
+    gs.player_hp = 300;
     const hpBefore = gs.player_hp;
     for (const t of ['defuse_fusion', 'destroy_unit', 'drain_life', 'hand_to_graveyard']) {
       applyEffect(magie({ type: t }), { gameState: gs, targetUnit: u });

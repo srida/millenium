@@ -24,7 +24,11 @@ function ensureListening() {
  * @param {number} playerHp
  * @param {{ value: number, sources: any[] } | null} [multiplierBonus]
  */
-export function sendOwnBoard(round, units, playerHp, multiplierBonus = null) {
+/**
+ * @param {{ value: number, sources: any[] } | null} [multiplierBonus]
+ * @param {'x2' | 'half' | null} [joker]
+ */
+export function sendOwnBoard(round, units, playerHp, multiplierBonus = null, joker = null) {
   // On transmet TOUT l'état persistant d'une unité entre deux rounds : sans lui,
   // la reconstruction repartirait de zéro et les deux clients simuleraient des
   // matchups différents aux rounds > 1 (chacun voyant son adversaire « frais »).
@@ -56,9 +60,13 @@ export function sendOwnBoard(round, units, playerHp, multiplierBonus = null) {
   // `damage_multiplier_bonus` (+ sa provenance) : le bonus PERMANENT des magies
   // du même nom. Sans lui, l'adversaire calcule les PV qu'il perd sans ce
   // bonus, et les deux clients divergent sur la fin de partie.
+  // `joker` : le joker posé pour CE round (`'x2'` | `'half'` | null). Il
+  // multiplie les dégâts des deux camps, donc l'adversaire doit le connaître
+  // pour calculer les mêmes PV de fin de round.
   const payload = {
     round,
     player_hp: playerHp,
+    joker: joker ?? null,
     damage_multiplier_bonus: multiplierBonus?.value ?? 0,
     damage_multiplier_sources: multiplierBonus?.sources ?? [],
     units: units.map(u => ({
@@ -153,6 +161,16 @@ export function applyOpponentMultiplier(gameState, payload) {
   gameState.enemy_multiplier_sources = Array.isArray(payload.damage_multiplier_sources)
     ? payload.damage_multiplier_sources.map(s => ({ ...s }))
     : [];
+}
+
+// Pose sur `gameState` le joker que l'adversaire a annoncé avec son board pour
+// ce round. AFFECTÉ tel quel, sans regarder `enemy_joker_used` : son
+// propriétaire l'applique chez lui, et c'est ce que les deux clients doivent
+// faire pour tomber sur le même facteur (`GameState.startCombat`). Un payload
+// antérieur au champ vaut « pas de joker ».
+export function applyOpponentJoker(gameState, payload) {
+  const j = payload?.joker;
+  gameState.enemy_joker = j === 'x2' || j === 'half' ? j : null;
 }
 
 export function reset() {

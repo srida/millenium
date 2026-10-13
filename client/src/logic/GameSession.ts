@@ -14,6 +14,7 @@ import {
   MULLIGAN_COST_ENERGY, SHOPPING_REROLL_COST_ENERGY,
   MAGIE_ENERGY_PRICE, CARD_ENERGY_PRICE, SHOP_CARD_COUNT,
 } from './GameState.js';
+import type { JokerKind } from './GameState.js';
 import { EnemyAI } from './EnemyAI.js';
 import { AttributeManager } from './AttributeManager.js';
 import { CombatManager } from './CombatManager.js';
@@ -221,6 +222,11 @@ export interface EndRoundResult {
   reserveGainReason: import('./GameState.js').ReserveGainReason | null;
   /** La réserve après ce round. */
   reserveTotal: number;
+  /** Les jokers posés ce round (`null` = aucun) et leur facteur commun, qui a
+   *  multiplié les dégâts des DEUX camps. */
+  playerJoker: JokerKind | null;
+  enemyJoker: JokerKind | null;
+  jokerFactor: number;
 }
 
 /**
@@ -535,6 +541,26 @@ export class GameSession {
       && !this.canUndoPreparation();
   }
 
+  // ── Joker ────────────────────────────────────────────────────────────────
+
+  /** Le joueur peut-il poser, changer ou retirer son joker ce round ? */
+  canPlayJoker(): boolean { return this.gameState.canPlayJoker(); }
+
+  /**
+   * Pose le joker du joueur pour ce round (`null` le retire). Il n'est CONSOMMÉ
+   * qu'au lancement du combat (`GameState.startCombat`) : jusque-là le joueur
+   * peut changer d'avis. Rend `false` sans rien toucher quand le geste n'est
+   * pas disponible.
+   *
+   * ⚠️ Hors du point de retour du tour : « Tout annuler » ne touche ni au
+   * plateau ni à la main du joker, et n'a donc rien à rendre.
+   */
+  setJoker(kind: JokerKind | null): boolean {
+    if (!this.canPlayJoker()) return false;
+    this.gameState.player_joker = kind;
+    return true;
+  }
+
   /** Le prix du mulligan, pour que l'écran l'annonce sans le recopier. */
   mulliganCost(): number { return MULLIGAN_COST_ENERGY; }
 
@@ -719,6 +745,9 @@ export class GameSession {
     this.enemyAI.rearrangeUnits(this.board, null, (u: Unit) => this.placementKeywordOf(u.attributes));
     this.enemyUnits = this.board.getLivingUnitsOnSide('enemy');
     this._applyEnemyBonus();
+    // Le joker de l'IA, à l'aveugle : elle ne lit que les PV, jamais celui du joueur.
+    const gs = this.gameState;
+    if (!gs.enemy_joker_used) gs.enemy_joker = this.enemyAI.chooseJoker(gs.round, gs.enemy_hp, gs.player_hp);
   }
 
   /**
@@ -1230,6 +1259,9 @@ export class GameSession {
       reserveGain: combatOutcome.reserveGain,
       reserveGainReason: combatOutcome.reserveGainReason,
       reserveTotal: this.gameState.player_energy_reserve,
+      playerJoker: this.gameState.player_joker,
+      enemyJoker: this.gameState.enemy_joker,
+      jokerFactor: combatOutcome.jokerFactor,
     };
   }
 

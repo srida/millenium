@@ -219,6 +219,21 @@ export class EnemyAI {
     return placed;
   }
 
+  /**
+   * Le joker de l'IA, posé à l'aveugle comme celui du joueur : elle ne lit que
+   * les PV, jamais ce que le joueur a posé. Règle « variance », la meilleure
+   * trouvée sans lecture du board (simulation du 13/10/2026) : à partir du
+   * tour 4, derrière on fait compter le round (×2), devant on le désamorce
+   * (×0,5). À égalité, ×2 au dernier tour. Rend `null` pour ne rien poser.
+   * Sans hasard : aucun appel à `rand`, le flux semé reste en phase.
+   */
+  chooseJoker(round, myHp, opponentHp) {
+    if (round < 4) return null;
+    if (myHp < opponentHp) return 'x2';
+    if (myHp > opponentHp) return 'half';
+    return round >= 5 ? 'x2' : null;
+  }
+
   /** Cards not placed — used for damage multiplier calculation. */
   getHand() {
     return this._hand;

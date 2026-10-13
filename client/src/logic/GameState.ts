@@ -12,20 +12,28 @@ export type PhaseValue = typeof Phase[keyof typeof Phase];
 const MAX_ROUNDS = 5;
 
 /**
- * Le facteur de tour du multiplicateur de dégâts : ×1, ×1,5, ×2, ×2,5, ×3.
- * Il valait le numéro du tour (×1…×5), si bien que le dernier tour pesait un
- * tiers de la partie — et c'est celui où une carte précise sort le moins.
+ * Le JOKER : chaque joueur en a un par partie, posé en préparation, sans voir ce
+ * que pose l'adversaire. Il multiplie TOUS les dégâts du round, dans les deux
+ * sens — ×2 fait aussi encaisser double si on perd le round, ×0,5 fait aussi
+ * infliger moitié si on le gagne. Deux jokers posés le même round se
+ * multiplient : ×2 et ×2 font ×4, ×0,5 et ×0,5 font ×0,25, ×2 et ×0,5 se
+ * neutralisent.
+ *
+ * Il a remplacé le facteur de tour (×1 → ×3) : le dernier tour ne pèse plus
+ * d'office trois fois le premier, c'est aux joueurs de décider quel round compte.
  */
-export function roundFactor(round: number): number {
-  return 1 + 0.5 * (Math.max(1, round) - 1);
+export type JokerKind = 'x2' | 'half';
+export const JOKER_FACTOR: Readonly<Record<JokerKind, number>> = Object.freeze({ x2: 2, half: 0.5 });
+export function jokerFactor(kind: JokerKind | null | undefined): number {
+  return kind ? JOKER_FACTOR[kind] : 1;
 }
-const STARTING_HP = 1000;
+
+const STARTING_HP = 500;
 
 /** Plafond de `player_hp` : c'est le pool de départ lui-même — `player_hp_bonus`
  *  et `drain_life` ne font que le regarnir, jamais le dépasser. Exporté parce
  *  que la pertinence d'une magie `player_hp_bonus` en dépend
- *  (`MagieOffer.isMagieRelevant`). ⚠️ `MagieEffect.js` en garde une copie
- *  littérale (`Math.min(…, 1000)`) : les deux doivent rester d'accord. */
+ *  (`MagieOffer.isMagieRelevant`). */
 export const PLAYER_HP_CAP = STARTING_HP;
 
 /**
@@ -77,11 +85,22 @@ export class GameState {
   player_hp: number;
   enemy_hp: number;
 
-  /** Multiplicateur de base du round : le seul facteur de tour
-   *  (`roundFactor`). Il dépendait aussi du nombre d'unités posées (×3 à une
-   *  unité) ; c'est la réserve d'énergie qui récompense désormais la retenue. */
+  /** Multiplicateur de base du round : ×1 à tous les tours. Les bonus
+   *  (attribut, magie) s'y ajoutent ; le joker, lui, multiplie le tout
+   *  (`round_joker_factor`). */
   player_multiplier: number;
   enemy_multiplier: number;
+
+  /** Joker POSÉ pour le round en cours (préparation), `null` sinon. Consommé au
+   *  lancement du combat, rendu à `null` par `nextRound()`. */
+  player_joker: JokerKind | null;
+  enemy_joker: JokerKind | null;
+  /** Le joker de la partie a-t-il déjà été joué ? Un seul par joueur. */
+  player_joker_used: boolean;
+  enemy_joker_used: boolean;
+  /** Facteur du round en cours, produit des deux jokers posés — fixé au
+   *  lancement du combat, appliqué aux dégâts des DEUX camps. */
+  round_joker_factor: number;
 
   /** Énergie mise de côté, cumulée d'un tour à l'autre — cf.
    *  `MULLIGAN_COST_ENERGY`. Joueur seulement : l'IA ne fait ni mulligan ni
@@ -169,6 +188,12 @@ export class GameState {
     this.player_multiplier = 1.0;
     this.enemy_multiplier  = 1.0;
 
+    this.player_joker = null;
+    this.enemy_joker = null;
+    this.player_joker_used = false;
+    this.enemy_joker_used = false;
+    this.round_joker_factor = 1;
+
     this.player_energy_reserve = 0;
     this.player_win_streak = 0;
     this.player_loss_streak = 0;
@@ -194,8 +219,18 @@ export class GameState {
 
   startCombat(): void {
     this.phase = Phase.COMBAT;
-    this.player_multiplier = roundFactor(this.round);
-    this.enemy_multiplier  = roundFactor(this.round);
+    this.player_multiplier = 1.0;
+    this.enemy_multiplier  = 1.0;
+    // ⚠️ Le produit est commutatif : les deux clients PvP, qui voient chacun
+    // l'autre comme « enemy », tombent sur le même facteur.
+    this.round_joker_factor = jokerFactor(this.player_joker) * jokerFactor(this.enemy_joker);
+    if (this.player_joker) this.player_joker_used = true;
+    if (this.enemy_joker) this.enemy_joker_used = true;
+  }
+
+  /** Le joueur peut-il encore poser (ou retirer) son joker ce round ? */
+  canPlayJoker(): boolean {
+    return this.phase === Phase.PREPARATION && !this.player_joker_used;
   }
 
   /**
@@ -244,6 +279,7 @@ export class GameState {
     playerMultiplierSources: BonusSourceEntry[]; enemyMultiplierSources: BonusSourceEntry[];
     playerHpBonus: number; playerHpSources: BonusSourceEntry[];
     reserveGain: number; reserveGainReason: ReserveGainReason | null;
+    jokerFactor: number;
   } {
     this.phase = Phase.END_ROUND;
 
@@ -266,7 +302,7 @@ export class GameState {
         ...(attributeResult.damage_multiplier_sources ?? []),
         ...this.player_multiplier_sources,
       ];
-      playerDamageDealt = Math.round(playerSurvivorsAtk * playerMultiplier);
+      playerDamageDealt = Math.round(playerSurvivorsAtk * playerMultiplier * this.round_joker_factor);
       this.enemy_hp -= playerDamageDealt;
     }
     if (winner === 'enemy' || winner === 'timeout' || winner === 'draw') {
@@ -284,7 +320,7 @@ export class GameState {
         ...(attributeResult.enemy_damage_multiplier_sources ?? []),
         ...this.enemy_multiplier_sources,
       ];
-      enemyDamageDealt = Math.round(enemySurvivorsAtk * enemyMultiplier);
+      enemyDamageDealt = Math.round(enemySurvivorsAtk * enemyMultiplier * this.round_joker_factor);
       this.player_hp -= enemyDamageDealt;
     }
 
@@ -354,6 +390,7 @@ export class GameState {
       playerMultiplierSources, enemyMultiplierSources,
       playerHpBonus, playerHpSources,
       reserveGain: outcome.gain, reserveGainReason: outcome.reason,
+      jokerFactor: this.round_joker_factor,
     };
   }
 
@@ -370,6 +407,9 @@ export class GameState {
       // Reset per-round multipliers
       this.player_multiplier = 1.0;
       this.enemy_multiplier  = 1.0;
+      this.player_joker = null;
+      this.enemy_joker = null;
+      this.round_joker_factor = 1;
     }
     return this.phase;
   }
@@ -392,6 +432,7 @@ export class GameState {
       enemy_hp: this.enemy_hp,
       player_multiplier: this.player_multiplier,
       enemy_multiplier: this.enemy_multiplier,
+      round_joker_factor: this.round_joker_factor,
       player_energy_bonus: this.player_energy_bonus,
       player_energy_reserve: this.player_energy_reserve,
     };

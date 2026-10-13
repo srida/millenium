@@ -582,7 +582,7 @@ node scripts/build-bot-decks.js [--write|--check]
 
 ## Boucle de partie
 
-**5 tours. PV des joueurs : 1000.** Chaque tour :
+**5 tours. PV des joueurs : 500** (`STARTING_HP` = `PLAYER_HP_CAP`). Chaque tour :
 
 1. **Préparation** (`PREP_DURATION = 60` s — placement, chrono tenu par l'écran React, lance le combat à 0 ; **mulligan à 2 ⚡**)
 2. **Combat** (auto-résolu, animé, coupé à 60 s de temps réel)
@@ -738,15 +738,19 @@ La main est **conservée entre les tours** (taille illimitée) ; les cartes non 
 
 **Affichage** (`GameController._groupHand`) : `session.hand` reste une liste plate (l'ordre de pioche fait foi côté logique) ; l'instantané React regroupe les exemplaires identiques (badge ×N, `HandEntry.count`) et trie par tier puis nom. **`HandEntry.idx` pointe l'exemplaire représentatif** — c'est lui qui quitte la main à l'invocation. ⚠️ La signature de regroupement **inclut le coût** : une carte remisée par une magie de main ne fusionne pas avec un exemplaire normal.
 
-## Multiplicateur de dégâts
+## Multiplicateur de dégâts et joker
 
-Identique pour les deux côtés : **seul le facteur de tour**, plus de composante « nombre d'unités ».
+Base **×1 à tous les tours** (plus de facteur de tour). L'effet d'attribut `end_of_combat` `damage_multiplier_bonus` et celui de magie s'y **ajoutent**.
+
+**Joker** (`GameState.player_joker` / `enemy_joker`, `JokerKind = 'x2' | 'half'`) : **un par joueur et par partie**, posé en préparation, consommé au `startCombat` (`*_joker_used`). Il est **à double tranchant** : `round_joker_factor` = produit des jokers des deux camps, appliqué aux dégâts **des deux sens**. ×2 + ×2 = ×4, ×0,5 + ×0,5 = ×0,25, ×2 + ×0,5 = ×1.
 
 ```js
-multiplicateur = roundFactor(round)   // ×1, ×1,5, ×2, ×2,5, ×3
+dégâts = round(somme ATK × (multiplicateur + bonus) × round_joker_factor)
 ```
 
-`roundFactor` (`GameState.ts`) = `1 + 0,5 × (round − 1)`. `gameState.startCombat()` ne prend plus d'argument. L'effet d'attribut `end_of_combat` `damage_multiplier_bonus` s'y **ajoute**.
+- Pose : `GameSession.setJoker(kind | null)` (retirable jusqu'au combat), `GameController.canPlayJoker()` ajoute le verrou d'engagement PvP (`_committedPrepId`). Hors du point de retour : ni « Tout annuler » ni le mulligan n'y touchent.
+- ⚠️ Le joker adverse n'est **pas montré en préparation** (`enemyJoker` du snapshot vaut `null`) : il se révèle au combat.
+- HUD : `JokerButton` (pastille à côté des PV du joueur, menu ×2 / ×0,5) ; ⚠️ **pas dans la barre de phase** — à 375 px un bouton de plus y pousse PRÊT hors de l'écran. Récap : `Overlays.JokerLine`. Libellés : `data/JokerInfo.ts`.
 
 ⚠️ **Le récapitulatif de round DÉTAILLE la part bonus ET la NOMME** (`ATQ × (base +bonus) = dégâts`, puis « 🧬 Rage de Vaincre +1,5 » en dessous — `Overlays.DamageLine`) : un facteur qui passe de ×2 à ×3,5 était un chiffre sans cause.
 - `EndRoundResult.playerMultiplierBonus` / `enemyMultiplierBonus` se **soustraient** au multiplicateur de base, ils ne somment pas les sources — sinon une quatrième source câblée sans passer par là ferait annoncer une somme qui ne fait pas son total.
@@ -1562,7 +1566,7 @@ Champ **racine** `rarity: 1 | 2 | 3` (Commune / Rare / Légendaire). ⚠️ **Pa
 | `team_heal` | `value` | Soigne de `value` PV **toutes** les unités du joueur. ⚠️ **Chiffré** là où `heal` est total : un soin de masse complet n'aurait aucun contrepoids |
 | `shield` | `value` | `applyShield(value)` |
 | `revive` | `value` (% PV max) | Unité du **cimetière** : `is_neutralized = false`, `current_hp = max(1, round(max_hp × value/100))`, purge de tous les statuts |
-| `player_hp_bonus` | `value` | `player_hp = min(player_hp + value, 1000)` |
+| `player_hp_bonus` | `value` | `player_hp = min(player_hp + value, PLAYER_HP_CAP)` |
 | `energy_bonus` | `value` (déf. 1) | `player_energy_bonus += value` — énergie en plus à **chaque** tour, pour toute la partie, cumulable |
 | `draw_bonus` | `value` | `player_extra_draws += (value \|\| 1)` |
 | `guaranteed_draw` | `tier`, `attribute` | Pousse dans `player_guaranteed_draws` — les **deux filtres sont facultatifs et se cumulent** |
@@ -1652,6 +1656,8 @@ N'importe quelle magie peut coûter des **PV du joueur**. Champ de **premier niv
 
 ⚠️ **`revealEnemyUnits` est une SYNCHRO du côté ennemi, pas un simple ajout** : le tour de l'IA peut aussi **retirer** des unités (survivant consommé comme matériau, remplacé par une transformation). Ces unités ont déjà une carte à l'écran et `refresh()` ne repasse plus : sans purge, un **fantôme** reste affiché tout le combat. La purge est un retrait franc (`_removeUnitObj`), pas un `killUnitObj` — une explosion de mort avant le premier coup mentirait. Le côté joueur n'est jamais touché ici.
 
+**Joker** (`chooseJoker`, appelé à la fin de `_placeEnemyUnits`, aucun `rand`) : rien avant le tour 4 ; en retard aux PV → ×2, en avance → ×0,5 ; à égalité, ×2 au tour 5 seulement. C'est la politique « variance », la meilleure mesurée sans lire le plateau.
+
 **Placement en deux passes** : cartes normales d'abord (elles libèrent les matériaux), puis invocations spéciales (qui peuvent les consommer).
 
 **`rearrangeUnits`** : mêlée (`range ≤ 1`) → rangées 7–8, distance → 9–10 ; colonnes `[2, 1, 3, 0, 4]` (centre vers bords) ; PV le plus élevé en rangée la plus avancée ; **3 unités par rangée**, débordement vers la suivante. Aucun plafond d'unités : une case calculée prise ou hors zone retombe sur la première case libre de la zone (`_firstFreeCell`) — jusqu'à cinq unités, placement historique au bit près.
@@ -1703,7 +1709,7 @@ Les toucher déplacerait le placement dans tous les modes et ferait bouger les g
 
 ⚠️ **Tout état persistant d'une unité doit voyager dans `round:board_ready`**, sinon les deux clients simulent des combats différents. Le payload transporte par unité :
 
-`card_id` · `position` · `veterancy_points` · `base` (stats de base, modifiées en permanent par les magies) · `current_hp` (les PV ne se régénèrent pas entre rounds) · `shield` · **`power_id` / `power_rate` / `power_value` / `power_duration` / `power_zone`** (`grant_power` et `power_cooldown` réécrivent durablement le pouvoir ; `power_rate` voyage y compris à `null`, qui veut dire « ne part jamais » ; sans `power_duration`, l'adversaire rejoue une paralysie du **repli** là où son propriétaire en joue une de 60) — plus **`player_hp`** et **`damage_multiplier_bonus`** (+ `damage_multiplier_sources`) au niveau du message, chaque joueur étant la source de vérité de ses propres PV et de son bonus permanent.
+`card_id` · `position` · `veterancy_points` · `base` (stats de base, modifiées en permanent par les magies) · `current_hp` (les PV ne se régénèrent pas entre rounds) · `shield` · **`power_id` / `power_rate` / `power_value` / `power_duration` / `power_zone`** (`grant_power` et `power_cooldown` réécrivent durablement le pouvoir ; `power_rate` voyage y compris à `null`, qui veut dire « ne part jamais » ; sans `power_duration`, l'adversaire rejoue une paralysie du **repli** là où son propriétaire en joue une de 60) — plus **`player_hp`**, **`damage_multiplier_bonus`** (+ `damage_multiplier_sources`) et **`joker`** (celui posé ce round, affecté à `enemy_joker` par `applyOpponentJoker` avant `startCombat`) au niveau du message, chaque joueur étant la source de vérité de ses propres PV et de son bonus permanent.
 
 ⚠️ **Les PV de fin de round doivent se calculer À L'IDENTIQUE des deux côtés** : la resynchro par `player_hp` n'arrive qu'au combat SUIVANT, donc un gain ou une perte connu d'un seul client fait diverger la fin de partie. D'où : l'attribut `player_hp_bonus` de l'adversaire est versé dans `enemy_hp` (`enemy_hp_bonus`, tous modes — l'IA porte aussi le sien) ; un `player_hp_bonus` de **terrain** frappe **les deux joueurs** en PvP, quelle que soit sa cible (`allie`/`ennemi`). Verrouillé par « PV de fin de round » (`pvp-determinism.test.ts`).
 

@@ -15,6 +15,7 @@ import { BONUS_SOURCE_ICON } from '../../data/DrawInfo.js';
 import UiIcon, { type UiIconId } from '../ui/UiIcon.js';
 import { bonusSourceName } from '../../data/gameNames.js';
 import { reserveLines } from '../../data/ReserveInfo.js';
+import { factorLabel, jokerLabel } from '../../data/JokerInfo.js';
 import { END_ROUND_DURATION_S, TERRAIN_ALERT_MS } from '../../game/timings.js';
 import type { EndRoundResult } from '../../logic/GameSession.js';
 import type { BonusSourceEntry } from '../../logic/types.js';
@@ -243,6 +244,27 @@ export function EndRoundOverlay() {
   );
 }
 
+/**
+ * Les jokers posés ce round, et ce qu'ils ont fait des dégâts. Se tait sans
+ * joker — l'immense majorité des rounds.
+ */
+function JokerLine({ result }: { result: EndRoundResult }) {
+  if (!result.playerJoker && !result.enemyJoker) return null;
+  const parts = [
+    result.playerJoker && <span key="p" className="text-player">toi {jokerLabel(result.playerJoker)}</span>,
+    result.enemyJoker && <span key="e" className="text-enemy">adversaire {jokerLabel(result.enemyJoker)}</span>,
+  ].filter(Boolean);
+  return (
+    <div className="flex items-center justify-between gap-2 rounded-lg border border-gold/30 bg-gold/5 px-2 py-1.5 text-[11px]">
+      <span className="font-semibold text-gold">🃏 Jokers</span>
+      <span className="flex items-center gap-1.5 tabular-nums">
+        {parts.map((p, i) => <span key={i}>{i > 0 && '· '}{p}</span>)}
+        <span className="text-white/60">→ dégâts {factorLabel(result.jokerFactor)}</span>
+      </span>
+    </div>
+  );
+}
+
 function DamageBreakdown({ result }: { result: EndRoundResult }) {
   const survivors = result.winner === 'enemy' ? result.enemySurvivors : result.playerSurvivors;
   return (
@@ -255,6 +277,7 @@ function DamageBreakdown({ result }: { result: EndRoundResult }) {
         sources={result.playerMultiplierSources}
         damage={result.playerDamageDealt}
         tone="text-player"
+        joker={result.jokerFactor}
       />
       <DamageLine
         label="Dégâts adverses"
@@ -264,7 +287,9 @@ function DamageBreakdown({ result }: { result: EndRoundResult }) {
         sources={result.enemyMultiplierSources}
         damage={result.enemyDamageDealt}
         tone="text-enemy"
+        joker={result.jokerFactor}
       />
+      <JokerLine result={result} />
       <PlayerHpBonusLine bonus={result.playerHpBonus} sources={result.playerHpSources} />
       <ReserveLine result={result} />
       {survivors.length > 0 && (
@@ -325,9 +350,11 @@ function ReserveLine({ result }: { result: EndRoundResult }) {
  * (`BonusSourceEntry`) voyage depuis `logic/` avec des IDS ; c'est ici qu'ils
  * deviennent « Rage de Vaincre ».
  */
-function DamageLine({ label, atk, multiplier, bonus, sources, damage, tone }: {
+function DamageLine({ label, atk, multiplier, bonus, sources, damage, tone, joker = 1 }: {
   label: string; atk: number; multiplier: number; bonus: number;
   sources: readonly BonusSourceEntry[]; damage: number; tone: string;
+  /** Facteur des jokers du round, qui multiplie le tout (1 = aucun joker). */
+  joker?: number;
 }) {
   if (multiplier <= 0) return null;
   // Un bonus négatif n'existe pas aujourd'hui ; le tester coûte moins cher que
@@ -342,7 +369,7 @@ function DamageLine({ label, atk, multiplier, bonus, sources, damage, tone }: {
           {atk} × {hasBonus
             ? <>({base.toFixed(1)} <span className="font-semibold text-gold">+{bonus.toFixed(1)}</span>)</>
             : multiplier.toFixed(1)
-          } = <span className={`font-bold ${tone}`}>{damage}</span>
+          }{joker !== 1 && <> × <span className="font-semibold text-gold">🃏{factorLabel(joker)}</span></>} = <span className={`font-bold ${tone}`}>{damage}</span>
         </span>
       </div>
       {hasBonus && <MultiplierSources sources={sources} />}

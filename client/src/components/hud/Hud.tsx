@@ -1,8 +1,11 @@
-// Barre HUD haute : PV joueur/ennemi (max 1000), indicateur de manche et,
+// Barre HUD haute : PV joueur/ennemi (max `PLAYER_HP_CAP`), indicateur de manche et,
 // la jauge d'énergie du tour (en préparation, `EnergyGauge`),
 // multiplicateurs de dégâts (affichés pendant le combat), identité des deux
 // camps (avatar + pseudo/nom de deck, résolus par l'écran appelant).
+import { jokerLabel } from '../../data/JokerInfo.js';
+import type { JokerKind } from '../../logic/GameState.js';
 import EnergyGauge from './EnergyGauge.js';
+import JokerButton from './JokerButton.js';
 import { useGameStore } from '../../stores/gameStore.js';
 import { useAuthStore } from '../../stores/authStore.js';
 import { Avatar } from '../ui/primitives.js';
@@ -22,8 +25,22 @@ export interface HudProps {
   onPlayerTap?: () => void;
 }
 
+/**
+ * Le joker ADVERSE, à côté de ses PV (celui du joueur est `JokerButton`) : son
+ * facteur en or quand il est révélé, au combat seulement, un 🃏
+ * estompé tant qu'il reste à jouer — c'est une information de lecture : un
+ * adversaire qui a encore son joker peut encore faire compter un round. Rien
+ * une fois joué.
+ */
+function JokerChip({ joker, used }: { joker: JokerKind | null; used: boolean }) {
+  const label = jokerLabel(joker);
+  if (label) return <span className="text-[10px] font-bold text-gold tabular-nums" title="Joker posé ce round">🃏{label}</span>;
+  if (used) return null;
+  return <span className="text-[10px] opacity-40" title="Joker encore disponible" aria-label="Joker encore disponible">🃏</span>;
+}
+
 export default function Hud({ enemyAvatarSrc = null, enemyAvatarFallback = '?', enemyName = null, onPlayerTap }: HudProps) {
-  const { playerHp, enemyHp, round, playerMultiplier, enemyMultiplier, combatActive } = useGameStore();
+  const { playerHp, enemyHp, round, enemyJoker, enemyJokerUsed } = useGameStore();
   // ⚠️ Le chiffre et la jauge comptent sur la MÊME horloge : la transition est
   // tenue ici, une fois par camp, et descend dans les deux (cf. `HpBar`). Deux
   // décomptes indépendants finiraient par ne plus annoncer le même total.
@@ -65,7 +82,7 @@ export default function Hud({ enemyAvatarSrc = null, enemyAvatarFallback = '?', 
             </span>
           )}
           <span className="flex flex-shrink-0 items-center gap-1.5">
-            {combatActive && <span className="text-[10px] font-bold text-player/80 tabular-nums">×{playerMultiplier.toFixed(1)}</span>}
+            <JokerButton />
             <span className="font-bold text-player tabular-nums">{player.shown}</span>
           </span>
         </div>
@@ -86,7 +103,7 @@ export default function Hud({ enemyAvatarSrc = null, enemyAvatarFallback = '?', 
         <div className="flex items-center justify-between gap-2 text-xs">
           <span className="flex flex-shrink-0 items-center gap-1.5">
             <span className="font-bold text-enemy tabular-nums">{enemy.shown}</span>
-            {combatActive && <span className="text-[10px] font-bold text-enemy/80 tabular-nums">×{enemyMultiplier.toFixed(1)}</span>}
+            <JokerChip joker={enemyJoker} used={enemyJokerUsed} />
           </span>
           <span className="flex min-w-0 items-center gap-1.5">
             {opponentMuted && <span className="flex-shrink-0 text-[9px] tracking-[0.08em] text-white/50">MUET</span>}

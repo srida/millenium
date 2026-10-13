@@ -27,7 +27,7 @@ const PLAYER_ROLE = 'A';
  * garde-fous bornent l'abus sans prétendre le fermer — même posture que le
  * rate-limit de `progression.reward` sur les gains solo :
  *
- *   1. une partie de 5 tours contre 1000 PV ne se gagne pas en une minute ;
+ *   1. une partie de 5 tours contre 500 PV ne se gagne pas en une minute ;
  *   2. un joueur légitime n'enchaîne pas 20 duels en une heure (≈ 3 min pièce).
  *
  * Les deux plafonds sont larges à dessein : ils doivent rester invisibles à qui

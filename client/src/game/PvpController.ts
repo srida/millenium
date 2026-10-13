@@ -16,7 +16,7 @@
 import { GameController } from './GameController.js';
 import { GameSession, Phase } from '../logic/GameSession.js';
 import * as PvpConnection from '../net/PvpConnection.js';
-import { sendOwnBoard, waitForOpponentBoard, reconstructOpponentUnits, applyOpponentMultiplier, reset as resetOpponent } from '../net/PvpOpponentProvider.js';
+import { sendOwnBoard, waitForOpponentBoard, reconstructOpponentUnits, applyOpponentMultiplier, applyOpponentJoker, reset as resetOpponent } from '../net/PvpOpponentProvider.js';
 import type { BoardDef } from '../logic/types.js';
 import type { Scene3D } from '../three/Scene3D.js';
 import { useGameStore } from '../stores/gameStore.js';
@@ -123,7 +123,7 @@ export class PvpController extends GameController {
     sendOwnBoard(round, this.session.getPlayerUnits(), gs.player_hp, {
       value: gs.player_damage_multiplier_bonus,
       sources: gs.player_multiplier_sources,
-    });
+    }, gs.player_joker);
     // 2) J'acquitte la barrière. Le board adverse n'est lu qu'à `round:go` :
     //    l'adversaire peut reprendre son PRÊT et renvoyer un autre board, seul le
     //    dernier reçu fait foi (`PvpOpponentProvider` écrase par round).
@@ -211,6 +211,9 @@ export class PvpController extends GameController {
     // Bonus permanent de multiplicateur de l'adversaire (magies) — AFFECTÉ,
     // jamais cumulé : son propriétaire fait foi, comme pour ses PV.
     applyOpponentMultiplier(this.session.gameState, oppPayload);
+    // Joker adverse du round : il multiplie MES dégâts aussi, donc il doit être
+    // posé avant `startCombat`, qui calcule le facteur du round.
+    applyOpponentJoker(this.session.gameState, oppPayload);
 
     this._installOpponent(oppPayload);
 

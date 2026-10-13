@@ -240,7 +240,7 @@ export const CHAPTERS: Chapter[] = [
     title: 'Les phases de jeu',
     blurb: 'Cinq tours, et la même boucle à chaque fois.',
     blocks: [
-      { kind: 'text', text: "Une partie dure **5 tours**. Chaque joueur commence à **1000 points de vie**. Le premier à zéro perd ; sinon, c'est celui qui a le plus de PV après le tour 5." },
+      { kind: 'text', text: "Une partie dure **5 tours**. Chaque joueur commence à **500 points de vie**. Le premier à zéro perd ; sinon, c'est celui qui a le plus de PV après le tour 5." },
       { kind: 'table', head: ['Phase', 'Ce qui se passe'], rows: [
         ['1. Préparation', "60 secondes pour piocher, invoquer et placer. Tu peux lancer avant la fin avec PRÊT."],
         ['2. Combat', "Automatique. L'adversaire pose son board au lancement, puis tout se résout seul."],
@@ -248,16 +248,16 @@ export const CHAPTERS: Chapter[] = [
         ['4. Shopping', "Une magie à choisir parmi 3. Sautée au dernier tour."],
         ['5. Tour suivant', "Nouvelle pioche, les survivants reprennent leur place."],
       ] },
-      { kind: 'text', text: "Les dégâts de fin de combat ne dépendent pas du nombre d'unités tuées, mais de **l'ATK totale de tes survivants**, multipliée. Et le multiplicateur récompense les boards dégarnis." },
-      { kind: 'table', head: ['Unités sur ton terrain', 'Multiplicateur'], rows: [
-        ['5 ou plus', '×1'],
-        ['4', '×1,2'],
-        ['3', '×1,5'],
-        ['2', '×2'],
-        ['0 ou 1', '×3'],
+      { kind: 'text', text: "Les dégâts de fin de combat ne dépendent pas du nombre d'unités tuées, mais de **l'ATK totale de tes survivants**." },
+      { kind: 'text', text: "Chaque joueur a **un joker** par partie, à poser en préparation, sans voir celui de l'adversaire. Il multiplie **tous les dégâts du round, dans les deux sens** : c'est un pari." },
+      { kind: 'table', head: ['Jokers posés ce round', 'Dégâts du round'], rows: [
+        ['×2', "×2 — pour toi si tu gagnes, contre toi si tu perds"],
+        ['×0,5', "×0,5 — tu encaisses moitié, mais tu frappes moitié"],
+        ['×2 et ×2', '×4'],
+        ['×0,5 et ×0,5', '×0,25'],
+        ['×2 et ×0,5', '×1 — ils se neutralisent'],
       ] },
-      { kind: 'note', text: "Ce multiplicateur est ensuite **multiplié par un facteur de tour** : ×1 au tour 1, puis +0,5 par tour, jusqu'à ×3 au tour 5. Les derniers tours comptent plus, sans que tout se joue au dernier." },
-      { kind: 'text', text: "Peu d'unités, c'est donc frapper plus fort — mais c'est aussi risquer de perdre le combat. C'est l'arbitrage central du jeu." },
+      { kind: 'note', text: "Le joker n'aide que si tu choisis le bon round : ×2 quand tu comptes le gagner, ×0,5 quand tu t'attends à le perdre. Derrière aux PV, fais compter un round ; devant, désamorce-le." },
       { kind: 'note', text: "Un combat qui n'a pas départagé les camps au bout de 60 secondes est **coupé** : les deux joueurs encaissent alors les dégâts des survivants d'en face. Un board purement défensif ne protège de rien." },
     ],
   },
@@ -272,7 +272,7 @@ export const CHAPTERS: Chapter[] = [
       { kind: 'bullets', items: [
         "**Tier 1 et 2** — ton socle. Peu chères, disponibles tôt, souvent posables sans rien payer.",
         "**Tier 3** — le tournant : c'est là que les recettes commencent à nommer les cartes qu'elles réclament.",
-        "**Tier 4 et 5** — les finisseuses. Elles coûtent des matériels et n'arrivent qu'aux derniers tours, quand le multiplicateur les rend décisives.",
+        "**Tier 4 et 5** — les finisseuses. Elles coûtent des matériels et n'arrivent qu'aux derniers tours, quand les boards sont les plus chargés.",
       ] },
       { kind: 'text', text: "Certaines cartes portent **plusieurs tiers** : elles se piochent à chacun d'eux, et comblent les trous d'un deck. Elles ne comptent jamais que pour **une** carte." },
       { kind: 'note', text: "Dans un deck : **8 cartes maximum par tier**, et **un seul exemplaire** de chaque carte. Un deck trop lourd en tier 5 ne pioche rien au tour 1." },

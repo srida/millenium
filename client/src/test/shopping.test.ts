@@ -225,7 +225,7 @@ describe('Shopping — pertinence de l\'offre', () => {
     const { session } = makeSession({ magies: [magie({ type: 'player_hp_bonus', value: 100 }, { id: 'ROUGE' })] });
     expect(session.getShoppingMagies()).toEqual([]);
 
-    session.gameState.player_hp = 999;
+    session.gameState.player_hp = 499;
     expect(offeredIds(session)).toEqual(['ROUGE']);
   });
 
@@ -564,11 +564,11 @@ describe('Shopping — carry-over des effets globaux (consommés au tour suivant
     expect(session.isPlayable(main[0] as any)).toBe(true);
   });
 
-  it('player_hp_bonus : appliqué immédiatement, cappé à 1000', () => {
+  it('player_hp_bonus : appliqué immédiatement, cappé à PLAYER_HP_CAP', () => {
     const { session } = makeSession();
-    session.gameState.player_hp = 940;
+    session.gameState.player_hp = 440;
     session.applyGlobalMagie(magie({ type: 'player_hp_bonus', value: 100 }) as any);
-    expect(session.gameState.player_hp).toBe(1000);
+    expect(session.gameState.player_hp).toBe(500);
   });
 
   it('team_heal : effet GLOBAL — soigne tout le board joueur du montant demandé', () => {
@@ -945,17 +945,17 @@ describe('Shopping — drain_life (absorption de PV)', () => {
     const { session } = makeSession();
     const u = place(session, makeCard({ id: 'A', stats: { hp: 200 } as any }), { col: 0, row: 0 });
     u.current_hp = 12;
-    session.gameState.player_hp = 500;
+    session.gameState.player_hp = 300;
     session.applyMagieOnUnit(magie({ type: 'drain_life' }) as any, u);
-    expect(session.gameState.player_hp).toBe(512);
+    expect(session.gameState.player_hp).toBe(312);
   });
 
-  it('plafonné à 1000, comme player_hp_bonus', () => {
+  it('plafonné à PLAYER_HP_CAP, comme player_hp_bonus', () => {
     const { session } = makeSession();
     const u = place(session, makeCard({ id: 'A', stats: { hp: 300 } as any }), { col: 0, row: 0 });
-    session.gameState.player_hp = 950;
+    session.gameState.player_hp = 450;
     session.applyMagieOnUnit(magie({ type: 'drain_life' }) as any, u);
-    expect(session.gameState.player_hp).toBe(1000);
+    expect(session.gameState.player_hp).toBe(500);
   });
 
   it('l\'unité absorbée reste un matériau : elle est au cimetière, pas effacée', () => {
@@ -1596,10 +1596,10 @@ describe('sacrifice_card_hp — brûler une carte contre des PV joueur', () => {
   it('la carte quitte la main et ses PV vont au joueur', () => {
     const s = tieredSession({ byTier: { 1: [BIG] } });
     s.hand = [BIG as any];
-    s.gameState.player_hp = 500;
+    s.gameState.player_hp = 200;
     s.applyMagieOnHandCard(sac as any, 0);
     expect(s.hand).toEqual([]);
-    expect(s.gameState.player_hp).toBe(740);
+    expect(s.gameState.player_hp).toBe(440);
   });
 
   it('⚠️ elle est BRÛLÉE, pas envoyée au cimetière', () => {
@@ -1621,12 +1621,12 @@ describe('sacrifice_card_hp — brûler une carte contre des PV joueur', () => {
     expect(s.gameState.player_hp).toBe(460);
   });
 
-  it('plafonné à 1000, comme player_hp_bonus et drain_life', () => {
+  it('plafonné à PLAYER_HP_CAP, comme player_hp_bonus et drain_life', () => {
     const s = tieredSession({ byTier: { 1: [BIG] } });
     s.hand = [BIG as any];
-    s.gameState.player_hp = 900;
+    s.gameState.player_hp = 400;
     s.applyMagieOnHandCard(sac as any, 0);
-    expect(s.gameState.player_hp).toBe(1000);
+    expect(s.gameState.player_hp).toBe(500);
   });
 
   it('elle ne finance PAS son propre contrecoup', () => {
@@ -1644,13 +1644,13 @@ describe('sacrifice_card_hp — brûler une carte contre des PV joueur', () => {
 
   it('offre : il faut une main ET des PV à regagner', () => {
     const s = tieredSession({ byTier: { 1: [BIG] }, magies: [sac] });
-    s.gameState.player_hp = 500;
+    s.gameState.player_hp = 300;
     expect(s.getShoppingMagies()).toEqual([]);       // main vide
     s.hand = [BIG as any];
     expect(s.getShoppingMagies().map(m => m.id)).toEqual(['OFFRANDE']);
     // Une partie COMMENCE à PLAYER_HP_CAP : la magie n'est donc pas offerte
     // avant d'avoir encaissé, ce qui est exactement l'intention.
-    s.gameState.player_hp = 1000;
+    s.gameState.player_hp = 500;
     expect(s.getShoppingMagies()).toEqual([]);
   });
 });

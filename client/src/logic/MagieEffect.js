@@ -1,4 +1,5 @@
 import { guaranteedDrawCriteria } from './Draw.js';
+import { PLAYER_HP_CAP } from './GameState.js';
 import { clampRate, rateForTicks, RATE_STATS } from '../../../speed-scale.mjs';
 
 export const STAT_NAMES = {
@@ -404,7 +405,7 @@ export function applyEffect(magie, { gameState = null, targetUnit = null, target
       }
       break;
     case 'player_hp_bonus':
-      if (gameState) gameState.player_hp = Math.min(gameState.player_hp + e.value, 1000);
+      if (gameState) gameState.player_hp = Math.min(gameState.player_hp + e.value, PLAYER_HP_CAP);
       break;
     case 'energy_bonus':
       if (gameState) gameState.player_energy_bonus += e.value || 1;

@@ -8,7 +8,7 @@ import { hpRatio, hpDeltaLabel, hpTweenValue, HP_MAX } from '../components/hud/h
 
 describe('hpRatio — la part remplie', () => {
   it('rend la fraction des PV de départ', () => {
-    expect(hpRatio(500)).toBeCloseTo(0.5);
+    expect(hpRatio(HP_MAX / 2)).toBeCloseTo(0.5);
     expect(hpRatio(HP_MAX)).toBe(1);
   });
 

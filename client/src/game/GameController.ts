@@ -5,6 +5,7 @@
 // combat animé. Ne fait PARTIE ni de logic/ ni de three/ : couche app autorisée
 // à dépendre des deux + des stores.
 import { GameSession, Phase } from '../logic/GameSession.js';
+import type { JokerKind } from '../logic/GameState.js';
 import { boardEffects, effectTargets } from '../logic/BoardEffect.js';
 import { primaryTier } from '../logic/Tiers.js';
 import { boardTargetsUnits } from '../data/BoardInfo.js';
@@ -716,6 +717,22 @@ export class GameController {
     return this._committedPrepId !== this.session.prepId && this.session.canMulligan();
   }
 
+  /**
+   * Joker — posé (ou retiré, `null`) pour le round en cours. Toute la règle vit
+   * dans `GameSession.setJoker` ; s'y ajoute le verrou d'engagement, comme pour
+   * le mulligan : en duel, un joker changé après PRÊT ne serait pas celui
+   * annoncé à l'adversaire.
+   */
+  setJoker(kind: JokerKind | null): void {
+    if (!this.canPlayJoker()) return;
+    if (!this.session.setJoker(kind)) return;
+    this.sync();
+  }
+
+  canPlayJoker(): boolean {
+    return this._committedPrepId !== this.session.prepId && this.session.canPlayJoker();
+  }
+
   // ── Combat ───────────────────────────────────────────────────────────────
 
   startCombat(): void {
@@ -1402,6 +1419,14 @@ export class GameController {
       enemyHp: gs.enemy_hp,
       playerMultiplier: gs.player_multiplier,
       enemyMultiplier: gs.enemy_multiplier,
+      playerJoker: gs.player_joker,
+      playerJokerUsed: gs.player_joker_used,
+      // ⚠️ Le joker adverse ne se révèle qu'au combat : en préparation, l'IA n'a
+      // pas encore choisi et l'adversaire PvP ne l'a pas encore annoncé.
+      enemyJoker: gs.phase === Phase.PREPARATION ? null : gs.enemy_joker,
+      enemyJokerUsed: gs.enemy_joker_used,
+      roundJokerFactor: gs.round_joker_factor,
+      canPlayJoker: this.canPlayJoker(),
       placedCount: this.session.getPlayerUnits().filter(u => !u.is_token).length,
       canUndo: gs.phase === Phase.PREPARATION
         && this._committedPrepId !== this.session.prepId

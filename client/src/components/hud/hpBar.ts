@@ -8,8 +8,10 @@
 //     c'est elle qui montre COMBIEN vient d'être encaissé, là où un
 //     remplissage seul ne montre que le résultat.
 
+import { PLAYER_HP_CAP } from '../../logic/GameState.js';
+
 /** Les PV de départ d'un joueur, et donc l'échelle de sa barre. */
-export const HP_MAX = 1000;
+export const HP_MAX = PLAYER_HP_CAP;
 
 /** Durée du décompte du chiffre, et de la traîne qui le suit. */
 export const HP_TWEEN_MS = 700;

@@ -4,7 +4,8 @@ import type { Unit } from '../logic/Unit.js';
 import type { PhaseValue } from '../logic/GameState.js';
 import type { GameController } from '../game/GameController.js';
 import type { EndRoundResult } from '../logic/GameSession.js';
-import { MULLIGAN_COST_ENERGY } from '../logic/GameState.js';
+import { MULLIGAN_COST_ENERGY, PLAYER_HP_CAP } from '../logic/GameState.js';
+import type { JokerKind } from '../logic/GameState.js';
 import { SHOPPING_DURATION_S } from '../game/timings.js';
 import type { UiIconId } from '../components/ui/UiIcon.js';
 
@@ -183,6 +184,19 @@ export interface GameSnapshot {
   enemyHp: number;
   playerMultiplier: number;
   enemyMultiplier: number;
+  /** Joker posé par le joueur pour ce round (`null` = aucun). */
+  playerJoker: JokerKind | null;
+  /** Le joueur a-t-il déjà joué son joker de la partie ? */
+  playerJokerUsed: boolean;
+  /** Joker adverse de ce round — révélé au combat seulement, `null` avant. */
+  enemyJoker: JokerKind | null;
+  /** L'adversaire a-t-il déjà joué le sien (lors d'un round passé) ? */
+  enemyJokerUsed: boolean;
+  /** Facteur du round en cours (produit des deux jokers), 1 sans joker. */
+  roundJokerFactor: number;
+  /** Le joueur peut poser, changer ou retirer son joker (préparation, pas
+   *  encore engagé, joker pas encore joué). */
+  canPlayJoker: boolean;
   placedCount: number;
   /** Quelque chose a été posé/déplacé depuis l'ouverture du tour → le bouton
    *  « Tout annuler » de la barre de préparation s'affiche. */
@@ -253,8 +267,10 @@ export interface GameSnapshot {
 }
 
 export const EMPTY_SNAPSHOT: GameSnapshot = {
-  round: 1, phase: 'preparation', playerHp: 1000, enemyHp: 1000,
-  playerMultiplier: 1, enemyMultiplier: 1, placedCount: 0, canUndo: false,
+  round: 1, phase: 'preparation', playerHp: PLAYER_HP_CAP, enemyHp: PLAYER_HP_CAP,
+  playerMultiplier: 1, enemyMultiplier: 1,
+  playerJoker: null, playerJokerUsed: false, enemyJoker: null, enemyJokerUsed: false,
+  roundJokerFactor: 1, canPlayJoker: false, placedCount: 0, canUndo: false,
   canMulligan: false, mulliganCost: MULLIGAN_COST_ENERGY, energyReserve: 0, energyBudget: 3, energyLeft: 3,
   hand: [], graveyard: [], synergies: [], invocationBanner: null, errorFlash: null,
   boardTerrain: null, terrainAlert: null, roundIntro: null, drawPopup: null,

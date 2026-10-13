@@ -225,7 +225,7 @@ describe('Cumul des effets d\'un terrain', () => {
       { id: 'BOARD_HP', name: 'B', effects: [{ type: 'player_hp_bonus', value: 40 }] } as any,
       { gameState } as any
     );
-    expect(gameState.player_hp).toBe(1000); // déjà au plafond
+    expect(gameState.player_hp).toBe(500); // déjà au plafond
     expect(gameState.player_hp_sources).toEqual([{ kind: 'terrain', ref: 'BOARD_HP', value: 40 }]);
   });
 
@@ -249,9 +249,9 @@ describe('Cumul des effets d\'un terrain', () => {
       { id: 'BOARD_HP', name: 'B', effects: [{ type: 'player_hp_bonus', value: -60, target: 'ennemi' }] } as any,
       { gameState } as any
     );
-    expect(gameState.enemy_hp).toBe(1000 - 60);
+    expect(gameState.enemy_hp).toBe(500 - 60);
     // Le sélecteur `ennemi` ne touche jamais au registre du joueur.
-    expect(gameState.player_hp).toBe(1000);
+    expect(gameState.player_hp).toBe(500);
     expect(gameState.player_hp_sources).toEqual([]);
   });
 
@@ -266,14 +266,14 @@ describe('Cumul des effets d\'un terrain', () => {
     ['ennemi', 'ennemi'],
   ])('player_hp_bonus (%s) frappe les deux joueurs en PvP', (_label, target) => {
     const gameState = new GameState();
-    gameState.player_hp = 800;
-    gameState.enemy_hp = 700;
+    gameState.player_hp = 400;
+    gameState.enemy_hp = 300;
     applyBoardEffects(
       { id: 'BOARD_HP', name: 'B', effects: [{ type: 'player_hp_bonus', value: -60, ...(target ? { target } : {}) }] } as any,
       { gameState, pvp: true } as any
     );
-    expect(gameState.player_hp).toBe(740);
-    expect(gameState.enemy_hp).toBe(640);
+    expect(gameState.player_hp).toBe(340);
+    expect(gameState.enemy_hp).toBe(240);
     expect(gameState.player_hp_sources).toEqual([{ kind: 'terrain', ref: 'BOARD_HP', value: -60 }]);
   });
 
