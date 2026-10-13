@@ -363,7 +363,11 @@ interface Placed { card: any; col: number; row: number }
  * Les positions sont données dans le repère CANONIQUE ; chaque rôle les
  * traduit dans le sien, exactement comme le fait `reconstructOpponentUnits`.
  */
-function playAs(role: 'A' | 'B', a: Placed[], b: Placed[], board: BoardDef, attributeList: any[] = []): any {
+/** Un ordre de ciblage décrit dans le repère canonique : qui le donne, à quel
+ *  tick, par les `card_id` (uniques dans ces scénarios). */
+type CanonOrder = { by: 'A' | 'B'; tick: number; unit: string; target: string };
+
+function playAs(role: 'A' | 'B', a: Placed[], b: Placed[], board: BoardDef, attributeList: any[] = [], orders: CanonOrder[] = []): any {
   const mirrored = role === 'B';
   const localRow = (row: number) => (mirrored ? MIRROR_AXIS - row : row);
   const mine = mirrored ? b : a;
@@ -388,6 +392,15 @@ function playAs(role: 'A' | 'B', a: Placed[], b: Placed[], board: BoardDef, attr
   const { combat } = s.startCombat(board);
   // Le terrain journalisé est celui qui est JOUÉ, comme le fait GameController.
   rec.header(combat, { ...board, blocked_cells: s.board.blockedCells() });
+  // L'ordre voyage par RÉFÉRENCES, telles que l'émetteur les a calculées. Ici
+  // elles sont dérivées du repère canonique (col × 11 + rangée canonique) : les
+  // deux clients doivent avoir posé ce même `combat_ref` sur la même unité
+  // physique, sans quoi l'ordre désigne une autre unité chez l'un des deux.
+  const placed = [...a, ...b];
+  const ref = (id: string) => { const p = placed.find(x => x.card.id === id)!; return p.col * 11 + p.row; };
+  orders.forEach((o, seq) => combat.addOrder({
+    tick: o.tick, side: o.by === role ? 'player' : 'enemy', unitRef: ref(o.unit), targetRef: ref(o.target), seq,
+  }));
   while (!combat.winner) rec.capture(combat, combat.step());
   return rec.payload().payload;
 }
@@ -467,6 +480,32 @@ describe('Un même combat physique rend le même log dans les deux repères', ()
       if (d) divergents.push(`graine ${seed} : ${d.kind} @ tick ${d.tick} · ${d.detail?.field ?? d.detail?.unit ?? ''}`);
     }
     expect(divergents).toEqual([]);
+  });
+
+  // Ordres de ciblage : un ordre donné par chaque joueur, à des ticks variés,
+  // doit désigner la même unité physique dans les deux repères (`combat_ref`)
+  // et s'appliquer au même tick. Mutation : `combat_ref` posé sur la `row`
+  // locale au lieu du rang de référence → ROUGE.
+  it(`${SEEDS} combats semés AVEC ordres de ciblage restent identiques`, () => {
+    const divergents: string[] = [];
+    let changed = 0;
+    for (let seed = 1; seed <= SEEDS; seed++) {
+      const { a, b, board } = scenario(seed);
+      const rand = makeRandom(seed * 7919);
+      const at = (xs: Placed[]) => xs[Math.floor(rand() * xs.length)].card.id;
+      const orders: CanonOrder[] = [
+        { by: 'A', tick: 1 + Math.floor(rand() * 20), unit: at(a), target: at(b) },
+        { by: 'B', tick: 1 + Math.floor(rand() * 20), unit: at(b), target: at(a) },
+        { by: 'A', tick: 20 + Math.floor(rand() * 40), unit: at(a), target: at(b) },
+      ];
+      const logA = playAs('A', a, b, board, [], orders);
+      const d = pvplog.diff(logA, playAs('B', a, b, board, [], orders));
+      if (d) divergents.push(`graine ${seed} : ${d.kind} @ tick ${d.tick} · ${d.detail?.field ?? d.detail?.unit ?? ''}`);
+      if (pvplog.diff(logA, playAs('A', a, b, board))) changed++;
+    }
+    expect(divergents).toEqual([]);
+    // Les ordres changent réellement des combats (sinon le filet ne prouverait rien).
+    expect(changed).toBeGreaterThan(SEEDS / 3);
   });
 
   // ⚠️ Le cas que les 300 graines ne peuvent PAS produire : elles nomment les

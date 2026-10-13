@@ -85,9 +85,11 @@ beforeAll(() => {
   relay = require(path.join(ROOT, 'ws', 'MatchRelay.js'));
   pvpServer = require(path.join(ROOT, 'ws', 'pvpServer.js'));
   emotesMod = require(path.join(ROOT, 'ws', 'emotes.js'));
+  ordersMod = require(path.join(ROOT, 'ws', 'combatOrders.js'));
 });
 
 let A: string, B: string, wsA: any, wsB: any, matchId: string;
+let ordersMod: any;
 
 beforeEach(() => {
   A = newUser('joueurA');
@@ -524,6 +526,56 @@ describe('messages rapides (emote:send)', () => {
   it('un joueur étranger au match ne relaie rien', () => {
     const intrus = newUser('intrus');
     send(wsA, intrus);
+    expect(received(wsB)).toHaveLength(0);
+  });
+});
+
+// Ordres de ciblage : même discipline que les messages rapides — validés,
+// cadence bornée, message reconstruit (cf. ws/combatOrders.js).
+describe('ordres de ciblage (combat:orders)', () => {
+  const T0 = 2_000_000;
+  beforeEach(() => {
+    vi.useFakeTimers();
+    vi.setSystemTime(T0);
+    ordersMod.forget(A);
+    ordersMod.forget(B);
+  });
+  afterEach(() => { vi.useRealTimers(); });
+
+  const order = { tick: 12, unitRef: 3, targetRef: 40, seq: 0 };
+  const send = (ws: any, userId: string, extra: any = {}) =>
+    pvpServer.handleMessage({ ...ws, userId }, { type: 'combat:orders', matchId, round: 1, upTo: 11, orders: [order], ...extra });
+  const received = (ws: any) => ws.sent.filter((m: any) => m.type === 'combat:orders');
+
+  it('relaye frontière et ordres à l\'adversaire, dans un message reconstruit', () => {
+    send(wsA, A, { evil: 'payload', orders: [{ ...order, extra: 1 }] });
+    expect(received(wsA)).toHaveLength(0);
+    expect(received(wsB)).toEqual([{ type: 'combat:orders', matchId, round: 1, upTo: 11, orders: [order] }]);
+  });
+
+  it('une frontière sans ordre passe aussi', () => {
+    send(wsA, A, { orders: [] });
+    expect(received(wsB)).toEqual([{ type: 'combat:orders', matchId, round: 1, upTo: 11, orders: [] }]);
+  });
+
+  it('refuse un message mal formé', () => {
+    send(wsA, A, { round: 'x' });
+    send(wsA, A, { upTo: 1.5 });
+    send(wsA, A, { orders: [{ ...order, unitRef: -1 }] });
+    send(wsA, A, { orders: [{ ...order, tick: '12' }] });
+    expect(received(wsB)).toHaveLength(0);
+  });
+
+  it('borne la cadence des ordres par joueur', () => {
+    for (let i = 0; i < ordersMod.MAX_ORDERS_PER_SECOND + 3; i++) send(wsA, A);
+    expect(received(wsB)).toHaveLength(ordersMod.MAX_ORDERS_PER_SECOND);
+    vi.setSystemTime(T0 + 1100);
+    send(wsA, A);
+    expect(received(wsB)).toHaveLength(ordersMod.MAX_ORDERS_PER_SECOND + 1);
+  });
+
+  it('un joueur étranger au match ne relaie rien', () => {
+    send(wsA, newUser('intrus'));
     expect(received(wsB)).toHaveLength(0);
   });
 });

@@ -1,4 +1,4 @@
-import { chebyshevDistance, manhattanDistance, findClosestEnemy, findAttackTarget, isInAttackRange, canAttack, hasLineOfSight, stepToward, stepTowardOrNearest, stepAway, isGlobalPolicy, sortByPolicy, compareTieBreak } from './PathFinder.js';
+import { referenceCellRank, chebyshevDistance, manhattanDistance, findClosestEnemy, findAttackTarget, isInAttackRange, canAttack, hasLineOfSight, stepToward, stepTowardOrNearest, stepAway, isGlobalPolicy, sortByPolicy, compareTieBreak } from './PathFinder.js';
 import { Unit } from './Unit.js';
 // L'échelle vit à la racine (cf. l'en-tête de `speed-scale.mjs`) : une seule
 // fenêtre de ticks pour les rythmes ET les durées.
@@ -68,6 +68,13 @@ const BASE_TICK_MS = 180;
 const COMBAT_TIMEOUT_MS = 60_000;
 export const MAX_COMBAT_TICKS = Math.round(COMBAT_TIMEOUT_MS / BASE_TICK_MS);
 
+// Un ordre de ciblage s'applique ce nombre de ticks APRÈS le dernier tick joué
+// quand il est donné — sur les deux clients d'un duel, qui ne sont jamais
+// exactement au même tick (cf. `game/CombatOrders`). ≈ 0,5 s à la cadence ×2.
+export const ORDER_DELAY_TICKS = 6;
+// `combat_ref` des tokens nés en combat : au-delà de tout rang de case.
+const TOKEN_REF_BASE = 1000;
+
 export class CombatManager {
   /**
    * @param {Board} board
@@ -88,6 +95,64 @@ export class CombatManager {
     this.isOver = false;
     this.winner = null; // 'player' | 'enemy' | 'draw' | 'timeout'
     this._stepCount = 0;
+    // ── Ordres de ciblage ──
+    // `combat_ref` : l'identité d'une unité pour ce combat, la même sur les deux
+    // clients d'un duel — le rang de sa case de DÉPART dans le repère de
+    // référence (une case ne porte qu'une unité). Un token né en combat prend
+    // un compteur : les invocations arrivent dans le même ordre des deux côtés.
+    this._nextTokenRef = TOKEN_REF_BASE;
+    this._orders = new Map();   // tick → ordres en attente
+    for (const u of [...playerUnits, ...enemyUnits]) {
+      u.combat_ref = u.position ? referenceCellRank(board, u.position) : -1;
+    }
+  }
+
+  /** Le dernier tick joué (0 avant le premier `step()`). */
+  currentTick() {
+    return this._stepCount;
+  }
+
+  /**
+   * Programme un ORDRE DE CIBLAGE : au début du tick `tick`, l'unité `unitRef`
+   * du camp `side` vise l'ennemi `targetRef` jusqu'à la mort de celui-ci.
+   *
+   * ⚠️ Les références sont des `combat_ref`, jamais des uid. Un ordre pour un
+   * tick déjà joué est REFUSÉ (rend `false`) : l'appliquer plus tard ferait
+   * diverger un duel. C'est à l'appelant de viser assez loin (cf. `ORDER_DELAY_TICKS`).
+   * Plusieurs ordres d'un même tick s'appliquent camp du rôle A d'abord, puis
+   * dans leur ordre d'émission (`seq`) — un nouvel ordre sur la même unité
+   * remplace le précédent.
+   *
+   * @param {{ tick: number, side: 'player'|'enemy', unitRef: number, targetRef: number, seq?: number }} order
+   */
+  addOrder(order) {
+    if (!Number.isInteger(order.tick) || order.tick <= this._stepCount) return false;
+    const list = this._orders.get(order.tick) ?? [];
+    list.push({ ...order, seq: order.seq ?? list.length });
+    this._orders.set(order.tick, list);
+    return true;
+  }
+
+  _applyOrders(tick) {
+    const list = this._orders.get(tick);
+    if (!list) return;
+    this._orders.delete(tick);
+    const sideRank = side => this._frameSide({ side });
+    list.sort((a, b) => sideRank(a.side) - sideRank(b.side) || a.seq - b.seq);
+    const all = [...this.playerUnits, ...this.enemyUnits];
+    for (const o of list) {
+      const unit = all.find(u => u.side === o.side && u.combat_ref === o.unitRef && u.isAlive());
+      const target = all.find(u => u.side !== o.side && u.combat_ref === o.targetRef && u.isAlive());
+      if (unit && target) unit.ordered_target = target;
+    }
+  }
+
+  /** L'ennemi ordonné à `unit`, s'il vit encore ; l'ordre tombe sinon. */
+  _orderedTarget(unit) {
+    const t = unit.ordered_target;
+    if (!t) return null;
+    if (!t.isAlive() || t.side === unit.side || !t.position) { unit.ordered_target = null; return null; }
+    return t;
   }
 
   // Ticks left before the combat is cut short by the timeout (see _checkTimeout).
@@ -120,6 +185,7 @@ export class CombatManager {
     const events = [];
     this._stepCount++;
     this.board.purgeExpiredTemporaryBlocks(this._stepCount);
+    this._applyOrders(this._stepCount);
 
     // ⚠️ Les deux camps dans l'ordre du repère de RÉFÉRENCE, jamais « les
     // miennes d'abord ». Ce tableau sert de tableau de balayage des morts
@@ -251,7 +317,7 @@ export class CombatManager {
 
       // **Garde du corps** : marche vers son protégé au lieu de sa cible ;
       // rend `false` quand rien n'est à garder (déplacement normal).
-      if (u.move_policy === 'garde' && this._guardMove(u, events)) continue;
+      if (u.move_policy === 'garde' && !this._orderedTarget(u) && this._guardMove(u, events)) continue;
 
       const candidates = this._targetCandidates(u, { requireLOS: false });
       if (candidates.length === 0) { u.combat_target_uid = null; continue; }
@@ -306,7 +372,10 @@ export class CombatManager {
       // rangeless powers never needed that target in the first place, so they
       // are offered a null one rather than being skipped with the attack.
       const reachable = target !== null && canAttack(u, target, this.board);
-      if (target) u.combat_target_uid = target.uid;
+      // Une cible ordonnée encore hors d'atteinte reste celle qu'on MONTRE :
+      // l'unité marche vers elle, quoi qu'elle frappe en attendant.
+      const ordered = reachable || this._provoker(u) || u.confusion_remaining > 0 ? null : this._orderedTarget(u);
+      if (target) u.combat_target_uid = (ordered ?? target).uid;
       // Embusqué : une cible à sa portée le réveille, même si elle meurt de ce
       // coup — elle est entrée et morte dans le même tick, la phase 3 ne l'a
       // jamais vue.
@@ -401,6 +470,12 @@ export class CombatManager {
       const allies = this._allies(unit).filter(a => a.isAlive() && a !== unit);
       if (allies.length > 0) return allies;
     }
+
+    // ORDRE DE CIBLAGE : après provocation et confusion, avant le rôle. En
+    // déplacement l'unité marche vers lui ; en attaque, tant qu'il n'est pas
+    // attaquable, elle frappe ce que son rôle désigne.
+    const ordered = this._orderedTarget(unit);
+    if (ordered && (!requireLOS || canAttack(unit, ordered, this.board))) return [ordered];
 
     return enemies;
   }
@@ -1072,6 +1147,7 @@ export class CombatManager {
 
     const token = new Unit(tokenDef, unit.side);
     token.is_token = true;
+    token.combat_ref = this._nextTokenRef++;
     this.board.placeUnit(token, destination);
     this._allies(unit).push(token);
     this.attributeManager?.applyTokenStatuses?.(token);

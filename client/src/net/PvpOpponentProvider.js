@@ -18,6 +18,13 @@ function ensureListening() {
   PvpConnection.on('round:opponent_board', handler);
 }
 
+// Version du protocole des ORDRES DE CIBLAGE (cf. game/orderLockstep). Elle
+// accompagne chaque board : le lockstep n'est armé que si les DEUX boards du
+// round la portent, ce que les deux clients constatent à `round:go` — un client
+// d'avant les ordres ne bloque donc jamais un combat en attendant une frontière
+// qu'il n'enverra pas.
+export const ORDERS_PROTOCOL = 1;
+
 /**
  * @param {number} round
  * @param {any[]} units
@@ -67,6 +74,7 @@ export function sendOwnBoard(round, units, playerHp, multiplierBonus = null, jok
     round,
     player_hp: playerHp,
     joker: joker ?? null,
+    orders_protocol: ORDERS_PROTOCOL,
     damage_multiplier_bonus: multiplierBonus?.value ?? 0,
     damage_multiplier_sources: multiplierBonus?.sources ?? [],
     units: units.map(u => ({

@@ -1104,6 +1104,8 @@ export class Scene3D {
    * ⚠️ La cible change d'un tick à l'autre : `refreshCombatFocus` est rappelé à
    * chaque step par `GameController`, la scène ne s'abonne à rien.
    */
+  private _orderPreview = new Map<number, Unit>();
+
   setCombatFocus(unit: Unit | null): void {
     this._focusUid = unit ? unit.uid : null;
     this.refreshCombatFocus();
@@ -1116,10 +1118,35 @@ export class Scene3D {
     return e && e.unit.isAlive() ? e.el.getBoundingClientRect() : null;
   }
 
+  /** Boîte à l'écran de `unit`, ou `null` si elle n'a pas d'objet de scène. */
+  unitRect(unit: Unit): DOMRect | null {
+    const e = this.unitObjs.get(unit.uid);
+    return e ? e.el.getBoundingClientRect() : null;
+  }
+
+  /**
+   * Un ORDRE DE CIBLAGE vient d'être donné à `unit` : sa cible est montrée tout
+   * de suite, avant que le moteur ne l'applique (`ORDER_DELAY_TICKS` plus tard).
+   * Elle cède la place à la cible réelle dès que celle-ci meurt.
+   */
+  setOrderPreview(unit: Unit, target: Unit): void {
+    this._orderPreview.set(unit.uid, target);
+    this.refreshCombatFocus();
+  }
+
   refreshCombatFocus(): void {
     const src = this._focusUid != null ? this.unitObjs.get(this._focusUid) : undefined;
     const live = !!src && src.unit.isAlive();
-    const targetUid = live ? src!.unit.combat_target_uid : null;
+    const preview = live ? this._orderPreview.get(src!.unit.uid) : undefined;
+    const ordered = live ? src!.unit.ordered_target : null;
+    // Provocation et confusion passent devant l'ordre : la cible montrée est
+    // alors celle que le moteur a réellement retenue.
+    const forced = live && ((src!.unit.provoked_remaining > 0 && !!src!.unit.provoked_by) || src!.unit.confusion_remaining > 0);
+    const targetUid = !live ? null
+      : forced ? src!.unit.combat_target_uid
+        : preview && preview.isAlive() ? preview.uid
+          : ordered && ordered.isAlive() ? ordered.uid
+            : src!.unit.combat_target_uid;
     for (const e of this.unitObjs.values()) {
       e.el.classList.toggle('focus-source', live && e === src);
       e.el.classList.toggle('focus-target', targetUid != null && e.unit.uid === targetUid && e.unit.isAlive());
@@ -1166,6 +1193,7 @@ export class Scene3D {
   }
 
   exitCombatMode(): void {
+    this._orderPreview.clear();
     this.setCombatFocus(null);
     this._resize();
     this._combatMode = false;

@@ -16,7 +16,12 @@
 import { GameController } from './GameController.js';
 import { GameSession, Phase } from '../logic/GameSession.js';
 import * as PvpConnection from '../net/PvpConnection.js';
-import { sendOwnBoard, waitForOpponentBoard, reconstructOpponentUnits, applyOpponentMultiplier, applyOpponentJoker, reset as resetOpponent } from '../net/PvpOpponentProvider.js';
+import { sendOwnBoard, waitForOpponentBoard, reconstructOpponentUnits, applyOpponentMultiplier, applyOpponentJoker, reset as resetOpponent, ORDERS_PROTOCOL } from '../net/PvpOpponentProvider.js';
+import { OrderLockstep, type OrdersMessage, type WireOrder } from './orderLockstep.js';
+import { ORDER_DELAY_TICKS, type CombatManager } from '../logic/CombatManager.js';
+
+/** Au-delà de cette attente de l'adversaire, l'écran le dit. */
+const ORDERS_STALL_NOTICE_MS = 3000;
 import type { BoardDef } from '../logic/types.js';
 import type { Scene3D } from '../three/Scene3D.js';
 import { useGameStore } from '../stores/gameStore.js';
@@ -42,6 +47,12 @@ export class PvpController extends GameController {
   /** Terrains annoncés par le rôle A, par round — B peut recevoir celui du
    *  round suivant pendant sa Phase Shopping. */
   private _terrainByRound = new Map<number, string | null>();
+  /** Le lockstep des ordres de ciblage du combat en cours (`null` hors combat,
+   *  ou si l'adversaire ne parle pas le protocole). */
+  private _lockstep: OrderLockstep | null = null;
+  /** Messages d'ordres arrivés avant que NOTRE combat n'ait commencé. */
+  private _ordersInbox: OrdersMessage[] = [];
+  private _stallSince = 0;
 
   constructor(session: GameSession, pvp: PvpDeps, role: 'A' | 'B', opponentName: string) {
     super(session);
@@ -85,6 +96,7 @@ export class PvpController extends GameController {
     });
     // Écoute les messages de round + fin de match, puis démarre la préparation.
     this._listen('round:go', (m) => this._onRoundGo(m));
+    this._listen('combat:orders', (m) => this._onRemoteOrders(m));
     this._listen('round:terrain_pick', (m) => this._onTerrainPick(m));
     this._listen('round:cancel_ok', () => this._onCancelOk());
     this._listen('round:cancel_refused', () => { this._cancelPending = false; });
@@ -222,7 +234,74 @@ export class PvpController extends GameController {
     const { combat } = this.session.startCombat(board);
     this._handshaking = false;
     this.sync({ pvpReady: false });
+    this._armLockstep(combat, oppPayload);
     this._beginCombatAnimation(combat, board);
+    if (this._lockstep) this.animator?.setGate(() => this._lockstepGate(combat));
+  }
+
+  // ── Ordres de ciblage : le lockstep ────────────────────────────────────────
+  // Cf. `game/orderLockstep`. Le combat ne joue un tick que si l'adversaire
+  // s'est engagé à ne plus rien y ordonner ; chaque client envoie sa frontière
+  // tous les deux ticks et chaque ordre dès qu'il est donné.
+
+  private _armLockstep(combat: CombatManager, oppPayload: any): void {
+    this._lockstep = null;
+    this._stallSince = 0;
+    const round = this.session.gameState.round;
+    // ⚠️ Les DEUX boards doivent porter le protocole : le mien le porte toujours,
+    // celui d'en face seulement s'il est à jour. Les deux clients font ce même
+    // constat à `round:go` — sinon l'un attendrait une frontière qui ne vient pas.
+    if (oppPayload?.orders_protocol !== ORDERS_PROTOCOL) { this._ordersInbox = []; return; }
+    const lock = new OrderLockstep(round, ORDER_DELAY_TICKS, combat);
+    for (const m of this._ordersInbox.splice(0)) lock.receive(m);
+    this._lockstep = lock;
+    this._sendOrders(lock.afterStep(0));
+  }
+
+  private _lockstepGate(combat: CombatManager): boolean {
+    const lock = this._lockstep;
+    if (!lock || lock.canStep(combat.currentTick() + 1)) {
+      if (this._stallSince > 0) { this._stallSince = 0; this._pvpNotify(null); }
+      return true;
+    }
+    const now = Date.now();
+    if (this._stallSince === 0) this._stallSince = now;
+    else if (now - this._stallSince > ORDERS_STALL_NOTICE_MS && !useGameStore.getState().errorFlash) {
+      this._pvpNotify('En attente de l\'adversaire…');
+    }
+    return false;
+  }
+
+  private _onRemoteOrders(msg: OrdersMessage): void {
+    if (typeof msg?.round !== 'number') return;
+    if (this._lockstep && msg.round === this._lockstep.round) { this._lockstep.receive(msg); return; }
+    // Le combat adverse a commencé avant le mien : je les garde pour MON round.
+    if (msg.round >= this.session.gameState.round) this._ordersInbox.push(msg);
+  }
+
+  private _sendOrders(msg: OrdersMessage | null): void {
+    if (msg) PvpConnection.send('combat:orders', msg as any);
+  }
+
+  canGiveOrders(): boolean {
+    return super.canGiveOrders() && !!this._lockstep;
+  }
+
+  protected _afterCombatStep(combat: CombatManager): void {
+    if (this._lockstep && !combat.isOver) this._sendOrders(this._lockstep.afterStep(combat.currentTick()));
+  }
+
+  protected _onOrderIssued(order: WireOrder): void {
+    if (!this._lockstep) return;
+    // ⚠️ Envoyé AVANT le tick suivant : c'est ce qui garantit que l'adversaire
+    // le reçoit avant d'avoir pu jouer son tick d'application.
+    this._sendOrders(this._lockstep.localOrder(order.tick - ORDER_DELAY_TICKS, order));
+  }
+
+  protected _onCombatFinished(): void {
+    this._lockstep = null;
+    if (this._stallSince > 0) { this._stallSince = 0; this._pvpNotify(null); }
+    super._onCombatFinished();
   }
 
   // ── Fin de round / fin de partie ───────────────────────────────────────────
@@ -328,7 +407,7 @@ export class PvpController extends GameController {
     void AuthClient.postPvpLog(recorder.payload()).catch(() => { /* diagnostic : jamais bloquant */ });
   }
 
-  private _pvpNotify(msg: string): void { useGameStore.getState().applySnapshot({ errorFlash: msg }); }
+  private _pvpNotify(msg: string | null): void { useGameStore.getState().applySnapshot({ errorFlash: msg }); }
 
   private _listen(type: string, fn: (m: any) => void): void {
     PvpConnection.on(type, fn);

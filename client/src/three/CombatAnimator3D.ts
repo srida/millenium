@@ -18,6 +18,8 @@ import type { Unit } from '../logic/Unit.js';
 import type { Position } from '../logic/types.js';
 
 const BASE_TICK_MS = 180;
+/** Cadence à laquelle un tick bloqué par la porte (`setGate`) se re-présente. */
+const GATE_POLL_MS = 15;
 
 const POWER_NAMES: Record<string, string> = {
   POWER_HEAL:         'Soin',
@@ -63,6 +65,7 @@ export class CombatAnimator3D {
   _timer: ReturnType<typeof setTimeout> | null = null;
   _running = false;
   _paused = false;
+  _gate: (() => boolean) | null = null;
   _frozenCells = new Map<string, { cell: Position; expiresAtStep: number }>(); // overlay POWER_FREEZE
 
   constructor(combatManager: any, board3D: Scene3D, { onFinished, onStep }: CombatAnimatorOptions = {}) {
@@ -106,49 +109,65 @@ export class CombatAnimator3D {
     this._timer = null;
   }
 
+  /**
+   * Une porte avant chaque tick : tant qu'elle répond non, le tick attend (et
+   * se re-présente toutes les `GATE_POLL_MS`). Le duel en ligne s'en sert pour
+   * ne jamais jouer un tick que l'adversaire peut encore modifier par un ordre
+   * de ciblage (cf. `game/orderLockstep`). Absente partout ailleurs.
+   */
+  setGate(gate: (() => boolean) | null): void {
+    this._gate = gate;
+  }
+
   _schedule(): void {
+    this._timer = setTimeout(() => this._tick(), BASE_TICK_MS / this._speed);
+  }
+
+  _tick(): void {
     const interval = BASE_TICK_MS / this._speed;
-    this._timer = setTimeout(() => {
-      if (!this._running || this._paused) return;
-      const events = this._cm.step();
-      this._onStep?.(events);
-      const dyingUids = new Set<number>(events.filter((e: any) => e.type === 'death').map((e: any) => e.unit.uid));
-      // POWER_TELEPORT pousse un 'move' juste après son 'power' : les deux
-      // arrivent dans le MÊME tick, on peut donc décider ici que ce
-      // déplacement-là ne se joue pas comme une marche (cf. _applyMove).
-      const teleportUids = new Set<number>(
-        events
-          .filter((e: any) => e.type === 'power' && e.power_id === 'POWER_TELEPORT')
-          .map((e: any) => e.unit.uid),
-      );
-      // ⚠️ Une unité qui se téléporte a pu MARCHER plus tôt dans le même tick :
-      // le déplacement et l'attaque ont des horloges indépendantes, et depuis
-      // que le téléport part hors de portée (RANGELESS_POWERS) les deux tombent
-      // ensemble. Ses deux 'move' pousseraient alors deux animations
-      // CONCURRENTES sur le même objet — un lerp de marche et un blink qui se
-      // disputent sa position pendant 0,28 s. Seul le dernier compte : le board
-      // fait foi et il est déjà à la case d'arrivée.
-      const lastMove = new Map<number, number>();
-      events.forEach((e: any, i: number) => {
-        if (e.type === 'move' && teleportUids.has(e.unit.uid)) lastMove.set(e.unit.uid, i);
-      });
-      events.forEach((evt: any, i: number) => {
-        if (evt.type === 'move' && lastMove.has(evt.unit.uid) && lastMove.get(evt.unit.uid) !== i) return;
-        this._apply(evt, interval, dyingUids, teleportUids);
-      });
-      this._purgeFrozenCells();
-      this._refreshPowerGauges();
-      if (this._cm.isOver) {
-        this._running = false;
-        // Le combat s'arrête ici, net — une frappe encore en vol ou en file
-        // (cf. `MeleeStrikes.finishAll`) ne doit pas continuer à animer sous
-        // le récapitulatif qui s'apprête à s'ouvrir. `?.` : cf. `setSpeed`.
-        this._board?.finishMeleeStrikes();
-        setTimeout(() => this._onFinished?.(), 500);
-        return;
-      }
-      this._schedule();
-    }, interval);
+    if (!this._running || this._paused) return;
+    if (this._gate && !this._gate()) {
+      this._timer = setTimeout(() => this._tick(), GATE_POLL_MS);
+      return;
+    }
+    const events = this._cm.step();
+    this._onStep?.(events);
+    const dyingUids = new Set<number>(events.filter((e: any) => e.type === 'death').map((e: any) => e.unit.uid));
+    // POWER_TELEPORT pousse un 'move' juste après son 'power' : les deux
+    // arrivent dans le MÊME tick, on peut donc décider ici que ce
+    // déplacement-là ne se joue pas comme une marche (cf. _applyMove).
+    const teleportUids = new Set<number>(
+      events
+        .filter((e: any) => e.type === 'power' && e.power_id === 'POWER_TELEPORT')
+        .map((e: any) => e.unit.uid),
+    );
+    // ⚠️ Une unité qui se téléporte a pu MARCHER plus tôt dans le même tick :
+    // le déplacement et l'attaque ont des horloges indépendantes, et depuis
+    // que le téléport part hors de portée (RANGELESS_POWERS) les deux tombent
+    // ensemble. Ses deux 'move' pousseraient alors deux animations
+    // CONCURRENTES sur le même objet — un lerp de marche et un blink qui se
+    // disputent sa position pendant 0,28 s. Seul le dernier compte : le board
+    // fait foi et il est déjà à la case d'arrivée.
+    const lastMove = new Map<number, number>();
+    events.forEach((e: any, i: number) => {
+      if (e.type === 'move' && teleportUids.has(e.unit.uid)) lastMove.set(e.unit.uid, i);
+    });
+    events.forEach((evt: any, i: number) => {
+      if (evt.type === 'move' && lastMove.has(evt.unit.uid) && lastMove.get(evt.unit.uid) !== i) return;
+      this._apply(evt, interval, dyingUids, teleportUids);
+    });
+    this._purgeFrozenCells();
+    this._refreshPowerGauges();
+    if (this._cm.isOver) {
+      this._running = false;
+      // Le combat s'arrête ici, net — une frappe encore en vol ou en file
+      // (cf. `MeleeStrikes.finishAll`) ne doit pas continuer à animer sous
+      // le récapitulatif qui s'apprête à s'ouvrir. `?.` : cf. `setSpeed`.
+      this._board?.finishMeleeStrikes();
+      setTimeout(() => this._onFinished?.(), 500);
+      return;
+    }
+    this._schedule();
   }
 
   _refreshPowerGauges(): void {

@@ -24,6 +24,13 @@ import {
   COMBAT_INTRO_MS, COMBAT_OUTRO_MS, SHOPPING_INTRO_MS,
 } from './timings.js';
 import { CombatRecorder } from './CombatRecorder.js';
+import { ORDER_DELAY_TICKS } from '../logic/CombatManager.js';
+
+/** Délai entre la fermeture de la bulle d'un allié (au `pointerdown`) et le
+ *  `pointerup` du tap sur l'ennemi qui lui donne un ordre. */
+const ORDER_TAP_GRACE_MS = 700;
+/** Cadence maximale des ordres (le serveur en tolère le double, cf. ws/combatOrders.js). */
+const MAX_ORDERS_PER_SECOND = 4;
 
 /**
  * Le menu de choix d'une carte à plusieurs conditions. Il ne porte plus de
@@ -473,13 +480,15 @@ export class GameController {
       return;
     }
     if (this.session.phase !== Phase.PREPARATION) {
-      // En combat, le tap montre aussi la cible de l'unité, tant que son
-      // tooltip reste ouvert (cf. `_watchCombatFocus`) — et la bulle se pose
-      // du côté opposé à la cible, pour ne pas la recouvrir.
-      const t = this.animator ? this.scene?.combatTargetRect(unit) : null;
-      const prefer = t && t.top + t.height / 2 < rect.top ? 'below' : 'above';
-      useUiStore.getState().showTooltip({ kind: 'unit', unit }, { ...rect, prefer });
-      if (this.animator) this._watchCombatFocus(unit);
+      // ORDRE DE CIBLAGE : un allié vient d'être touché, ce tap désigne
+      // l'ennemi qu'il doit viser. L'allié reste sélectionné, sa cible en rouge.
+      const source = this._armedOrderSource();
+      if (source && unit.side === 'enemy' && unit.isAlive() && this.issueOrder(source, unit)) {
+        const r = this.scene?.unitRect(source);
+        if (r) this._showCombatUnit(source, r);
+        return;
+      }
+      this._showCombatUnit(unit, rect);
       return;
     }
     // Tour engagé : le plateau se CONSULTE, il ne se joue plus.
@@ -791,12 +800,16 @@ export class GameController {
     // symétrique — c'est-à-dire la moitié du catalogue — alors que les deux
     // clients s'accordent désormais dessus.
     this._recorder?.header(combat, { ...boardData, blocked_cells: this.session.board.blockedCells() });
+    this._combat = combat;
+    this._orderSource = null;
+    this._orderSeq = 0;
     const animator = new CombatAnimator3D(combat, this.scene as any, {
       onStep: (events: any[]) => {
         this._recorder?.capture(combat, events);
         this._noteCombatEvents(events);
         if (this._focusUnsub) this.scene?.refreshCombatFocus();
         this._combatRemaining = combatSecondsLeft(combat.remainingTicks());
+        this._afterCombatStep(combat);
         this.sync({ combatActive: true, combatRemaining: this._combatRemaining });
       },
       onFinished: () => this._onCombatFinished(),
@@ -937,6 +950,8 @@ export class GameController {
       units_lost: Math.max(0, this._combatUnitCount - result.playerSurvivors.length),
     });
     this.animator = null;
+    this._combat = null;
+    this._orderSource = null;
     this._beginCombatOutro(result);
   }
 
@@ -1412,6 +1427,10 @@ export class GameController {
         : 'Sélectionne les matériaux d\'invocation';
     }
 
+    const orderBanner = this._orderSource && this._focusUnsub && this.canGiveOrders()
+      ? 'Touche un ennemi : cette unité le visera'
+      : null;
+
     const snapshot: Partial<GameSnapshot> = {
       round: gs.round,
       phase: gs.phase,
@@ -1440,6 +1459,7 @@ export class GameController {
       graveyard,
       synergies,
       invocationBanner,
+      orderBanner,
       speed: this.combatSpeed,
       showGrid: this.showGrid,
       paused: this.paused,
@@ -1459,11 +1479,13 @@ export class GameController {
   private _watchCombatFocus(unit: Unit): void {
     this._focusUnsub?.();
     this.scene?.setCombatFocus(unit);
+    this._orderSource = unit.side === 'player' && this.canGiveOrders() ? unit : null;
     this._focusUnsub = useUiStore.subscribe(s => {
       const t = s.tooltip?.content as { kind?: string; unit?: Unit } | undefined;
       if (t?.kind === 'unit' && t.unit === unit) return;
       this._clearCombatFocus();
     });
+    if (this._orderSource) this.sync();
   }
 
   private _clearCombatFocus(): void {
@@ -1471,6 +1493,78 @@ export class GameController {
     this._focusUnsub();
     this._focusUnsub = null;
     this.scene?.setCombatFocus(null);
+    if (this._orderSource) {
+      this._orderSourceLostAt = Date.now();
+      this.sync();
+    }
+  }
+
+  // ── Ordres de ciblage ──────────────────────────────────────────────────────
+  // Tap sur un allié (sa bulle s'ouvre, sa cible passe en rouge), puis tap sur
+  // un ennemi : l'allié le visera, `ORDER_DELAY_TICKS` plus tard, jusqu'à sa
+  // mort. Le moteur fait le reste (`CombatManager.addOrder`).
+
+  /** L'allié dont on attend la cible. */
+  private _orderSource: Unit | null = null;
+  /** Quand sa bulle s'est fermée : tout `pointerdown` la ferme, AVANT que le
+   *  `pointerup` du tap sur l'ennemi n'arrive ici. */
+  private _orderSourceLostAt = 0;
+  private _combat: import('../logic/CombatManager.js').CombatManager | null = null;
+  private _orderSeq = 0;
+  private _orderTimes: number[] = [];
+
+  /** Les ordres sont-ils ouverts ? Surchargé par le duel en ligne. */
+  canGiveOrders(): boolean {
+    return !!this.animator && !!this._combat && !this._combat.isOver;
+  }
+
+  private _armedOrderSource(): Unit | null {
+    const src = this._orderSource;
+    if (!src || !src.isAlive() || !this.canGiveOrders()) return null;
+    // Bulle encore ouverte, ou fermée par le `pointerdown` de ce même tap.
+    if (this._focusUnsub || Date.now() - this._orderSourceLostAt < ORDER_TAP_GRACE_MS) return src;
+    return null;
+  }
+
+  /**
+   * Ordonne à `unit` (du joueur) de viser `target`. Rend `false` si l'ordre
+   * n'a pas pu être programmé (combat fini, unité morte).
+   */
+  issueOrder(unit: Unit, target: Unit): boolean {
+    const combat = this._combat;
+    if (!combat || !this.canGiveOrders() || unit.side !== 'player' || target.side !== 'enemy') return false;
+    if (!unit.isAlive() || !target.isAlive() || unit.combat_ref < 0 || target.combat_ref < 0) return false;
+    // Pas de quota, mais une cadence bornée : le serveur la revérifie.
+    const now = Date.now();
+    this._orderTimes = this._orderTimes.filter(t => now - t < 1000);
+    if (this._orderTimes.length >= MAX_ORDERS_PER_SECOND) return false;
+    this._orderTimes.push(now);
+    const order = {
+      tick: combat.currentTick() + ORDER_DELAY_TICKS,
+      side: 'player' as const,
+      unitRef: unit.combat_ref,
+      targetRef: target.combat_ref,
+      seq: this._orderSeq++,
+    };
+    if (!combat.addOrder(order)) return false;
+    this.scene?.setOrderPreview(unit, target);
+    this._onOrderIssued(order);
+    return true;
+  }
+
+  /** Après chaque tick joué. Le duel en ligne y envoie sa frontière d'ordres. */
+  protected _afterCombatStep(combat: import('../logic/CombatManager.js').CombatManager): void { void combat; }
+
+  /** Un ordre vient d'être programmé localement. Le duel en ligne l'envoie. */
+  protected _onOrderIssued(order: { tick: number; unitRef: number; targetRef: number; seq: number }): void { void order; }
+
+  /** Le tap en combat : la bulle de l'unité et sa cible (cf. `_watchCombatFocus`),
+   *  la bulle posée du côté opposé à la cible pour ne pas la recouvrir. */
+  private _showCombatUnit(unit: Unit, rect: TooltipAnchor): void {
+    const t = this.animator ? this.scene?.combatTargetRect(unit) : null;
+    const prefer = t && t.top + t.height / 2 < rect.top ? 'below' : 'above';
+    useUiStore.getState().showTooltip({ kind: 'unit', unit }, { ...rect, prefer });
+    if (this.animator) this._watchCombatFocus(unit);
   }
 
   dispose(): void {

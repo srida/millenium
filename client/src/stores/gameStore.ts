@@ -221,6 +221,9 @@ export interface GameSnapshot {
   graveyard: GraveyardEntry[];
   synergies: SynergyEntry[];
   invocationBanner: string | null;
+  /** En combat, un allié est sélectionné : le prochain ennemi touché devient
+   *  sa cible (ordre de ciblage). */
+  orderBanner: string | null;
   errorFlash: string | null;
   boardTerrain: import('../logic/types.js').BoardDef | null;
   terrainAlert: TerrainAlertSnapshot | null;
@@ -272,7 +275,7 @@ export const EMPTY_SNAPSHOT: GameSnapshot = {
   playerJoker: null, playerJokerUsed: false, enemyJoker: null, enemyJokerUsed: false,
   roundJokerFactor: 1, canPlayJoker: false, placedCount: 0, canUndo: false,
   canMulligan: false, mulliganCost: MULLIGAN_COST_ENERGY, energyReserve: 0, energyBudget: 3, energyLeft: 3,
-  hand: [], graveyard: [], synergies: [], invocationBanner: null, errorFlash: null,
+  hand: [], graveyard: [], synergies: [], invocationBanner: null, orderBanner: null, errorFlash: null,
   boardTerrain: null, terrainAlert: null, roundIntro: null, drawPopup: null,
   combatActive: false, combatOutro: null, phaseWipe: null, combatRemaining: 60, speed: 2, showGrid: false, paused: false,
   prepRemaining: 60, endRound: null, shopping: null, shoppingRemaining: SHOPPING_DURATION_S, summonOptions: null,

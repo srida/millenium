@@ -1430,6 +1430,16 @@ Pour le **déplacement**, les candidats sont triés par **Chebyshev** croissante
 
 **Cible montrée au tap** : `CombatManager` pose `unit.combat_target_uid` (cible poursuivie en phase 3, frappée en phase 4). ⚠️ Affichage seulement, aucune règle ne le lit ; un uid et non une référence (pas de cycle entre unités). En combat, le tap sur une unité ouvre son tooltip **et** `Scene3D.setCombatFocus` (cadre blanc sur l'unité, rouge 🎯 sur sa cible, rafraîchi à chaque step) ; la bulle se pose du côté opposé à la cible (`TooltipAnchor.prefer`). Le focus suit le tooltip : il tombe quand celui-ci se ferme.
 
+**Ordres de ciblage** (en combat) : tap sur un allié puis sur un ennemi → l'allié vise cet ennemi jusqu'à sa mort. Aucun quota ; un nouvel ordre remplace le précédent.
+- Préséance : **Provocation > Confusion > Ordre > Rôle**. Ligne du Tank et immobilité de la Tour s'appliquent toujours ; un Soutien ordonné cesse sa marche de garde.
+- ⚠️ Un ordre s'applique au tick **courant + `ORDER_DELAY_TICKS` (6)**, jamais au tick du tap, dans tous les modes (`CombatManager.addOrder` refuse un tick déjà joué). `Unit.ordered_target`, remis à zéro par `resetCombatClocks`.
+- ⚠️ Les unités se désignent par **`combat_ref`** = `referenceCellRank` de leur case de départ (tokens nés en combat : 1000 + compteur), jamais par `uid`. Résolution dans `_applyOrders`, tri `_frameSide` puis `seq`.
+- **PvP = lockstep** (`game/orderLockstep.ts`, pur) : chaque client promet « rien d'autre jusqu'au tick N » (`combat:orders { round, upTo, orders }`, tous les 2 ticks + à chaque ordre) et l'animateur ne joue pas un tick au-delà de la frontière adverse (`CombatAnimator3D.setGate`). Bannière « En attente de l'adversaire… » après 3 s d'attente.
+- ⚠️ Armé seulement si le board adverse porte `orders_protocol` (`ORDERS_PROTOCOL`, `PvpOpponentProvider`) : face à un client ancien, ni ordres ni attente.
+- Serveur : `ws/combatOrders.js` valide la forme, plafonne (8 ordres/s, 30 messages/s, 8 ordres par message) et **reconstruit** le message avant relais (patron des émotes). Client : 4 ordres/s.
+- ⚠️ Un adversaire qui passe l'appli en arrière-plan **fige** le combat des deux joueurs ; aucun forfait spécifique au-delà de la déconnexion. L'IA et `sim/` ne donnent aucun ordre.
+- Verrouillé par `combat-orders.test.ts`, `order-lockstep.test.ts`, `pvp-determinism.test.ts` (300 combats avec ordres) et `pvp-relay.test.ts`.
+
 **Portée** : distance de **Manhattan** (`|dx| + |dy|`, 4 directions, pas de diagonales) — `isInAttackRange(a, t) → manhattan <= a.range`.
 
 **Ligne de vue** (`PathFinder.ts`, Bresenham sur les deux collections de cases bloquées) :

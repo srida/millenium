@@ -284,6 +284,15 @@ export class Unit {
    *  règle ne le lit. Un uid et non une référence, pour ne pas créer de cycle
    *  entre unités. */
   combat_target_uid: number | null;
+  /** L'ennemi que le JOUEUR a ordonné à cette unité de viser (cf. « Ordres de
+   *  ciblage », CLAUDE.md). Posé par `CombatManager` au tick d'application,
+   *  remis à zéro à chaque combat. Provocation et confusion passent devant. */
+  ordered_target: Unit | null = null;
+  /** Identité de l'unité POUR CE COMBAT, commune aux deux clients d'un duel :
+   *  le rang de sa case de départ dans le repère de référence, ou un compteur
+   *  pour un token né en combat. Posée par `CombatManager`, -1 hors combat.
+   *  ⚠️ Jamais l'`uid`, qui n'a aucune valeur commune. */
+  combat_ref = -1;
 
   constructor(card: Card, side: Side) {
     this.uid = _nextUid++;
@@ -459,6 +468,8 @@ export class Unit {
     this.attack_timer = 0;
     this.move_timer = 0;
     this.combat_target_uid = null;
+    this.ordered_target = null;
+    this.combat_ref = -1;
   }
 
   /**

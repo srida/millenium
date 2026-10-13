@@ -12,6 +12,7 @@ const challengeQueue = require('./ChallengeQueue');
 const relay = require('./MatchRelay');
 const botMatch = require('./BotMatch');
 const emotes = require('./emotes');
+const combatOrders = require('./combatOrders');
 
 const WS_PATH = '/ws/pvp';
 
@@ -99,6 +100,7 @@ function attachPvpWebSocketServer(httpServer) {
       relay.handleDisconnect(ws.userId);
       botMatch.handleDisconnect(ws.userId);
       emotes.forget(ws.userId);
+      combatOrders.forget(ws.userId);
     });
   });
 
@@ -175,6 +177,13 @@ function handleMessage(ws, msg) {
         relay.relayMessage(msg.matchId, ws.userId, { type: 'emote:send', matchId: msg.matchId, emoteId: msg.emoteId });
       }
       break;
+    // Ordres de ciblage en combat : même discipline que les messages rapides —
+    // validés, cadence bornée, message reconstruit (cf. ws/combatOrders.js).
+    case 'combat:orders': {
+      const clean = combatOrders.accept(ws.userId, msg);
+      if (clean) relay.relayMessage(msg.matchId, ws.userId, clean);
+      break;
+    }
     // Tous les autres messages (round:board_ready, round:terrain_pick,
     // round:combat_start_ack, round:combat_result, round:next_ready) sont de
     // simples relais entre les 2 joueurs du match — aucune interprétation
