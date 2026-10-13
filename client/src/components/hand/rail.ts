@@ -21,12 +21,10 @@
 // cartes. Un fond teinté derrière elles leur disputait la seule chose qu'elles
 // aient à dire.
 
-// ⚠️ `top-16` et non `top-28` : en paysage sur téléphone, la bande utile ne fait
-// que ~220 px, et les deux rails se lisaient posés trop bas — décalés vers le
-// bord inférieur de l'écran plutôt qu'en regard du plateau. **64 px est le
-// plancher, et il est MESURÉ** : la barre de PV descend exactement à 56 px
-// (`Hud`, safe-area comprise), il reste donc 8 px de gouttière. Les 48 px repris
-// sur le haut profitent aussi à la capacité des piles.
+// ⚠️ `top-[86px]` : en paysage sur téléphone, la bande utile ne fait que
+// ~200 px, chaque pixel repris en haut profite à la capacité des piles. **86 px
+// est le plancher** : le rail part à l'aplomb de l'avatar du `Hud`, dont le
+// pseudo descend à ~76 px ; il reste ~10 px de gouttière.
 // ⚠️ Ça ne suffisait pas à soi seul : c'est l'alignement EN HAUT de la pile
 // (`cardFan.railLayout`) qui règle le cas d'une main courte, qui flottait au
 // milieu de la bande quelle que soit la position de celle-ci.
@@ -59,8 +57,8 @@
 // barre de navigation gestuelle) — sans le report, les rails se posent sous
 // la barre de phase agrandie.
 const WEB_RAIL_BOTTOM = 'bottom-[calc(3.5rem+env(safe-area-inset-bottom))]';
-export const WEB_RAIL_BAND_TABLET = `pointer-events-auto absolute ${WEB_RAIL_BOTTOM} top-16 z-20 w-[214px]`;
-export const WEB_RAIL_BAND_PHONE = `pointer-events-auto absolute ${WEB_RAIL_BOTTOM} top-16 z-20 w-[174px]`;
+export const WEB_RAIL_BAND_TABLET = `pointer-events-auto absolute ${WEB_RAIL_BOTTOM} top-[86px] z-20 w-[214px]`;
+export const WEB_RAIL_BAND_PHONE = `pointer-events-auto absolute ${WEB_RAIL_BOTTOM} top-[86px] z-20 w-[174px]`;
 
 export function webRailBand(isTablet: boolean): string {
   return isTablet ? WEB_RAIL_BAND_TABLET : WEB_RAIL_BAND_PHONE;

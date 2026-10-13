@@ -1,9 +1,9 @@
-// Le joker du joueur, dans le HUD à côté de ses PV. Une pastille 🃏 qui ouvre
-// deux choix (×2, ×0,5) en préparation ; posé, elle affiche le facteur en or,
-// et un nouveau tap rouvre le choix pour le changer ou le retirer. Elle
-// disparaît une fois le joker joué (un seul par partie).
-// ⚠️ Dans le HUD et non dans la barre de phase : à 375 px de large, un bouton
-// de plus y poussait PRÊT hors de l'écran.
+// Le joker du joueur, dans la barre de préparation (`PhaseControls`), juste
+// après le chrono. Un bouton 🃏 qui ouvre deux choix (×2, ×0,5) vers le haut ;
+// posé, il affiche le facteur en or, et retoucher le choix actif le retire. En
+// combat il n'est pas monté : il n'y a plus rien à choisir, le facteur posé se
+// lit sous la barre de PV (`JokerChip` du HUD). Il disparaît une fois le joker
+// joué (un seul par partie).
 //
 // ⚠️ Aucune règle ici : disponibilité et pose passent par le contrôleur
 // (`canPlayJoker`, `setJoker`), qui ajoute le verrou d'engagement du PvP.
@@ -12,6 +12,8 @@ import { useGameStore } from '../../stores/gameStore.js';
 import { Button } from '../ui/primitives.js';
 import { JOKER_CHOICES, jokerLabel } from '../../data/JokerInfo.js';
 import type { JokerKind } from '../../logic/GameState.js';
+
+const HINT = 'Joker : multiplie les dégâts de ce round, dans les deux sens';
 
 export default function JokerButton() {
   const { controller, playerJoker, playerJokerUsed, canPlayJoker } = useGameStore();
@@ -33,57 +35,46 @@ export default function JokerButton() {
 
   if (!controller) return null;
   const armed = jokerLabel(playerJoker);
-  // Joué : le facteur reste affiché tout le combat, puis plus rien.
   if (playerJokerUsed && !armed) return null;
   const pick = (kind: JokerKind | null) => { controller.setJoker(kind); setOpen(false); };
 
   return (
-    <div ref={root} className="pointer-events-auto relative shrink-0">
-      {/* Cible tactile de 44 px : `-my-3` l'empêche de faire grandir la ligne. */}
-      <button
-        type="button"
+    <div ref={root} className="relative shrink-0">
+      <Button
+        variant={armed ? 'primary' : 'ghost'}
         aria-label={armed ? `Joker ${armed} posé${canPlayJoker ? ' — toucher pour changer' : ''}` : 'Poser le joker'}
         aria-expanded={open}
-        title="Joker : multiplie les dégâts de ce round, dans les deux sens"
+        title={HINT}
         disabled={!canPlayJoker}
-        className="-my-3 flex min-h-[44px] items-center px-1 disabled:cursor-default"
+        className={(armed ? 'shrink-0 px-2! ' : 'shrink-0 px-2.5! ') + (!canPlayJoker
+          ? 'text-white/40'
+          : armed ? '' : 'border-gold shadow-[0_0_0_2px_color-mix(in_srgb,var(--color-gold)_40%,transparent),0_0_12px_color-mix(in_srgb,var(--color-gold)_30%,transparent)]!')}
         onPointerDown={(e) => { e.stopPropagation(); if (canPlayJoker) setOpen(o => !o); }}
       >
-        <span
-          className={'flex h-6 items-center gap-0.5 rounded-full border px-1.5 text-[11px] font-bold tabular-nums ' +
-            (armed ? 'border-gold bg-gold/15 text-gold' : canPlayJoker ? 'border-gold/60 text-white' : 'border-line text-white/40')}
-        >
-          <span aria-hidden>🃏</span>
-          {armed}
-        </span>
-      </button>
+        <span aria-hidden className={armed ? 'text-sm' : 'text-lg'}>🃏</span>
+        {armed && <span className="-ml-1.5 text-sm font-bold tabular-nums text-gold">{armed}</span>}
+      </Button>
       {open && (
         <div
           role="menu"
-          className="absolute left-0 top-full z-30 mt-1 flex w-60 flex-col gap-1.5 rounded-lg border border-line bg-surface-raised p-2 text-xs shadow-lg"
+          className="absolute bottom-full left-1/2 z-30 mb-2 flex -translate-x-1/2 gap-1.5 rounded-[10px] border border-gold/50 bg-surface-raised p-1.5 shadow-lg"
         >
-          <p className="text-white/60">Un seul joker par partie. Il vaut pour <b>les deux camps</b> : si tu perds le round, il joue contre toi.</p>
           {JOKER_CHOICES.map(c => (
-            <Button
+            <button
               key={c.kind}
+              type="button"
               role="menuitemradio"
               aria-checked={playerJoker === c.kind}
-              className={'w-full justify-start text-left' + (playerJoker === c.kind ? ' border-gold text-gold' : '')}
-              onPointerDown={(e) => { e.stopPropagation(); pick(c.kind); }}
+              title={c.hint}
+              className={'flex h-[52px] w-16 items-center justify-center rounded-lg border bg-gradient-to-b from-[#272a33] to-[#0f1117] text-xl font-bold tabular-nums text-gold '
+                + (playerJoker === c.kind ? 'border-gold' : 'border-line')}
+              onPointerDown={(e) => { e.stopPropagation(); pick(playerJoker === c.kind ? null : c.kind); }}
             >
-              <span className="w-10 text-base font-bold tabular-nums">{c.label}</span>
-              <span className="text-[11px] font-normal text-white/70">{c.hint}</span>
-            </Button>
+              {c.label}
+            </button>
           ))}
-          {playerJoker && (
-            <Button
-              role="menuitem"
-              className="w-full text-[11px]"
-              onPointerDown={(e) => { e.stopPropagation(); pick(null); }}
-            >
-              Retirer le joker
-            </Button>
-          )}
+          {/* La flèche, entre les deux chiffres, pointe vers le bouton. */}
+          <span aria-hidden className="absolute -bottom-1.5 left-1/2 h-2.5 w-2.5 -translate-x-1/2 rotate-45 border-b border-r border-gold/50 bg-surface-raised" />
         </div>
       )}
     </div>

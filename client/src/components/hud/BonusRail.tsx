@@ -18,9 +18,9 @@ import * as Audio from '../../audio/AudioManager.js';
 import { isNearThreshold, isShownSynergy, orderShownSynergies } from './synergyFilter.js';
 
 // ⚠️ Classes en constantes (virgules dans `max(...)`/`calc(...)`, cf. Hud).
-const POS_PORTRAIT = 'left-1.5 top-[max(4.75rem,calc(env(safe-area-inset-top)+4.25rem))] flex-col';
+const POS_PORTRAIT = 'left-1.5 top-[max(6.125rem,calc(env(safe-area-inset-top)+5.625rem))] flex-col';
 // Tablette portrait : sous la jauge horizontale.
-const POS_PORTRAIT_TABLET = 'left-2.5 top-[max(7.5rem,calc(env(safe-area-inset-top)+7rem))] flex-col';
+const POS_PORTRAIT_TABLET = 'left-2.5 top-[max(9.25rem,calc(env(safe-area-inset-top)+8.75rem))] flex-col';
 // Paysage : la place de l'ancien bandeau web, 8 px plus haut. `bottom-14` et
 // non moins : la barre de phase (pleine largeur) intercepterait les taps.
 const POS_LANDSCAPE = 'bottom-[calc(4rem+env(safe-area-inset-bottom))] left-1/2 -translate-x-1/2 max-w-[60%] flex-wrap justify-center';

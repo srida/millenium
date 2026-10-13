@@ -77,43 +77,55 @@ export function useHpTransition(value: number): HpTransition {
   return { shown, lag, delta };
 }
 
-export default function HpBar({ value, lag, delta, side, max = HP_MAX, className = '' }: {
+/**
+ * La barre d'un camp, façon jeu de combat : biseautée vers le centre, le
+ * chiffre DANS la barre, du côté de l'avatar — et c'est de ce côté qu'elle se
+ * remplit, donc elle se vide vers l'avatar.
+ */
+export default function HpBar({ value, shown, lag, side, max = HP_MAX, className = '' }: {
   value: number;
+  /** Le chiffre en cours de décompte (`HpTransition.shown`). */
+  shown: number;
   lag: number;
-  delta: number;
   side: 'player' | 'enemy';
   max?: number;
   className?: string;
 }) {
-  const label = hpDeltaLabel(delta);
-
+  const anchor = side === 'player' ? 'left-0' : 'right-0';
   return (
-    <div className={`relative ${className}`}>
-      <div className="relative h-2 overflow-hidden rounded-full bg-black/50">
+    <div className={`hp-frame-${side} relative h-6 bg-[#0b0b0d] ${className}`}>
+      <div className={`hp-inner-${side} absolute inset-y-[3px] overflow-hidden bg-[#1a1d27] ${side === 'player' ? 'left-0 right-[3px]' : 'left-[3px] right-0'}`}>
         {/* La traîne, DERRIÈRE le remplissage : sur un GAIN elle est plus courte
             que lui et disparaît donc d'elle-même — aucun cas particulier à
             écrire pour distinguer un soin d'un coup. */}
         <div
-          className="hp-lag absolute inset-y-0 left-0"
+          className={`hp-lag absolute inset-y-0 ${anchor}`}
           style={{ width: `${hpRatio(lag, max) * 100}%` }}
           aria-hidden="true"
         />
         <div
-          className={`hp-fill absolute inset-y-0 left-0 rounded-full ${side === 'player' ? 'bg-player' : 'bg-enemy'}`}
+          className={`hp-fill hp-fill-${side} absolute inset-y-0 ${anchor}`}
           style={{ width: `${hpRatio(value, max) * 100}%` }}
         />
-      </div>
-      {/* Le montant encaissé, le temps de le lire. Ancré du côté de l'avatar de
-          son camp — au milieu, les deux se disputeraient le centre du HUD. */}
-      {label && (
-        <span
-          className={`hp-delta pointer-events-none absolute -top-3.5 text-[10px] font-bold tabular-nums ${
-            delta > 0 ? 'text-success' : 'text-danger'
-          } ${side === 'player' ? 'left-0' : 'right-0'}`}
-        >
-          {label}
+        <div className="absolute inset-x-0 top-0.5 h-[3px] bg-white/20" aria-hidden="true" />
+        <span className={`absolute top-1/2 -translate-y-1/2 text-sm font-bold leading-none tabular-nums text-white ${side === 'player' ? 'left-3.5' : 'right-3.5'}`}>
+          {shown}
         </span>
-      )}
+      </div>
     </div>
+  );
+}
+
+/**
+ * Le montant encaissé, le temps de le lire — sous la barre, côté centre.
+ * Séparé de la barre parce qu'il partage sa ligne avec le joker du camp.
+ */
+export function HpDelta({ delta }: { delta: number }) {
+  const label = hpDeltaLabel(delta);
+  if (!label) return null;
+  return (
+    <span className={`hp-delta pointer-events-none text-xs font-bold leading-[14px] tabular-nums ${delta > 0 ? 'text-success' : 'text-danger'}`}>
+      {label}
+    </span>
   );
 }

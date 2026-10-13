@@ -1,6 +1,6 @@
-// Contrôles de phase : en préparation (timer 60s, grille, options, bouton PRÊT) ;
-// en combat (timer restant, grille, options). Identiques en solo et en PvP :
-// vitesse et pause du solo vivent dans le menu d'options (GameMenu).
+// Contrôles de phase : en préparation (timer 60s, joker, grille, options, bouton
+// PRÊT) ; en combat (timer restant, grille, options). Identiques en solo et en
+// PvP : vitesse et pause du solo vivent dans le menu d'options (GameMenu).
 // Le terrain n'y figure plus : il ouvre la liste de bonus (`BonusRail`). Le menu d'options lui-même est rendu par GameMenu, qui lit `menuOpen`.
 import { useGameStore } from '../../stores/gameStore.js';
 import { Button } from '../ui/primitives.js';
@@ -9,6 +9,7 @@ import HoldConfirmButton from '../ui/HoldConfirmButton.js';
 import { useWebLayout } from '../system/useWebLayout.js';
 import * as Audio from '../../audio/AudioManager.js';
 import PhaseClock from './PhaseClock.js';
+import JokerButton from './JokerButton.js';
 import { useTimerLowSound } from './useTimerLowSound.js';
 
 // Grille de repérage ▦ — partagée par les barres de préparation et de combat.
@@ -18,7 +19,7 @@ function GridButton({ active, onToggle }: { active: boolean; onToggle: () => voi
       aria-label={active ? 'Masquer la grille' : 'Afficher la grille'}
       aria-pressed={active}
       title={active ? 'Masquer la grille' : 'Afficher la grille'}
-      className={'shrink-0 px-3 text-base' + (active ? ' border-gold text-gold' : '')}
+      className={'shrink-0 px-3.5! text-base' + (active ? ' border-gold text-gold' : '')}
       onPointerDown={(e) => { e.stopPropagation(); onToggle(); }}
     >
       ▦
@@ -40,7 +41,7 @@ function UndoButton({ onUndo }: { onUndo: () => void }) {
     <Button
       aria-label="Tout annuler"
       title="Tout annuler"
-      className="shrink-0 px-3 text-base"
+      className="shrink-0 px-3! text-base"
       onPointerDown={(e) => { e.stopPropagation(); onUndo(); }}
       sfx={false}
     >
@@ -65,7 +66,7 @@ function MenuButton() {
   return (
     <Button
       aria-label="Options"
-      className="shrink-0 px-3 text-base"
+      className="shrink-0 px-3! text-base"
       onPointerDown={(e) => { e.stopPropagation(); Audio.playSfx('menu_ingame'); applySnapshot({ menuOpen: true }); }}
       sfx={false}
     >
@@ -93,7 +94,10 @@ export default function PhaseControls() {
   // ⚠️ Même padding que `classname_footer` (combat) : la barre de préparation
   // (PRÊT, ↺, ☰) n'avait pas cette marge et se posait DANS la safe area en PWA
   // installée — home indicator iOS, barre de navigation gestuelle Android.
-  const classname_footer2 = 'pointer-events-auto absolute inset-x-0 bottom-0 z-20 flex items-center gap-2 p-2 pb-[max(0.5rem,env(safe-area-inset-bottom))]' + (web ? ' px-22' : '');
+  // ⚠️ `gap-1` et paddings serrés (`px-…!`, qui battent le `px-4` de
+  // `BUTTON_BASE`) : la barre la plus chargée — chrono, joker posé ×0,5, ▦,
+  // mulligan, ☰, PRÊT — doit tenir en 375 px. Mesuré à ~366 px.
+  const classname_footer2 = 'pointer-events-auto absolute inset-x-0 bottom-0 z-20 flex items-center gap-1 p-2 pb-[max(0.5rem,env(safe-area-inset-bottom))]' + (web ? ' px-22' : '');
 
   // Barre de combat : la même en solo et en PvP. La vitesse et la pause du
   // solo sont dans le menu d'options (GameMenu) — en PvP elles n'existent pas,
@@ -120,10 +124,13 @@ export default function PhaseControls() {
       <PhaseClock
         remaining={prepRemaining}
         label={`Temps de préparation restant : ${prepRemaining} secondes`}
-        className="min-h-tap px-3 text-base font-bold"
+        className="min-h-tap px-1.5 text-base font-bold"
       >
         {prepRemaining}s
       </PhaseClock>
+      {/* Le joker, en préparation seulement : en combat il n'y a plus rien à
+          choisir, le facteur posé se lit sous la barre de PV. */}
+      <JokerButton />
       <div className="flex-1" />
       <GridButton active={showGrid} onToggle={() => controller.toggleGrid()} />
       {/* `visible`, pas un montage conditionnel : `canMulligan` retombe à
@@ -141,6 +148,10 @@ export default function PhaseControls() {
         currency="cards"
         onConfirm={() => controller.mulligan()}
         visible={canMulligan}
+        // ⚠️ `px-2!` : le `px-2` de `HoldConfirmButton` perd contre le `px-4`
+        // de `BUTTON_BASE`, et ces 16 px poussaient PRÊT hors d'un écran de
+        // 375 px une fois le joker dans la barre.
+        className="px-2!"
       />
       {canUndo && <UndoButton onUndo={() => controller.undoPreparation()} />}
       <MenuButton />
@@ -150,7 +161,7 @@ export default function PhaseControls() {
         <Button
           variant="primary"
           aria-label="En attente de l'adversaire — toucher pour annuler"
-          className="animate-pulse"
+          className="shrink-0 animate-pulse px-3!"
           onPointerDown={(e) => { e.stopPropagation(); controller.cancelReady(); }}
           sfx={false}
         >
@@ -160,7 +171,7 @@ export default function PhaseControls() {
           </span>
         </Button>
       ) : (
-        <Button variant="primary" onPointerDown={(e) => { e.stopPropagation(); controller.startCombat(); }} sfx={false}>
+        <Button variant="primary" className="shrink-0 px-3!" onPointerDown={(e) => { e.stopPropagation(); controller.startCombat(); }} sfx={false}>
           PRÊT
         </Button>
       )}

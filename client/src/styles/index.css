@@ -621,10 +621,26 @@ input, textarea, select { font-size: 1rem !important; }
    résultat. Sa durée est le miroir de `HP_TWEEN_MS` / `HP_LAG_HOLD_MS`
    (`hpBar.ts`), qui pilotent le chiffre : les deux doivent rester d'accord. */
 .hp-lag {
-  background: color-mix(in srgb, var(--color-danger) 65%, white);
+  background: #f4f1ea;
   transition: width 700ms cubic-bezier(.2, .8, .3, 1);
 }
 .hp-fill { transition: width 220ms ease-out; }
+.hp-fill-player { background: linear-gradient(180deg, #9cc0fb, var(--color-player) 45%, #2d5fc0); }
+.hp-fill-enemy  { background: linear-gradient(180deg, #f29a94, var(--color-enemy) 45%, #a8322c); }
+/* Le pseudo sous l'avatar du HUD — le seul texte du HUD dans la police des
+   messages rapides (chargée par `index.html`). */
+.font-comic { font-family: 'Comic Neue', 'Comic Sans MS', sans-serif; }
+.hud-name-player { box-shadow: 2px 2px 0 var(--color-player); transform: rotate(-2deg); }
+.hud-name-enemy  { box-shadow: -2px 2px 0 var(--color-enemy); transform: rotate(2deg); }
+/* Les PV face-à-face : un biseau de 12 px côté centre, l'intérieur 3 px plus
+   loin avec un biseau de 10 px pour rester parallèle. */
+.hp-frame-player { clip-path: polygon(0 0, 100% 0, calc(100% - 12px) 100%, 0 100%); }
+.hp-frame-enemy  { clip-path: polygon(0 0, 100% 0, 100% 100%, 12px 100%); }
+.hp-inner-player { clip-path: polygon(0 0, 100% 0, calc(100% - 10px) 100%, 0 100%); }
+.hp-inner-enemy  { clip-path: polygon(0 0, 100% 0, 100% 100%, 10px 100%); }
+/* La manche, dans un hexagone or. */
+.round-hex       { clip-path: polygon(11px 0, calc(100% - 11px) 0, 100% 50%, calc(100% - 11px) 100%, 11px 100%, 0 50%); }
+.round-hex-inner { clip-path: polygon(10px 0, calc(100% - 10px) 0, 100% 50%, calc(100% - 10px) 100%, 10px 100%, 0 50%); }
 @keyframes hp-delta-anim {
   0%   { opacity: 0; transform: translateY(6px); }
   18%  { opacity: 1; transform: translateY(0); }
