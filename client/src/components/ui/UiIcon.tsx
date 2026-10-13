@@ -20,10 +20,10 @@ export type UiIconId =
   | 'UI_SORT' | 'UI_CLOSE'
   | 'UI_CHECK' | 'UI_CROSS' | 'UI_TIMER' | 'UI_STAR' | 'UI_SUMMONING' | 'UI_POWERS'
   | 'UI_EYE' | 'UI_SPARKLE' | 'UI_PLAY' | 'UI_PAUSE' | 'UI_HOURGLASS' | 'UI_SHIELD'
-  | 'UI_ENERGY';
+  | 'UI_ENERGY' | 'UI_JOKER';
 
 /** Les rares glyphes livrés en PNG plutôt qu'en SVG. */
-const PNG: ReadonlySet<UiIconId> = new Set<UiIconId>(['UI_ENERGY']);
+const PNG: ReadonlySet<UiIconId> = new Set<UiIconId>(['UI_ENERGY', 'UI_JOKER']);
 
 /** Un id de la famille Interface commence toujours par `UI_` — ce qui permet
  *  à un appelant qui reçoit un champ « soit un id, soit un emoji brut » (un

@@ -1,5 +1,5 @@
 // Le joker du joueur, dans la barre de préparation (`PhaseControls`), juste
-// après le chrono. Un bouton 🃏 qui ouvre deux choix (×2, ×0,5) vers le haut ;
+// après le chrono. Un bouton joker (`UI_JOKER`) qui ouvre deux choix (×2, ×0,5) vers le haut ;
 // posé, il affiche le facteur en or, et retoucher le choix actif le retire. En
 // combat il n'est pas monté : il n'y a plus rien à choisir, le facteur posé se
 // lit sous la barre de PV (`JokerChip` du HUD). Il disparaît une fois le joker
@@ -10,6 +10,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useGameStore } from '../../stores/gameStore.js';
 import { Button } from '../ui/primitives.js';
+import UiIcon from '../ui/UiIcon.js';
 import { JOKER_CHOICES, jokerLabel } from '../../data/JokerInfo.js';
 import type { JokerKind } from '../../logic/GameState.js';
 
@@ -46,12 +47,12 @@ export default function JokerButton() {
         aria-expanded={open}
         title={HINT}
         disabled={!canPlayJoker}
-        className={(armed ? 'shrink-0 px-2! ' : 'shrink-0 px-2.5! ') + (!canPlayJoker
+        className={(armed ? 'shrink-0 px-2! ' : 'min-w-tap shrink-0 px-2.5! ') + (!canPlayJoker
           ? 'text-white/40'
           : armed ? '' : 'border-gold shadow-[0_0_0_2px_color-mix(in_srgb,var(--color-gold)_40%,transparent),0_0_12px_color-mix(in_srgb,var(--color-gold)_30%,transparent)]!')}
         onPointerDown={(e) => { e.stopPropagation(); if (canPlayJoker) setOpen(o => !o); }}
       >
-        <span aria-hidden className={armed ? 'text-sm' : 'text-lg'}>🃏</span>
+        <UiIcon id="UI_JOKER" className={armed ? 'h-4 w-4' : 'h-5 w-5'} />
         {armed && <span className="-ml-1.5 text-sm font-bold tabular-nums text-gold">{armed}</span>}
       </Button>
       {open && (
