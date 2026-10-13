@@ -584,7 +584,7 @@ node scripts/build-bot-decks.js [--write|--check]
 
 **5 tours. PV des joueurs : 400** (`STARTING_HP` = `PLAYER_HP_CAP`). Chaque tour :
 
-1. **Préparation** (`PREP_DURATION = 60` s — placement, chrono tenu par l'écran React, lance le combat à 0 ; **mulligan à 2 ⚡**)
+1. **Préparation** (`PREP_DURATION = 60` s — placement, chrono tenu par l'écran React, lance le combat à 0 ; **mulligan à −1 carte**)
 2. **Combat** (auto-résolu, animé, coupé à 60 s de temps réel)
 3. **Fin de combat** (dégâts aux PV, nettoyage)
 4. **Phase Shopping** (sauf dernier tour) — boutique de 3 magies + 3 cartes payées en énergie de réserve, **reroll 🎲 1 ⚡**, 45 s en PvP
@@ -673,7 +673,7 @@ Bouton **↺** de `PhaseControls`. Tout est dans `GameSession.undoPreparation()`
 
 ### Réserve d'énergie (joueur seulement)
 
-`gameState.player_energy_reserve` : monnaie du mulligan, du reroll et de la boutique.
+`gameState.player_energy_reserve` : monnaie du reroll et de la boutique.
 
 | Source | Gain |
 |---|---|
@@ -684,23 +684,23 @@ Bouton **↺** de `PhaseControls`. Tout est dans `GameSession.undoPreparation()`
 - Nul et timeout rompent les deux séries et ne rapportent rien (`creditRoundOutcome`, appelé par `applyEndOfCombat`, qui rend `reserveGain`/`reserveGainReason`).
 - `_payEnergy` débite **la réserve d'abord**, puis le budget du tour (`_energySpent`, soustrait par `energyBudget`). `energyAvailable` n'ajoute le reste du tour qu'en `PREPARATION`.
 - Récapitulatif : `Overlays.ReserveLine`, lignes de `data/ReserveInfo.reserveLines` — rien au dernier round (`isGameOver`).
-- Prix en ⚡ dans un bouton (mulligan, reroll) : `HoldConfirmButton showPrice` (chiffre + icône `UI_ENERGY`), jamais le glyphe.
+- Prix en ⚡ dans un bouton (reroll) : `HoldConfirmButton showPrice` (chiffre + icône `UI_ENERGY`), jamais le glyphe.
 - Rien côté PvP ni IA : la réserve ne voyage pas et l'IA n'en a pas.
 
 ### Mulligan — le seul geste qui DÉPLACE le point de retour
 
-Bouton `UI_MULLIGAN` + prix de `PhaseControls`, **à chaque tour** : remet la main dans le deck et en repioche autant, contre **`MULLIGAN_COST_ENERGY` = 2 ⚡** (`GameState.ts`). Tout est dans `GameSession.canMulligan()` / `mulligan()` / `mulliganCost()`.
+Bouton `UI_MULLIGAN` + prix de `PhaseControls`, **à chaque tour** : remet la main dans le deck et en repioche **une de moins** (`MULLIGAN_CARD_PENALTY` = 1, `GameState.ts`), sans énergie. Bouton `HoldConfirmButton currency="cards"`. Tout est dans `GameSession.canMulligan()` / `mulligan()` / `mulliganCost()`.
 
 | Règle | Valeur |
 |---|---|
 | Fréquence | **une fois par tour** (`_mulliganUsed`, remis à zéro par `startPreparation`) |
-| Prix | 2 ⚡, réserve d'abord puis budget du tour (`canPayEnergy`) |
-| Disponibilité | main non vide **et tour INTACT** (`!canUndoPreparation()`) |
+| Prix | 1 carte de moins dans la main redistribuée, aucune énergie |
+| Disponibilité | main d'au moins 2 cartes **et tour INTACT** (`!canUndoPreparation()`) |
 
-- ⚠️ **Le tour doit être intact, et c'est ce qui rend les deux règles compatibles** : le mulligan n'est pas annulable (il débite de l'énergie, que `undoPreparation` ne rend pas), il **re-capture donc le `_prepSnapshot`**. Le déplacer sur un tour déjà joué confisquerait l'annulation des invocations ; ne pas le déplacer rendrait la main d'avant sans rendre l'énergie. Même doctrine que la Phase Shopping, qui a lieu **avant** la capture.
+- ⚠️ **Le tour doit être intact, et c'est ce qui rend les deux règles compatibles** : le mulligan n'est pas annulable (la carte perdue ne revient pas avec `undoPreparation`), il **re-capture donc le `_prepSnapshot`**. Le déplacer sur un tour déjà joué confisquerait l'annulation des invocations ; ne pas le déplacer rendrait la main d'avant, carte perdue comprise. Même doctrine que la Phase Shopping, qui a lieu **avant** la capture.
 - **Corollaire visible** : mulligan et ↺ ne sont **jamais** à l'écran ensemble — le premier cède sa place au second à la première invocation.
 - ⚠️ **`prepId` n'est PAS incrémenté** : c'est le même tour. Le bouger périmerait la marque d'événements de missions et le verrou d'engagement PvP, tous deux parfaitement valides.
-- ⚠️ **On repioche `hand.length`, jamais `HAND_SIZE` en dur** : la main s'accumule d'un tour à l'autre.
+- ⚠️ **On repioche `hand.length − 1`, jamais `HAND_SIZE` en dur** : la main s'accumule d'un tour à l'autre.
 - **Rien côté PvP** : la main n'entre pas dans `round:board_ready`. `GameController.canMulligan()` ajoute le seul garde-fou applicatif, `_committedPrepId`, exactement comme pour ↺.
 - **Rien côté serveur, rien côté missions** : un tour intact n'a pu mettre aucun `summon_performed` en file.
 

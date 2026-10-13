@@ -38,14 +38,17 @@ export const PLAYER_HP_CAP = STARTING_HP;
 
 /**
  * Les gestes payés en ÉNERGIE DE RÉSERVE, et le seul endroit qui les
- * chiffre (`GameSession` les prélève, l'écran les annonce).
+ * chiffre (`GameSession` les prélève, l'écran les annonce). Le mulligan n'en
+ * fait plus partie : il se paie en CARTES (`MULLIGAN_CARD_PENALTY`).
  *
  * La réserve, c'est l'énergie que le joueur n'a pas posée : au lancement du
  * combat, ce qui reste du budget du tour y est versé (`GameSession.startCombat`).
  * Elle remplace les PV comme monnaie de ces gestes — c'est ce qui donne un prix
  * à « je pose tout » contre « je garde pour plus tard ».
  */
-export const MULLIGAN_COST_ENERGY = 2;
+/** Le prix du mulligan : la main redistribuée compte autant de cartes en
+ *  MOINS. Aucune énergie. */
+export const MULLIGAN_CARD_PENALTY = 1;
 export const SHOPPING_REROLL_COST_ENERGY = 1;
 
 /**
@@ -103,7 +106,7 @@ export class GameState {
   round_joker_factor: number;
 
   /** Énergie mise de côté, cumulée d'un tour à l'autre — cf.
-   *  `MULLIGAN_COST_ENERGY`. Joueur seulement : l'IA ne fait ni mulligan ni
+   *  `SHOPPING_REROLL_COST_ENERGY`. Joueur seulement : l'IA ne fait ni mulligan ni
    *  Shopping, et en PvP chaque client tient la sienne (rien ne voyage). */
   player_energy_reserve: number;
   /** Longueur des séries en cours (une seule des deux est non nulle). */

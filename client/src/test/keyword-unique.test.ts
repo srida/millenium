@@ -153,7 +153,7 @@ describe('GameSession — Unique ne se pioche qu\'une fois par partie', () => {
     session.mulligan();
     // La même carte peut revenir : le mulligan l'a rendue au deck. Sans
     // `_forgetUniqueDraws`, le pool serait vide et la main le resterait.
-    expect(session.hand).toHaveLength(5);
+    expect(session.hand).toHaveLength(4);
     expect(session.hand.every(c => c.id === 'UNIQ')).toBe(true);
   });
 });

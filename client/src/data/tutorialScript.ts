@@ -66,7 +66,7 @@ export const GAME_STEPS: GameStepDef[] = [
   {
     id: 'mulligan',
     title: 'Ta main ne te plaît pas ?',
-    text: "Le bouton 🔄 remet ta main dans le deck et t'en repioche autant, pour 2 ⚡ (ta réserve d'abord, sinon l'énergie du tour), une fois par tour. À saisir avant de poser quoi que ce soit : après, il disparaît.",
+    text: "Le bouton 🔄 remet ta main dans le deck et t'en repioche une carte de moins, sans énergie, une fois par tour. À saisir avant de poser quoi que ce soit : après, il disparaît.",
     blocking: true,
     // ⚠️ `!s.canMulligan` fait partie du `done`, pas seulement du `visible` :
     // le bouton s'efface dès que le joueur mulligane ou pose une unité, et une

@@ -1,6 +1,7 @@
 // Un geste payé, à MAINTENIR plutôt qu'un tap suivi d'une confirmation
 // modale : le reroll de la Phase Shopping et le mulligan de la barre de
-// préparation, payés en ⚡ de réserve (`currency="energy"`). La charge qui remplit le bouton EST la confirmation — le prix
+// préparation, payés en ⚡ de réserve (`currency="energy"`) ou en carte
+// (`currency="cards"`, le mulligan). La charge qui remplit le bouton EST la confirmation — le prix
 // ne s'affiche qu'au moment où il est débité, en toast au-dessus du bouton,
 // jamais écrit sur le bouton lui-même.
 //
@@ -40,7 +41,7 @@ const HOLD_MS = 600;
 const TOAST_VISIBLE_MS = 900;
 const TOAST_FADE_MS = 300;
 
-type Tone = 'danger' | 'gold' | 'gems' | 'energy';
+type Tone = 'danger' | 'gold' | 'gems' | 'energy' | 'cards';
 
 interface ToneStyle {
   surface: string;
@@ -56,6 +57,8 @@ const TONE_STYLE: Record<Tone, ToneStyle> = {
   gold: { surface: SURFACE_GOLD, text: 'text-gold', toast: 'bg-gold text-black', unit: CURRENCY.gold.unit, icon: CURRENCY.gold.icon },
   gems: { surface: SURFACE_VIOLET, text: 'text-violet', toast: 'bg-violet text-white', unit: CURRENCY.gems.unit, icon: CURRENCY.gems.icon },
   energy: { surface: SURFACE_GOLD, text: 'text-gold', toast: 'bg-gold text-black', unit: 'énergie', icon: 'UI_ENERGY' },
+  // Le mulligan : il se paie en cartes de la main redistribuée.
+  cards: { surface: SURFACE_VIOLET, text: 'text-violet', toast: 'bg-violet text-white', unit: 'carte', icon: 'UI_CARD' },
 };
 
 export default function HoldConfirmButton({
@@ -81,7 +84,7 @@ export default function HoldConfirmButton({
    *  texte, toast) sur la couleur de cette monnaie plutôt que le rouge PV, et
    *  déclenche `shop_buy` au lieu de rien. Omis, le bouton reste le geste payé
    *  en PV d'origine. */
-  currency?: CurrencyKey | 'energy';
+  currency?: CurrencyKey | 'energy' | 'cards';
   /** Le verbe employé dans le nom accessible (« Maintenir pour ACHETER,
    *  moins… ») — `label` en minuscules par défaut (« mulligan », « re-roll »),
    *  qui ne dit pas grand-chose pour un bouton dont le libellé n'est qu'un
@@ -129,7 +132,7 @@ export default function HoldConfirmButton({
       // (`GameController.mulligan()` / `rerollShoppingMagies()` →
       // `Audio.playSfx('mulligan_reroll')`), pas depuis le bouton — le
       // sonner ici aussi le ferait sonner deux fois.
-      if (currency && currency !== 'energy') Audio.playSfx('shop_buy');
+      if (currency && currency !== 'energy' && currency !== 'cards') Audio.playSfx('shop_buy');
       toastTimers.current.forEach(id => window.clearTimeout(id));
       setToastPhase('in');
       toastTimers.current = [

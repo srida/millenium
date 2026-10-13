@@ -1,15 +1,15 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-// Mulligan — remettre sa main dans le deck et en repiocher autant, contre
-// 2 ⚡ (réserve d'abord, budget du tour ensuite), une fois par tour
-// (`GameSession.canMulligan` / `mulligan`).
+// Mulligan — remettre sa main dans le deck et en repiocher une carte de
+// MOINS, sans énergie, une fois par tour (`GameSession.canMulligan` /
+// `mulligan`).
 //
 // Ce que ces tests éprouvent, et qui ne se voit nulle part à l'écran quand ça
 // casse : le mulligan DÉPLACE le point de retour de « Tout annuler ». Sans ce
-// déplacement, un ↺ rendrait la main d'avant sans rendre l'énergie payée.
+// déplacement, un ↺ rendrait la main d'avant, carte perdue comprise.
 import { describe, it, expect } from 'vitest';
 import { GameSession } from '../logic/GameSession.js';
 import type { GameSessionDeps } from '../logic/GameSession.js';
-import { MULLIGAN_COST_ENERGY } from '../logic/GameState.js';
+import { MULLIGAN_CARD_PENALTY } from '../logic/GameState.js';
 import { Unit } from '../logic/Unit.js';
 import { makeCard } from './helpers.js';
 
@@ -85,37 +85,26 @@ describe('Mulligan — disponibilité', () => {
     expect(session.canMulligan()).toBe(false);
   });
 
-  it('exige l\'énergie : réserve et budget du tour réunis', () => {
+  // Mutation : remettre `canPayEnergy(2)` dans `canMulligan` → ROUGE.
+  it('ne demande AUCUNE énergie, même à budget et réserve nuls', () => {
     const session = makeSession();
     session.startPreparation();
     session.gameState.player_energy_bonus = -3;  // budget du tour 1 ramené à 0
-    expect(session.energyLeft()).toBe(0);
-    session.gameState.player_energy_reserve = MULLIGAN_COST_ENERGY - 1;
-    expect(session.canMulligan()).toBe(false);
-    expect(session.mulligan()).toBe(false);
-    expect(session.energyReserve()).toBe(MULLIGAN_COST_ENERGY - 1);
-    session.gameState.player_energy_reserve = MULLIGAN_COST_ENERGY;
+    session.gameState.player_energy_reserve = 0;
+    expect(session.energyAvailable()).toBe(0);
+    expect(session.canMulligan()).toBe(true);
     expect(session.mulligan()).toBe(true);
     expect(session.energyReserve()).toBe(0);
   });
 
-  it('paie la RÉSERVE d\'abord, le budget du tour ensuite', () => {
+  it('ne touche ni au budget du tour ni à la réserve', () => {
     const session = makeSession();
-    session.startPreparation();                  // tour 1 : budget 3
-    session.gameState.player_energy_reserve = 1;
+    session.startPreparation();
+    session.gameState.player_energy_reserve = 4;
+    const budget = session.energyBudget();
     expect(session.mulligan()).toBe(true);
-    expect(session.energyReserve()).toBe(0);
-    expect(session.energyBudget()).toBe(2);      // 1 ⚡ pris sur le tour
-  });
-
-  it('le budget du tour entamé se rend au tour suivant', () => {
-    const session = makeSession();
-    session.startPreparation();
-    session.mulligan();
-    expect(session.energyBudget()).toBe(1);
-    session.gameState.round = 2;
-    session.startPreparation();
-    expect(session.energyBudget()).toBe(5);
+    expect(session.energyReserve()).toBe(4);
+    expect(session.energyBudget()).toBe(budget);
   });
 
   it('ne touche jamais aux PV', () => {
@@ -124,6 +113,15 @@ describe('Mulligan — disponibilité', () => {
     const hp = session.gameState.player_hp;
     session.mulligan();
     expect(session.gameState.player_hp).toBe(hp);
+  });
+
+  it('n\'est pas proposé sur une main d\'une seule carte — il ne resterait rien', () => {
+    const session = makeSession();
+    session.startPreparation();
+    session.hand = session.hand.slice(0, MULLIGAN_CARD_PENALTY);
+    expect(session.canMulligan()).toBe(false);
+    expect(session.mulligan()).toBe(false);
+    expect(session.hand).toHaveLength(MULLIGAN_CARD_PENALTY);
   });
 
   it('n\'est pas proposé sur une main vide — il n\'y a rien à rendre', () => {
@@ -135,28 +133,29 @@ describe('Mulligan — disponibilité', () => {
 });
 
 describe('Mulligan — ce qu\'il fait', () => {
-  it('débite le coût et repioche AUTANT de cartes qu\'il en rend', () => {
+  // Mutation : repiocher `hand.length` → ROUGE.
+  it('repioche UNE CARTE DE MOINS qu\'il n\'en rend, sans débiter d\'énergie', () => {
     const session = makeSession();
     session.startPreparation();
     const before = session.hand.length;
     const available = session.energyAvailable();
 
     expect(session.mulligan()).toBe(true);
-    expect(session.hand).toHaveLength(before);
-    expect(session.energyAvailable()).toBe(available - MULLIGAN_COST_ENERGY);
+    expect(session.hand).toHaveLength(before - MULLIGAN_CARD_PENALTY);
+    expect(session.energyAvailable()).toBe(available);
   });
 
   it('repioche la taille RÉELLE de la main, pas 5 en dur', () => {
     const session = makeSession();
     // Au tour 1 la main vaut toujours 5 (les bonus de pioche sont des effets de
     // fin de combat) : on force le cas où les deux lectures divergent, sinon
-    // rien ne distingue « autant qu'on en rend » d'un 5 écrit en dur.
+    // rien ne distingue « la main moins une » d'un 4 écrit en dur.
     session.gameState.player_extra_draws = 2;
     session.startPreparation();
     expect(session.hand).toHaveLength(7);
 
     expect(session.mulligan()).toBe(true);
-    expect(session.hand).toHaveLength(7);
+    expect(session.hand).toHaveLength(7 - MULLIGAN_CARD_PENALTY);
   });
 
   it('la main est bien REPIOCHÉE : deux graines différentes ne rendent pas la même', () => {
@@ -179,7 +178,7 @@ describe('Mulligan — ce qu\'il fait', () => {
     expect(session.prepId).toBe(prepId);
   });
 
-  it('⚠️ DÉPLACE le point de retour : ↺ ne rend ni la main d\'avant ni l\'énergie', () => {
+  it('⚠️ DÉPLACE le point de retour : ↺ ne rend ni la main d\'avant ni la carte perdue', () => {
     const session = makeSession();
     session.startPreparation();
     const oldHand = ids(session);

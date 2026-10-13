@@ -4,7 +4,7 @@ import type { Unit } from '../logic/Unit.js';
 import type { PhaseValue } from '../logic/GameState.js';
 import type { GameController } from '../game/GameController.js';
 import type { EndRoundResult } from '../logic/GameSession.js';
-import { MULLIGAN_COST_ENERGY, PLAYER_HP_CAP } from '../logic/GameState.js';
+import { MULLIGAN_CARD_PENALTY, PLAYER_HP_CAP } from '../logic/GameState.js';
 import type { JokerKind } from '../logic/GameState.js';
 import { SHOPPING_DURATION_S } from '../game/timings.js';
 import type { UiIconId } from '../components/ui/UiIcon.js';
@@ -203,15 +203,15 @@ export interface GameSnapshot {
   canUndo: boolean;
   /** Le mulligan est proposé → le bouton 🔄 de la barre de préparation
    *  s'affiche. Une fois par tour, tant que rien n'a été posé ni déplacé et que
-   *  l'énergie suffit (cf. `GameSession.canMulligan`).
+   *  la main a au moins deux cartes (cf. `GameSession.canMulligan`).
    *  ⚠️ Il s'exclut donc de `canUndo` : les deux ne sont jamais vrais ensemble,
    *  et le 🔄 cède sa place au ↺ dès la première invocation. */
   canMulligan: boolean;
-  /** Le prix du mulligan en ⚡, pour que le bouton l'annonce sans le
+  /** Le prix du mulligan en cartes, pour que le bouton l'annonce sans le
    *  recopier. */
   mulliganCost: number;
   /** La réserve d'énergie du joueur (énergie non posée des tours d'avant,
-   *  séries), qui paie mulligan, reroll et boutique. */
+   *  séries), qui paie reroll et boutique. */
   energyReserve: number;
   /** Le budget d'invocation du tour (cf. `logic/SummonBudget`) et ce qu'il en
    *  reste. Une carte coûte son tier. */
@@ -274,7 +274,7 @@ export const EMPTY_SNAPSHOT: GameSnapshot = {
   playerMultiplier: 1, enemyMultiplier: 1,
   playerJoker: null, playerJokerUsed: false, enemyJoker: null, enemyJokerUsed: false,
   roundJokerFactor: 1, canPlayJoker: false, placedCount: 0, canUndo: false,
-  canMulligan: false, mulliganCost: MULLIGAN_COST_ENERGY, energyReserve: 0, energyBudget: 3, energyLeft: 3,
+  canMulligan: false, mulliganCost: MULLIGAN_CARD_PENALTY, energyReserve: 0, energyBudget: 3, energyLeft: 3,
   hand: [], graveyard: [], synergies: [], invocationBanner: null, orderBanner: null, errorFlash: null,
   boardTerrain: null, terrainAlert: null, roundIntro: null, drawPopup: null,
   combatActive: false, combatOutro: null, phaseWipe: null, combatRemaining: 60, speed: 2, showGrid: false, paused: false,

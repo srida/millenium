@@ -699,7 +699,7 @@ export class GameController {
   }
 
   /**
-   * Mulligan — remet la main dans le deck et en repioche autant, contre des PV.
+   * Mulligan — remet la main dans le deck et en repioche une carte de moins.
    * La règle entière vit dans `GameSession.mulligan()` ; ici on ne fait que
    * défaire ce qui n'est pas de son ressort : la sélection en cours, qui pointe
    * une carte de la main d'AVANT.

@@ -61,7 +61,7 @@ function UndoButton({ onUndo }: { onUndo: () => void }) {
   );
 }
 
-// Mulligan — remet la main dans le deck et en repioche autant, contre des PV.
+// Mulligan — remet la main dans le deck et en repioche une carte de moins.
 // N'existe qu'au tour 1, tant que rien n'a été posé ni déplacé : il occupe donc
 // exactement la place que `UndoButton` prendra dès la première invocation, et
 // les deux ne sont jamais à l'écran ensemble (cf. `GameSnapshot.canMulligan`).
@@ -166,9 +166,9 @@ export default function PhaseControls({ pvp = false }: { pvp?: boolean }) {
         icon={<UiIcon id="UI_MULLIGAN" className="h-5 w-5" />}
         showPrice
         actionLabel="faire un mulligan"
-        title="Mulligan : remettre ta main dans le deck et repiocher"
+        title="Mulligan : remettre ta main dans le deck et repiocher une carte de moins"
         cost={mulliganCost}
-        currency="energy"
+        currency="cards"
         onConfirm={() => controller.mulligan()}
         visible={canMulligan}
       />

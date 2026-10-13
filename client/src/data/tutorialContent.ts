@@ -181,14 +181,14 @@ export const CHAPTERS: Chapter[] = [
       { kind: 'text', text: ":UI_ENERGY: **L'énergie.** Chaque tour te donne un budget, et chaque unité sur ton terrain en occupe **son tier** (le plus bas, pour une carte à plusieurs tiers) — **les survivantes des tours d'avant comprises**. Une invocation qui consomme des unités du terrain récupère leur part. C'est la **seule** limite : il n'y a pas de nombre maximum d'unités. Certaines magies t'en donnent en plus pour le reste de la partie. Le compteur :UI_ENERGY: est sous le numéro de manche." },
       { kind: 'table', head: ['Tour', 'Énergie'], rows: [['1', '3'], ['2', '5'], ['3', '8'], ['4', '13'], ['5', '21']] },
       { kind: 'note', text: "Les exemplaires identiques sont **empilés** sous une seule vignette, avec un badge ×N. Une carte grisée est injouable pour l'instant : énergie insuffisante, matériaux manquants, terrain plein, ou doublon déjà en jeu." },
-      { kind: 'text', text: ":UI_ENERGY: **La réserve.** L'énergie que tu ne poses pas n'est pas perdue : au lancement du combat, elle part en **réserve** (le « +N » à côté du compteur). Une **série** l'alimente aussi : deux victoires de suite +2, trois et plus +3 ; une défaite +1, deux de suite et plus +2. La réserve paie le mulligan, le reroll et la boutique de la Phase Shopping." },
-      { kind: 'text', text: ":UI_MULLIGAN: **Le mulligan.** Une main ratée n'est pas une partie perdue : le bouton :UI_MULLIGAN: de la barre du bas remet ta main dans le deck et t'en repioche autant, contre **2 ⚡** — ta réserve d'abord, sinon l'énergie du tour." },
+      { kind: 'text', text: ":UI_ENERGY: **La réserve.** L'énergie que tu ne poses pas n'est pas perdue : au lancement du combat, elle part en **réserve** (le « +N » à côté du compteur). Une **série** l'alimente aussi : deux victoires de suite +2, trois et plus +3 ; une défaite +1, deux de suite et plus +2. La réserve paie le reroll et la boutique de la Phase Shopping." },
+      { kind: 'text', text: ":UI_MULLIGAN: **Le mulligan.** Une main ratée n'est pas une partie perdue : le bouton :UI_MULLIGAN: de la barre du bas remet ta main dans le deck et t'en repioche une carte de **moins** — il ne coûte aucune énergie." },
       { kind: 'bullets', items: [
         "**Une fois par tour**, à n'importe quel tour.",
         "**Avant de poser quoi que ce soit** : dès ta première invocation, il cède sa place au :UI_UNDO: « Tout annuler ».",
         "Le deck n'est pas une pile qu'on épuise : une carte rendue peut parfaitement **revenir** dans la nouvelle main.",
       ] },
-      { kind: 'note', text: ":UI_WARNING: Le mulligan **n'est pas annulable** : :UI_UNDO: ramène le tour à l'état d'**après** la repioche, jamais à la main d'avant. Au tour 1, sans réserve, il coûte 2 de tes 3 ⚡ : tu poses moins, mais avec la main que tu veux." },
+      { kind: 'note', text: ":UI_WARNING: Le mulligan **n'est pas annulable** : :UI_UNDO: ramène le tour à l'état d'**après** la repioche, jamais à la main d'avant. Au tour 1, tu repars avec 4 cartes au lieu de 5 : une de moins, mais celles que tu veux." },
     ],
   },
   {

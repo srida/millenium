@@ -11,7 +11,7 @@ import { Board } from './Board.js';
 import { Unit } from './Unit.js';
 import {
   GameState, Phase, PLAYER_HP_CAP,
-  MULLIGAN_COST_ENERGY, SHOPPING_REROLL_COST_ENERGY,
+  MULLIGAN_CARD_PENALTY, SHOPPING_REROLL_COST_ENERGY,
   MAGIE_ENERGY_PRICE, CARD_ENERGY_PRICE, SHOP_CARD_COUNT,
 } from './GameState.js';
 import type { JokerKind } from './GameState.js';
@@ -521,23 +521,23 @@ export class GameSession {
   // ── Mulligan (bouton 🔄 de la barre de préparation) ──────────────────────
 
   /** Le mulligan a-t-il déjà été joué CE TOUR ? Remis à zéro par
-   *  `startPreparation()` : un par tour, pas un par partie — c'est le prix en
-   *  ⚡ qui le borne, plus un verrou de partie. */
+   *  `startPreparation()` : un par tour, pas un par partie — c'est la carte
+   *  perdue qui le borne, plus un verrou de partie. */
   private _mulliganUsed = false;
 
   /**
    * Le joueur peut-il remettre sa main et repiocher ?
    *
    * ⚠️ **Le tour doit être INTACT** (`!canUndoPreparation()`) : le mulligan
-   * n'est pas annulable (il débite de l'énergie, que `undoPreparation` ne rend
+   * n'est pas annulable (il coûte une carte, que `undoPreparation` ne rend
    * pas), donc il DÉPLACE le point de retour. Le déplacer sur un tour où le
    * joueur a déjà posé lui confisquerait l'annulation de ses invocations.
    */
   canMulligan(): boolean {
     return this.gameState.phase === Phase.PREPARATION
       && !this._mulliganUsed
-      && this.hand.length > 0
-      && this.canPayEnergy(MULLIGAN_COST_ENERGY)
+      // Une main qui ne garderait aucune carte n'a rien à repiocher.
+      && this.hand.length > MULLIGAN_CARD_PENALTY
       && !this.canUndoPreparation();
   }
 
@@ -561,23 +561,23 @@ export class GameSession {
     return true;
   }
 
-  /** Le prix du mulligan, pour que l'écran l'annonce sans le recopier. */
-  mulliganCost(): number { return MULLIGAN_COST_ENERGY; }
+  /** Le prix du mulligan EN CARTES, pour que l'écran l'annonce sans le
+   *  recopier. */
+  mulliganCost(): number { return MULLIGAN_CARD_PENALTY; }
 
   /**
-   * Remet la main dans le deck et en repioche autant. Rend `false` — sans rien
-   * débiter — quand le geste n'est pas disponible.
+   * Remet la main dans le deck et en repioche une de MOINS. Rend `false` — sans
+   * rien toucher — quand le geste n'est pas disponible. Aucune énergie.
    *
-   * ⚠️ On repioche **autant de cartes qu'on en rend**, jamais `HAND_SIZE` en
-   * dur : la main s'accumule d'un tour à l'autre.
+   * ⚠️ On repioche **la taille de la main moins `MULLIGAN_CARD_PENALTY`**,
+   * jamais `HAND_SIZE` en dur : la main s'accumule d'un tour à l'autre.
    *
    * ⚠️ `prepId` n'est PAS incrémenté : c'est le même tour de préparation.
    */
   mulligan(): boolean {
     if (!this.canMulligan()) return false;
     this._mulliganUsed = true;
-    this._payEnergy(MULLIGAN_COST_ENERGY);
-    const count = this.hand.length;
+    const count = this.hand.length - MULLIGAN_CARD_PENALTY;
     // ⚠️ Le mulligan REND la main au deck : une Unique qu'on tenait encore
     // redevient donc piochable. `_forgetUniqueDraws` avant le tirage.
     this._forgetUniqueDraws(this.hand);
@@ -592,9 +592,8 @@ export class GameSession {
   // ── Réserve d'énergie ────────────────────────────────────────────────────
 
   /**
-   * L'énergie du budget du tour déjà DÉPENSÉE en gestes (mulligan), remise à
-   * zéro par `startPreparation()`. Elle ne revient pas au plateau : dépenser au
-   * tour 1 son budget pour un mulligan, c'est poser moins.
+   * L'énergie du budget du tour déjà DÉPENSÉE en gestes (achats, reroll),
+   * remise à zéro par `startPreparation()`. Elle ne revient pas au plateau.
    */
   private _energySpent = 0;
 

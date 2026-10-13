@@ -1,6 +1,6 @@
 // Jauge d'énergie du tour : ce que le plateau occupe (cases éteintes), ce qui
 // reste à poser (cases dorées) et, après un séparateur, la RÉSERVE (hachurée),
-// qui paie mulligan, reroll et boutique. Préparation seulement.
+// qui paie reroll et boutique. Préparation seulement.
 //
 // Deux orientations : horizontale sous la manche (paysage, tablette portrait),
 // verticale au bord droit (téléphone portrait, où la largeur manque). Ce qu'il
