@@ -1,8 +1,9 @@
-// Contrôles de phase : en préparation (compteur d'unités, timer 60s, options,
-// bouton PRÊT) ; en combat (timer restant, vitesse ×1/×2/×4, options, pause).
+// Contrôles de phase : en préparation (timer 60s, grille, options, bouton PRÊT) ;
+// en combat (timer restant, grille, options). Identiques en solo et en PvP :
+// vitesse et pause du solo vivent dans le menu d'options (GameMenu).
 // Le terrain n'y figure plus : il ouvre la liste de bonus (`BonusRail`). Le menu d'options lui-même est rendu par GameMenu, qui lit `menuOpen`.
 import { useGameStore } from '../../stores/gameStore.js';
-import { Button, usePressSquash } from '../ui/primitives.js';
+import { Button } from '../ui/primitives.js';
 import UiIcon from '../ui/UiIcon.js';
 import HoldConfirmButton from '../ui/HoldConfirmButton.js';
 import { useWebLayout } from '../system/useWebLayout.js';
@@ -22,19 +23,6 @@ function GridButton({ active, onToggle }: { active: boolean; onToggle: () => voi
     >
       ▦
     </Button>
-  );
-}
-
-// Une vitesse ×1/×2/×4 — en sous-composant, pas inline dans le `.map` du
-// dessus : `usePressSquash` est un hook, et un hook ne s'appelle pas dans une
-// boucle.
-function SpeedButton({ s, active, onTap }: { s: number; active: boolean; onTap: () => void }) {
-  const { handlers } = usePressSquash<HTMLButtonElement>((e) => { e.stopPropagation(); onTap(); }, false);
-  return (
-    <button
-      className={`min-h-tap px-2 text-sm font-semibold ${active ? 'bg-[color-mix(in_srgb,var(--color-gold)_20%,var(--color-surface-raised))] text-gold' : 'bg-surface-raised text-white/70'}`}
-      {...handlers}
-    >×{s}</button>
   );
 }
 
@@ -86,10 +74,10 @@ function MenuButton() {
   );
 }
 
-export default function PhaseControls({ pvp = false }: { pvp?: boolean }) {
+export default function PhaseControls() {
   const {
     controller, combatActive, prepRemaining, combatRemaining,
-    speed, showGrid, paused, canUndo, canMulligan, mulliganCost, pvpReady,
+    showGrid, canUndo, canMulligan, mulliganCost, pvpReady,
   } = useGameStore();
   const web = useWebLayout();
   // Un seul chrono visible à la fois : celui de la phase en cours.
@@ -107,11 +95,9 @@ export default function PhaseControls({ pvp = false }: { pvp?: boolean }) {
   // installée — home indicator iOS, barre de navigation gestuelle Android.
   const classname_footer2 = 'pointer-events-auto absolute inset-x-0 bottom-0 z-20 flex items-center gap-2 p-2 pb-[max(0.5rem,env(safe-area-inset-bottom))]' + (web ? ' px-22' : '');
 
-  // Barre de combat : dense sur un écran de 375 px (timer, vitesses, options,
-  // pause) — d'où les paddings serrés et les `shrink-0`. En PvP, vitesse
-  // et pause ne sont pas réseau — un joueur qui ralentit/pause chez lui ne fait
-  // que désynchroniser sa propre vue de l'adversaire qui attend, donc les deux
-  // sont retirés plutôt que de laisser un contrôle trompeur.
+  // Barre de combat : la même en solo et en PvP. La vitesse et la pause du
+  // solo sont dans le menu d'options (GameMenu) — en PvP elles n'existent pas,
+  // le combat est en temps réel partagé.
   if (combatActive) {
     return (
       <div className={classname_footer}>
@@ -122,25 +108,9 @@ export default function PhaseControls({ pvp = false }: { pvp?: boolean }) {
         >
           {combatRemaining}s
         </PhaseClock>
-        {!pvp && (
-          <div className="flex shrink-0 overflow-hidden rounded-lg border border-line">
-            {[1, 2, 4].map(s => (
-              <SpeedButton key={s} s={s} active={s === speed} onTap={() => controller.setSpeed(s)} />
-            ))}
-          </div>
-        )}
         <div className="flex-1" />
         <GridButton active={showGrid} onToggle={() => controller.toggleGrid()} />
         <MenuButton />
-        {!pvp && (
-          <Button
-            aria-label={paused ? 'Reprendre le combat' : 'Mettre en pause'}
-            className="shrink-0 px-3 text-base"
-            onPointerDown={(e) => { e.stopPropagation(); controller.togglePause(); }}
-          >
-            <UiIcon id={paused ? 'UI_PLAY' : 'UI_PAUSE'} className="h-3.5 w-3.5" />
-          </Button>
-        )}
       </div>
     );
   }

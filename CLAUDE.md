@@ -593,6 +593,7 @@ node scripts/build-bot-decks.js [--write|--check]
 Fin de partie : tour 5 terminé, un joueur à 0 PV, ou abandon par le menu.
 
 **Menu d'options** (`components/hud/GameMenu.tsx`, ouvert par ☰ de `PhaseControls`) : `menuOpen` du store est la source de vérité. En solo, l'ouvrir gèle le chrono de préparation ; **en PvP le chrono continue** — l'adversaire attend à la barrière réseau et ne doit pas pouvoir être bloqué. En PvP, « quitter » = `PvpController.forfeit()`.
+- **`PhaseControls` est identique en solo et en PvP.** La vitesse ×1/×2/×4 et la pause du solo vivent dans le menu (`GameMenu soloControls`) : l'ouvrir en combat met en pause (`GameController.setPaused`), le fermer reprend. Rien de tout ça en PvP (temps réel partagé).
 
 ### Ouverture d'un tour (`components/overlays/RoundStart.tsx`)
 

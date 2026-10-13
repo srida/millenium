@@ -873,10 +873,12 @@ export class GameController {
     this.sync();
   }
 
-  togglePause(): void {
-    if (!this.animator) return;
-    if (this.paused) { this.animator.resume(); this.paused = false; }
-    else { this.animator.pause(); this.paused = true; }
+  // Posé par le menu d'options en solo : l'ouvrir en combat le met en pause, le
+  // fermer le reprend. Idempotent — un double appel ne fait pas basculer.
+  setPaused(p: boolean): void {
+    if (!this.animator || this.paused === p) return;
+    if (p) this.animator.pause(); else this.animator.resume();
+    this.paused = p;
     this.sync();
   }
 

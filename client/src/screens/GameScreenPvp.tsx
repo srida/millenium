@@ -157,7 +157,7 @@ export default function GameScreenPvp() {
       <BonusRail />
       <GraveyardTray />
       <HandBar />
-      <PhaseControls pvp />
+      <PhaseControls />
       {/* Le chrono de préparation PvP n'est PAS gelé par le menu : l'adversaire
           attend à la barrière réseau, on ne peut pas le bloquer en l'ouvrant. */}
       <GameMenu onQuit={() => controller.forfeit()} quitLabel="Abandonner le duel" />

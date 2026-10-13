@@ -121,16 +121,16 @@ export default function GameScreen() {
       {inTournament ? (
         // Abandonner une manche de tournoi la concède : le bracket ne peut pas
         // rester en suspens, et rejouer à volonté viderait le Bo3 de son sens.
-        <GameMenu quitLabel="Abandonner la manche" onQuit={() => exitTournamentGame('enemy')} />
+        <GameMenu soloControls quitLabel="Abandonner la manche" onQuit={() => exitTournamentGame('enemy')} />
       ) : inArcade ? (
         // Même règle en Arcade : quitter un duel le concède, donc clôt la run.
         // Sans ça, un duel mal engagé se relancerait à volonté et le handicap
         // croissant ne voudrait plus rien dire.
-        <GameMenu quitLabel="Abandonner le duel" onQuit={() => { void exitArcadeGame('enemy'); }} />
+        <GameMenu soloControls quitLabel="Abandonner le duel" onQuit={() => { void exitArcadeGame('enemy'); }} />
       ) : inTutorial ? (
-        <GameMenu quitLabel="Quitter l'entraînement" onQuit={() => useUiStore.getState().navigate('tutorial')} />
+        <GameMenu soloControls quitLabel="Quitter l'entraînement" onQuit={() => useUiStore.getState().navigate('tutorial')} />
       ) : (
-        <GameMenu onQuit={() => useUiStore.getState().navigate('main_menu')} />
+        <GameMenu soloControls onQuit={() => useUiStore.getState().navigate('main_menu')} />
       )}
       {/* Chronos partagés avec GameScreenPvp. Le solo gèle en plus sur
           `coachBlocking` : une bulle du tutoriel qui attend un tap ne doit pas
