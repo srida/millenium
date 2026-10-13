@@ -225,7 +225,7 @@ describe('Shopping — pertinence de l\'offre', () => {
     const { session } = makeSession({ magies: [magie({ type: 'player_hp_bonus', value: 100 }, { id: 'ROUGE' })] });
     expect(session.getShoppingMagies()).toEqual([]);
 
-    session.gameState.player_hp = 499;
+    session.gameState.player_hp = 399;
     expect(offeredIds(session)).toEqual(['ROUGE']);
   });
 
@@ -566,9 +566,9 @@ describe('Shopping — carry-over des effets globaux (consommés au tour suivant
 
   it('player_hp_bonus : appliqué immédiatement, cappé à PLAYER_HP_CAP', () => {
     const { session } = makeSession();
-    session.gameState.player_hp = 440;
+    session.gameState.player_hp = 340;
     session.applyGlobalMagie(magie({ type: 'player_hp_bonus', value: 100 }) as any);
-    expect(session.gameState.player_hp).toBe(500);
+    expect(session.gameState.player_hp).toBe(400);
   });
 
   it('team_heal : effet GLOBAL — soigne tout le board joueur du montant demandé', () => {
@@ -772,37 +772,37 @@ describe('Shopping — contrecoup en PV joueur', () => {
   it('est prélevé sur les QUATRE chemins d\'application', () => {
     // Global
     let { session } = makeSession();
-    session.gameState.player_hp = 500;
+    session.gameState.player_hp = 400;
     session.applyGlobalMagie(costly({ type: 'draw_bonus', value: 1 }, 80));
-    expect(session.gameState.player_hp).toBe(420);
+    expect(session.gameState.player_hp).toBe(320);
     expect(session.gameState.player_extra_draws).toBe(1);
 
     // Cible board
     ({ session } = makeSession());
-    session.gameState.player_hp = 500;
+    session.gameState.player_hp = 400;
     const u = place(session, makeCard({ id: 'A', stats: { hp: 60 } as any }), { col: 0, row: 0 });
     u.current_hp = 10;
     session.applyMagieOnUnit(costly({ type: 'heal' }, 80), u);
-    expect(session.gameState.player_hp).toBe(420);
+    expect(session.gameState.player_hp).toBe(320);
     expect(u.current_hp).toBe(60);
 
     // Cible cimetière
     ({ session } = makeSession());
-    session.gameState.player_hp = 500;
+    session.gameState.player_hp = 400;
     const dead = new (Unit as any)(makeCard({ id: 'D', stats: { hp: 40 } as any }), 'player');
     dead.is_neutralized = true;
     dead.current_hp = 0;
     session.graveyard = [dead];
     session.applyMagieOnGraveyardUnit(costly({ type: 'revive', value: 50 }, 80), dead);
-    expect(session.gameState.player_hp).toBe(420);
+    expect(session.gameState.player_hp).toBe(320);
     expect(dead.is_neutralized).toBe(false);
 
     // Cible main
     ({ session } = makeSession());
-    session.gameState.player_hp = 500;
+    session.gameState.player_hp = 400;
     session.hand = [makeCard({ id: 'H' }) as any];
     session.applyMagieOnHandCard(costly({ type: 'hand_to_graveyard' }, 80), 0);
-    expect(session.gameState.player_hp).toBe(420);
+    expect(session.gameState.player_hp).toBe(320);
     expect(session.graveyard).toHaveLength(1);
   });
 
@@ -930,7 +930,7 @@ describe('Shopping — drain_life (absorption de PV)', () => {
     const { session } = makeSession();
     const u = place(session, makeCard({ id: 'A', stats: { hp: 80 } as any }), { col: 2, row: 1 });
     u.current_hp = 55;
-    session.gameState.player_hp = 400;
+    session.gameState.player_hp = 300;
 
     expect(session.magieNeedsUnitTarget(magie({ type: 'drain_life' }) as any)).toBe(true);
     session.applyMagieOnUnit(magie({ type: 'drain_life' }) as any, u);
@@ -938,7 +938,7 @@ describe('Shopping — drain_life (absorption de PV)', () => {
     expect(session.board.getUnit({ col: 2, row: 1 })).toBeNull();
     expect(session.graveyard).toContain(u);
     expect(u.is_neutralized).toBe(true);
-    expect(session.gameState.player_hp).toBe(455);
+    expect(session.gameState.player_hp).toBe(355);
   });
 
   it('verse les PV COURANTS, pas le max : une unité blessée rapporte moins', () => {
@@ -953,9 +953,9 @@ describe('Shopping — drain_life (absorption de PV)', () => {
   it('plafonné à PLAYER_HP_CAP, comme player_hp_bonus', () => {
     const { session } = makeSession();
     const u = place(session, makeCard({ id: 'A', stats: { hp: 300 } as any }), { col: 0, row: 0 });
-    session.gameState.player_hp = 450;
+    session.gameState.player_hp = 350;
     session.applyMagieOnUnit(magie({ type: 'drain_life' }) as any, u);
-    expect(session.gameState.player_hp).toBe(500);
+    expect(session.gameState.player_hp).toBe(400);
   });
 
   it('l\'unité absorbée reste un matériau : elle est au cimetière, pas effacée', () => {
@@ -1199,12 +1199,12 @@ describe('Shopping — duplicate_card (carte de la main → carte en main)', () 
 
   it('contrecoup : prélevé une seule fois, quel que soit le nombre de copies', () => {
     const { session } = makeSession();
-    session.gameState.player_hp = 500;
+    session.gameState.player_hp = 400;
     session.hand = [makeCard({ id: 'C' }) as any];
 
     session.applyMagieOnHandCard(magie({ type: 'duplicate_card', value: 3 }, { cost_hp: 80 }) as any, 0);
 
-    expect(session.gameState.player_hp).toBe(420);
+    expect(session.gameState.player_hp).toBe(320);
     expect(session.hand).toHaveLength(4);
   });
 
@@ -1596,10 +1596,10 @@ describe('sacrifice_card_hp — brûler une carte contre des PV joueur', () => {
   it('la carte quitte la main et ses PV vont au joueur', () => {
     const s = tieredSession({ byTier: { 1: [BIG] } });
     s.hand = [BIG as any];
-    s.gameState.player_hp = 200;
+    s.gameState.player_hp = 100;
     s.applyMagieOnHandCard(sac as any, 0);
     expect(s.hand).toEqual([]);
-    expect(s.gameState.player_hp).toBe(440);
+    expect(s.gameState.player_hp).toBe(340);
   });
 
   it('⚠️ elle est BRÛLÉE, pas envoyée au cimetière', () => {
@@ -1614,19 +1614,19 @@ describe('sacrifice_card_hp — brûler une carte contre des PV joueur', () => {
   it('la valeur est un POURCENTAGE, et 0 vaut 100 %', () => {
     const s = tieredSession({ byTier: { 1: [BIG] } });
     s.hand = [BIG as any, BIG as any];
-    s.gameState.player_hp = 100;
+    s.gameState.player_hp = 20;
     s.applyMagieOnHandCard(magie({ type: 'sacrifice_card_hp', value: 50 }) as any, 0);
-    expect(s.gameState.player_hp).toBe(220);
+    expect(s.gameState.player_hp).toBe(140);
     s.applyMagieOnHandCard(magie({ type: 'sacrifice_card_hp', value: 0 }) as any, 0);
-    expect(s.gameState.player_hp).toBe(460);
+    expect(s.gameState.player_hp).toBe(380);
   });
 
   it('plafonné à PLAYER_HP_CAP, comme player_hp_bonus et drain_life', () => {
     const s = tieredSession({ byTier: { 1: [BIG] } });
     s.hand = [BIG as any];
-    s.gameState.player_hp = 400;
+    s.gameState.player_hp = 300;
     s.applyMagieOnHandCard(sac as any, 0);
-    expect(s.gameState.player_hp).toBe(500);
+    expect(s.gameState.player_hp).toBe(400);
   });
 
   it('elle ne finance PAS son propre contrecoup', () => {

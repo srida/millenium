@@ -180,9 +180,9 @@ describe('MagieEffect — effets sur unité', () => {
 describe('MagieEffect — effets globaux (gameState)', () => {
   it('player_hp_bonus cappé à PLAYER_HP_CAP', () => {
     const gs = new (GameState as any)();
-    gs.player_hp = 450;
+    gs.player_hp = 350;
     applyEffect(magie({ type: 'player_hp_bonus', value: 100 }), { gameState: gs });
-    expect(gs.player_hp).toBe(500);
+    expect(gs.player_hp).toBe(400);
   });
 
   it('energy_bonus est cumulable, sans plafond', () => {

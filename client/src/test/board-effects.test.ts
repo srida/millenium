@@ -225,7 +225,7 @@ describe('Cumul des effets d\'un terrain', () => {
       { id: 'BOARD_HP', name: 'B', effects: [{ type: 'player_hp_bonus', value: 40 }] } as any,
       { gameState } as any
     );
-    expect(gameState.player_hp).toBe(500); // déjà au plafond
+    expect(gameState.player_hp).toBe(400); // déjà au plafond
     expect(gameState.player_hp_sources).toEqual([{ kind: 'terrain', ref: 'BOARD_HP', value: 40 }]);
   });
 
@@ -249,9 +249,9 @@ describe('Cumul des effets d\'un terrain', () => {
       { id: 'BOARD_HP', name: 'B', effects: [{ type: 'player_hp_bonus', value: -60, target: 'ennemi' }] } as any,
       { gameState } as any
     );
-    expect(gameState.enemy_hp).toBe(500 - 60);
+    expect(gameState.enemy_hp).toBe(400 - 60);
     // Le sélecteur `ennemi` ne touche jamais au registre du joueur.
-    expect(gameState.player_hp).toBe(500);
+    expect(gameState.player_hp).toBe(400);
     expect(gameState.player_hp_sources).toEqual([]);
   });
 

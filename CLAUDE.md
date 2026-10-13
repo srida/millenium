@@ -582,7 +582,7 @@ node scripts/build-bot-decks.js [--write|--check]
 
 ## Boucle de partie
 
-**5 tours. PV des joueurs : 500** (`STARTING_HP` = `PLAYER_HP_CAP`). Chaque tour :
+**5 tours. PV des joueurs : 400** (`STARTING_HP` = `PLAYER_HP_CAP`). Chaque tour :
 
 1. **Préparation** (`PREP_DURATION = 60` s — placement, chrono tenu par l'écran React, lance le combat à 0 ; **mulligan à 2 ⚡**)
 2. **Combat** (auto-résolu, animé, coupé à 60 s de temps réel)

@@ -240,7 +240,7 @@ export const CHAPTERS: Chapter[] = [
     title: 'Les phases de jeu',
     blurb: 'Cinq tours, et la même boucle à chaque fois.',
     blocks: [
-      { kind: 'text', text: "Une partie dure **5 tours**. Chaque joueur commence à **500 points de vie**. Le premier à zéro perd ; sinon, c'est celui qui a le plus de PV après le tour 5." },
+      { kind: 'text', text: "Une partie dure **5 tours**. Chaque joueur commence à **400 points de vie**. Le premier à zéro perd ; sinon, c'est celui qui a le plus de PV après le tour 5." },
       { kind: 'table', head: ['Phase', 'Ce qui se passe'], rows: [
         ['1. Préparation', "60 secondes pour piocher, invoquer et placer. Tu peux lancer avant la fin avec PRÊT."],
         ['2. Combat', "Automatique. L'adversaire pose son board au lancement, puis tout se résout seul."],

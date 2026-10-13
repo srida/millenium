@@ -28,7 +28,7 @@ export function jokerFactor(kind: JokerKind | null | undefined): number {
   return kind ? JOKER_FACTOR[kind] : 1;
 }
 
-const STARTING_HP = 500;
+const STARTING_HP = 400;
 
 /** Plafond de `player_hp` : c'est le pool de départ lui-même — `player_hp_bonus`
  *  et `drain_life` ne font que le regarnir, jamais le dépasser. Exporté parce

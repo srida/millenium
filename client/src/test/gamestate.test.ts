@@ -5,11 +5,11 @@ import { tiersForRound } from '../logic/Draw.js';
 import { applyBoardEffects } from '../logic/BoardEffect.js';
 
 describe('GameState — multiplicateurs et joker', () => {
-  it('500 PV au départ', () => {
+  it('400 PV au départ', () => {
     const gs = new (GameState as any)();
-    expect(PLAYER_HP_CAP).toBe(500);
-    expect(gs.player_hp).toBe(500);
-    expect(gs.enemy_hp).toBe(500);
+    expect(PLAYER_HP_CAP).toBe(400);
+    expect(gs.player_hp).toBe(400);
+    expect(gs.enemy_hp).toBe(400);
   });
 
   it('plus de facteur de tour : ×1 à tous les tours', () => {
@@ -34,23 +34,23 @@ describe('GameState — multiplicateurs et joker', () => {
 
   it('×2 posé par le joueur : il frappe double… et encaisse double', () => {
     const gs = roundWith('x2', null);
-    expect(gs.enemy_hp).toBe(500 - 80);
-    expect(gs.player_hp).toBe(500 - 40);
+    expect(gs.enemy_hp).toBe(400 - 80);
+    expect(gs.player_hp).toBe(400 - 40);
   });
 
   it('×0,5 posé par le joueur : il encaisse moitié… et frappe moitié', () => {
     const gs = roundWith('half', null);
-    expect(gs.enemy_hp).toBe(500 - 20);
-    expect(gs.player_hp).toBe(500 - 10);
+    expect(gs.enemy_hp).toBe(400 - 20);
+    expect(gs.player_hp).toBe(400 - 10);
   });
 
   it('×2 et ×2 font ×4, ×0,5 et ×0,5 font ×0,25, ×2 et ×0,5 se neutralisent', () => {
     expect(roundWith('x2', 'x2').round_joker_factor).toBe(4);
-    expect(roundWith('x2', 'x2').enemy_hp).toBe(500 - 160);
+    expect(roundWith('x2', 'x2').enemy_hp).toBe(400 - 160);
     expect(roundWith('half', 'half').round_joker_factor).toBe(0.25);
-    expect(roundWith('half', 'half').enemy_hp).toBe(500 - 10);
+    expect(roundWith('half', 'half').enemy_hp).toBe(400 - 10);
     expect(roundWith('x2', 'half').round_joker_factor).toBe(1);
-    expect(roundWith('half', 'x2').enemy_hp).toBe(500 - 40);
+    expect(roundWith('half', 'x2').enemy_hp).toBe(400 - 40);
   });
 
   it('le joker est joué au lancement du combat et ne revient pas', () => {
@@ -71,7 +71,7 @@ describe('GameState — multiplicateurs et joker', () => {
     gs.enemy_joker = 'half';
     gs.startCombat();
     expect(gs.applyEndOfCombat('enemy', 0, 30).jokerFactor).toBe(0.5);
-    expect(gs.player_hp).toBe(500 - 15);
+    expect(gs.player_hp).toBe(400 - 15);
   });
 });
 
@@ -121,8 +121,8 @@ describe('GameState — fin de combat', () => {
     const gs = new (GameState as any)();
     gs.startCombat();
     gs.applyEndOfCombat('player', 40, 25);
-    expect(gs.enemy_hp).toBe(500 - 40);
-    expect(gs.player_hp).toBe(500);
+    expect(gs.enemy_hp).toBe(400 - 40);
+    expect(gs.player_hp).toBe(400);
     expect(gs.phase).toBe(Phase.END_ROUND);
   });
 
@@ -131,15 +131,15 @@ describe('GameState — fin de combat', () => {
     gs.round = 2;
     gs.startCombat(); // ×1 des deux côtés, à tous les tours
     gs.applyEndOfCombat('timeout', 10, 20);
-    expect(gs.enemy_hp).toBe(500 - 10);
-    expect(gs.player_hp).toBe(500 - 20);
+    expect(gs.enemy_hp).toBe(400 - 10);
+    expect(gs.player_hp).toBe(400 - 20);
   });
 
   it('damage_multiplier_bonus (attribut) s\'ajoute au multiplicateur joueur', () => {
     const gs = new (GameState as any)();
     gs.startCombat();
     gs.applyEndOfCombat('player', 20, 0, { damage_multiplier_bonus: 0.5 });
-    expect(gs.enemy_hp).toBe(500 - Math.round(20 * 1.5));
+    expect(gs.enemy_hp).toBe(400 - Math.round(20 * 1.5));
   });
 
   it('les HP sont clampés à 0', () => {
@@ -173,7 +173,7 @@ describe('GameState — fin de combat', () => {
       player_hp_bonus: 30,
       player_hp_sources: [{ kind: 'attribut', ref: 'ARCH_X', value: 30 }],
     });
-    expect(gs.player_hp).toBe(500); // déjà au plafond, le gain est écrêté
+    expect(gs.player_hp).toBe(400); // déjà au plafond, le gain est écrêté
     expect(out.playerHpBonus).toBe(30);
     expect(out.playerHpSources).toEqual([{ kind: 'attribut', ref: 'ARCH_X', value: 30 }]);
   });
@@ -193,21 +193,21 @@ describe('GameState — fin de combat', () => {
   // doit se cumuler avec la part attribut dans le RÉCAPITULATIF, puis se vider.
   // ⚠️ Régression : la part terrain était reversée ici une seconde fois.
   // Mutation : verser `playerHpBonus` au lieu de la seule part attribut → ROUGE
-  // (410 + 10 + 5 = 425).
+  // (310 + 10 + 5 = 325).
   it('cumule le PV d\'un terrain (avant) et d\'un attribut (fin_combat) sans verser deux fois le terrain', () => {
     const gs = new (GameState as any)();
-    gs.player_hp = 400;
+    gs.player_hp = 300;
     applyBoardEffects(
       { id: 'BOARD_X', name: 'B', effects: [{ type: 'player_hp_bonus', value: 10 }] } as any,
       { gameState: gs } as any
     );
-    expect(gs.player_hp).toBe(410);
+    expect(gs.player_hp).toBe(310);
     gs.startCombat();
     const out = gs.applyEndOfCombat('draw', 0, 0, {
       player_hp_bonus: 5,
       player_hp_sources: [{ kind: 'attribut', ref: 'ARCH_X', value: 5 }],
     });
-    expect(gs.player_hp).toBe(415);
+    expect(gs.player_hp).toBe(315);
     expect(out.playerHpBonus).toBe(15);
     expect(out.playerHpSources).toEqual([
       { kind: 'terrain', ref: 'BOARD_X', value: 10 },
@@ -223,13 +223,13 @@ describe('GameState — fin de combat', () => {
   it('verse enemy_hp_bonus (attribut adverse) dans enemy_hp, écrêté', () => {
     const gs = new (GameState as any)();
     gs.startCombat();
-    gs.enemy_hp = 300;
+    gs.enemy_hp = 200;
     gs.applyEndOfCombat('draw', 0, 0, { enemy_hp_bonus: -40 });
-    expect(gs.enemy_hp).toBe(260);
+    expect(gs.enemy_hp).toBe(160);
     gs.startCombat();
     gs.applyEndOfCombat('draw', 0, 0, { enemy_hp_bonus: 500 });
-    expect(gs.enemy_hp).toBe(500);
-    expect(gs.player_hp).toBe(500);
+    expect(gs.enemy_hp).toBe(400);
+    expect(gs.player_hp).toBe(400);
   });
 
   // ⚠️ Régression PvP : le bonus PERMANENT de magie de l'adversaire (reçu du
@@ -246,7 +246,7 @@ describe('GameState — fin de combat', () => {
     });
     expect(out.enemyMultiplier).toBe(1 + 0.5 + 1.5);
     expect(out.enemyDamageDealt).toBe(300);
-    expect(gs.player_hp).toBe(200);
+    expect(gs.player_hp).toBe(100);
     expect(out.enemyMultiplierSources).toEqual([
       { kind: 'attribut', ref: 'ARCH_X', value: 0.5 },
       { kind: 'magie', ref: 'MAGIC_X', value: 1.5 },
