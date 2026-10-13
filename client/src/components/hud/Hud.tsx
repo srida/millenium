@@ -8,6 +8,7 @@ import type { ReactNode } from 'react';
 import { jokerLabel } from '../../data/JokerInfo.js';
 import type { JokerKind } from '../../logic/GameState.js';
 import EnergyGauge from './EnergyGauge.js';
+import UiIcon from '../ui/UiIcon.js';
 import { useGameStore } from '../../stores/gameStore.js';
 import { useAuthStore } from '../../stores/authStore.js';
 import { Avatar } from '../ui/primitives.js';
@@ -29,15 +30,15 @@ export interface HudProps {
 
 /**
  * Le joker d'un camp, sous sa barre de PV : son facteur en or quand il est
- * révélé (au combat seulement), un 🃏 estompé tant que l'ADVERSAIRE l'a encore
+ * révélé (au combat seulement), une icône estompée tant que l'ADVERSAIRE l'a encore
  * en main — c'est une information de lecture : un adversaire qui a encore son
  * joker peut encore faire compter un round. Rien une fois joué.
  */
 function JokerChip({ joker, used }: { joker: JokerKind | null; used: boolean }) {
   const label = jokerLabel(joker);
-  if (label) return <span className="text-[11px] font-bold leading-[14px] text-gold tabular-nums" title="Joker posé ce round">🃏{label}</span>;
+  if (label) return <span className="inline-flex items-center gap-0.5 text-[11px] font-bold leading-[14px] text-gold tabular-nums" title="Joker posé ce round"><UiIcon id="UI_JOKER" className="h-3.5 w-3.5" />{label}</span>;
   if (used) return null;
-  return <span className="text-[11px] leading-[14px] opacity-40" title="Joker encore disponible" aria-label="Joker encore disponible">🃏</span>;
+  return <span className="inline-flex opacity-40" title="Joker encore disponible" aria-label="Joker encore disponible"><UiIcon id="UI_JOKER" className="h-3.5 w-3.5" /></span>;
 }
 
 /**

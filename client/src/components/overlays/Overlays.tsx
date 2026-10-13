@@ -256,7 +256,7 @@ function JokerLine({ result }: { result: EndRoundResult }) {
   ].filter(Boolean);
   return (
     <div className="flex items-center justify-between gap-2 rounded-lg border border-gold/30 bg-gold/5 px-2 py-1.5 text-[11px]">
-      <span className="font-semibold text-gold">🃏 Jokers</span>
+      <span className="inline-flex items-center gap-1 font-semibold text-gold"><UiIcon id="UI_JOKER" className="h-3.5 w-3.5" />Jokers</span>
       <span className="flex items-center gap-1.5 tabular-nums">
         {parts.map((p, i) => <span key={i}>{i > 0 && '· '}{p}</span>)}
         <span className="text-white/60">→ dégâts {factorLabel(result.jokerFactor)}</span>
@@ -369,7 +369,7 @@ function DamageLine({ label, atk, multiplier, bonus, sources, damage, tone, joke
           {atk} × {hasBonus
             ? <>({base.toFixed(1)} <span className="font-semibold text-gold">+{bonus.toFixed(1)}</span>)</>
             : multiplier.toFixed(1)
-          }{joker !== 1 && <> × <span className="font-semibold text-gold">🃏{factorLabel(joker)}</span></>} = <span className={`font-bold ${tone}`}>{damage}</span>
+          }{joker !== 1 && <> × <span className="inline-flex items-center gap-0.5 align-[-2px] font-semibold text-gold"><UiIcon id="UI_JOKER" className="h-3 w-3" />{factorLabel(joker)}</span></>} = <span className={`font-bold ${tone}`}>{damage}</span>
         </span>
       </div>
       {hasBonus && <MultiplierSources sources={sources} />}
