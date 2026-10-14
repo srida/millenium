@@ -144,7 +144,7 @@ describe('L\'Archer hors de portée', () => {
     const r = (row: number) => (camp === 'player' ? row : 10 - row);
     const front = [1, 2, 3].map(col => spawn(board, carte(`FRONT${col}`), camp, { col, row: r(2) }));
     const a = spawn(board, carte('ARCHER', { range: 3, movement_rate: 100 }), camp, { col: 2, row: r(1) });
-    a.target_policy = 'plus_loin_a_portee';
+    a.target_policy = 'plus_proche_a_portee';
     const autre = camp === 'player' ? 'enemy' : 'player';
     const e = spawn(board, carte('E'), autre, { col: 2, row: r(10) });
     e.is_immobile = true; // la cible ne vient pas à lui : seule la marche de l'Archer compte
@@ -166,7 +166,7 @@ describe('L\'Archer hors de portée', () => {
   it('à portée, il ne bouge pas', () => {
     const board = makeBoard();
     const a = spawn(board, carte('ARCHER', { range: 14, movement_rate: 100 }), 'player', { col: 2, row: 0 });
-    a.target_policy = 'plus_loin_a_portee';
+    a.target_policy = 'plus_proche_a_portee';
     const e = spawn(board, carte('E'), 'enemy', { col: 2, row: 10 });
     joue(board, [a], [e], 40);
     expect(a.position).toEqual({ col: 2, row: 0 });

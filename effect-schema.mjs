@@ -548,17 +548,17 @@ export const TYPES = Object.freeze({
   // ⚠️ Un seul mot-clé par famille agit : le conflit se tranche à la pose, par
   // la table de priorité du moteur (`KEYWORD_POLICIES`, `effects/engine.ts`).
   tireur_elite: {
-    label: 'Vise l’ennemi le plus éloigné à sa portée (Tireur d’élite)',
+    label: 'Vise l’ennemi le plus proche à sa portée (Tireur d’élite)',
     court: 'Tireur d’élite',
     attribut: { quands: ['debut_combat', 'a_l_invocation', 'pouvoir_utilise'], champs: {} },
   },
   chasseur: {
-    label: 'Vise l’ennemi aux PV les plus bas, où qu’il soit, et marche vers lui (Chasseur)',
+    label: 'Vise les Soutiens, sinon l’ennemi aux PV les plus bas, où qu’il soit, et marche vers lui (Chasseur)',
     court: 'Chasseur',
     attribut: { quands: ['debut_combat', 'a_l_invocation', 'pouvoir_utilise'], champs: {} },
   },
   briseur: {
-    label: 'Vise l’ennemi aux PV max les plus hauts, et marche vers lui (Briseur)',
+    label: 'Vise les Archers, sinon l’ennemi aux PV max les plus hauts, et marche vers lui (Briseur)',
     court: 'Briseur',
     attribut: { quands: ['debut_combat', 'a_l_invocation', 'pouvoir_utilise'], champs: {} },
   },

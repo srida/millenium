@@ -25,7 +25,7 @@ const livre = (type: string) => attributs.find(a => a.thresholds?.some((t: any) 
 // Embusqué et Flanc restent des types du moteur, sans attribut livré : leurs
 // comportements sont éprouvés plus bas sur une politique posée à la main.
 const TYPES = {
-  tireur_elite: ['target_policy', 'plus_loin_a_portee'],
+  tireur_elite: ['target_policy', 'plus_proche_a_portee'],
   chasseur: ['target_policy', 'pv_bas'],
   briseur: ['target_policy', 'pv_max_haut'],
   garde_du_corps: ['move_policy', 'garde'],
@@ -127,27 +127,109 @@ describe('Familles 1 et 2 — une politique par famille', () => {
   });
 });
 
-describe('Tireur d\'élite — le plus éloigné à portée', () => {
+describe('Tireur d\'élite (Archer) — le plus proche à portée', () => {
   function scene(policy: string, mur = false) {
     const board = makeBoard();
     if (mur) board.setBlockedCells([{ col: 2, row: 4 }]);
     const tir = spawn(board, carte('TIR', { atk: 1, range: 4, attack_rate: 100 }), 'player', { col: 2, row: 2 });
     tir.target_policy = policy;
     const e = [
-      spawn(board, carte('E_1'), 'enemy', { col: 2, row: 3 }),
       spawn(board, carte('E_3'), 'enemy', { col: 2, row: 5 }),
+      spawn(board, carte('E_1'), 'enemy', { col: 2, row: 3 }),
       spawn(board, carte('E_5'), 'enemy', { col: 2, row: 7 }),
     ];
     return premiereAttaque(joue(board, [tir], e, 5), 'TIR');
   }
 
-  it('vise celui à 3 cases plutôt que celui au contact (5 est hors de portée)', () => {
-    expect(scene('plus_loin_a_portee')).toBe('E_3');
-    expect(scene('plus_proche')).toBe('E_1'); // témoin : la règle par défaut
+  it('vise celui au contact plutôt que celui à 3 cases, même en second dans le tableau', () => {
+    expect(scene('plus_proche_a_portee')).toBe('E_1');
   });
 
   it('ne voit pas un ennemi derrière un mur', () => {
-    expect(scene('plus_loin_a_portee', true)).toBe('E_1');
+    expect(scene('plus_proche_a_portee', true)).toBe('E_1');
+  });
+});
+
+describe('Proies de prédilection des rôles', () => {
+  it('le Lancier vise l\'Archer adverse avant l\'ennemi aux PV max les plus hauts', () => {
+    const board = makeBoard();
+    const br = spawn(board, carte('BR', { atk: 1, range: 9, attack_rate: 100 }), 'player', { col: 2, row: 3 });
+    br.target_policy = 'pv_max_haut';
+    const gros = spawn(board, carte('GROS', { hp: 900 }), 'enemy', { col: 2, row: 7 });
+    const archer = spawn(board, carte('ARCHER', { hp: 100 }), 'enemy', { col: 4, row: 10 });
+    archer.target_policy = 'plus_proche_a_portee';
+    expect(premiereAttaque(joue(board, [br], [gros, archer], 5), 'BR')).toBe('ARCHER');
+  });
+
+  it('le Lancier marche vers l\'Archer du fond malgré un ennemi plus gros et plus proche', () => {
+    const board = makeBoard();
+    const br = spawn(board, carte('BR', { atk: 1, movement_rate: 100, attack_rate: 100 }), 'player', { col: 2, row: 0 });
+    br.target_policy = 'pv_max_haut';
+    const gros = spawn(board, carte('GROS', { hp: 900 }), 'enemy', { col: 2, row: 7 });
+    const archer = spawn(board, carte('ARCHER', { hp: 100 }), 'enemy', { col: 4, row: 10 });
+    archer.target_policy = 'plus_proche_a_portee';
+    expect(premiereAttaque(joue(board, [br], [gros, archer], 60), 'BR')).toBe('ARCHER');
+  });
+
+  it('l\'Assassin vise le Soutien adverse avant l\'ennemi le plus blessé', () => {
+    const board = makeBoard();
+    const ch = spawn(board, carte('CH', { atk: 1, range: 9, attack_rate: 100 }), 'player', { col: 2, row: 3 });
+    ch.target_policy = 'pv_bas';
+    const blesse = spawn(board, carte('BLESSE'), 'enemy', { col: 2, row: 7 });
+    blesse.current_hp = 20;
+    const soutien = spawn(board, carte('SOUTIEN'), 'enemy', { col: 0, row: 10 });
+    soutien.move_policy = 'garde';
+    expect(premiereAttaque(joue(board, [ch], [blesse, soutien], 5), 'CH')).toBe('SOUTIEN');
+  });
+
+  it('le Fantassin (sans rôle de ciblage) vise le Tank adverse avant le plus proche', () => {
+    const board = makeBoard();
+    const f = spawn(board, carte('F', { atk: 1, range: 9, attack_rate: 100 }), 'player', { col: 2, row: 3 });
+    const pres = spawn(board, carte('PRES'), 'enemy', { col: 2, row: 5 });
+    const tank = spawn(board, carte('TANK'), 'enemy', { col: 4, row: 10 });
+    tank.move_policy = 'tank';
+    expect(premiereAttaque(joue(board, [f], [pres, tank], 5), 'F')).toBe('TANK');
+  });
+
+  it('le Fantassin marche vers le Tank, et frappe ce qui est à sa portée en chemin', () => {
+    const board = makeBoard();
+    const f = spawn(board, carte('F', { atk: 1, movement_rate: 100, attack_rate: 100 }), 'player', { col: 0, row: 0 });
+    const tank = spawn(board, carte('TANK'), 'enemy', { col: 4, row: 10 });
+    tank.move_policy = 'tank'; tank.is_immobile = true;
+    const loin = spawn(board, carte('LOIN'), 'enemy', { col: 0, row: 9 });
+    loin.is_immobile = true;
+    const log = joue(board, [f], [tank, loin], 60);
+    expect(premiereAttaque(log, 'F')).toBe('TANK');
+  });
+
+  it('sans Tank en face, le Fantassin garde la règle historique (le plus proche)', () => {
+    const board = makeBoard();
+    const f = spawn(board, carte('F', { atk: 1, range: 9, attack_rate: 100 }), 'player', { col: 2, row: 3 });
+    const loin = spawn(board, carte('LOIN'), 'enemy', { col: 4, row: 10 });
+    const pres = spawn(board, carte('PRES'), 'enemy', { col: 2, row: 5 });
+    expect(premiereAttaque(joue(board, [f], [loin, pres], 5), 'F')).toBe('PRES');
+  });
+
+  it('un Tank, une Tour ou un Soutien ne sont pas des Fantassins : ils frappent le plus proche', () => {
+    for (const pose of [(u: any) => { u.move_policy = 'tank'; }, (u: any) => { u.is_immobile = true; }, (u: any) => { u.move_policy = 'garde'; }]) {
+      const board = makeBoard();
+      const u = spawn(board, carte('U', { atk: 1, range: 9, attack_rate: 100 }), 'player', { col: 2, row: 3 });
+      pose(u);
+      const pres = spawn(board, carte('PRES'), 'enemy', { col: 2, row: 5 });
+      const tank = spawn(board, carte('TANK'), 'enemy', { col: 4, row: 10 });
+      tank.move_policy = 'tank';
+      expect(premiereAttaque(joue(board, [u], [pres, tank], 5), 'U')).toBe('PRES');
+    }
+  });
+
+  it('la provocation passe avant la proie de prédilection', () => {
+    const board = makeBoard();
+    const f = spawn(board, carte('F', { atk: 1, range: 9, attack_rate: 100 }), 'player', { col: 2, row: 3 });
+    const prov = spawn(board, carte('PROV'), 'enemy', { col: 2, row: 5 });
+    const tank = spawn(board, carte('TANK'), 'enemy', { col: 4, row: 10 });
+    tank.move_policy = 'tank';
+    f.provoked_by = prov; f.provoked_remaining = 99;
+    expect(premiereAttaque(joue(board, [f], [prov, tank], 5), 'F')).toBe('PROV');
   });
 });
 

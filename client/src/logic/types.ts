@@ -14,10 +14,12 @@ export type Side = 'player' | 'enemy';
 
 /**
  * Qui une unité vise (mots-clés de la famille 1). `plus_proche` est la règle
- * historique, inchangée au bit près ; les trois autres sont Tireur d'élite,
- * Chasseur et Briseur. Cf. `PathFinder.findAttackTarget`.
+ * historique, inchangée au bit près ; `plus_proche_a_portee` (Archer),
+ * `pv_bas` (Assassin) et `pv_max_haut` (Lancier) sont posés par les rôles ;
+ * `tank_prioritaire` (Fantassin) n'est jamais posé, il se DÉDUIT
+ * (`PathFinder.policyOf`). Cf. `PathFinder.findAttackTarget`.
  */
-export type TargetPolicy = 'plus_proche' | 'plus_loin_a_portee' | 'pv_bas' | 'pv_max_haut';
+export type TargetPolicy = 'plus_proche' | 'plus_proche_a_portee' | 'pv_bas' | 'pv_max_haut' | 'tank_prioritaire';
 
 /** Où une unité va (mots-clés de la famille 2) : Embusqué, Garde du corps, Flanc. */
 export type MovePolicy = 'normal' | 'embusque' | 'garde' | 'flanc' | 'tank';

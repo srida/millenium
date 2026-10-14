@@ -626,7 +626,7 @@ type KeywordPolicy =
   | { champ: 'move_policy'; valeur: MovePolicy; rang: number };
 
 export const KEYWORD_POLICIES: Record<string, KeywordPolicy> = {
-  tireur_elite:   { champ: 'target_policy', valeur: 'plus_loin_a_portee', rang: 1 },
+  tireur_elite:   { champ: 'target_policy', valeur: 'plus_proche_a_portee', rang: 1 },
   chasseur:       { champ: 'target_policy', valeur: 'pv_bas',             rang: 2 },
   briseur:        { champ: 'target_policy', valeur: 'pv_max_haut',        rang: 3 },
   flanc:          { champ: 'move_policy',   valeur: 'flanc',              rang: 1 },

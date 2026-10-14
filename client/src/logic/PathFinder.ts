@@ -160,27 +160,55 @@ export function canAttack(attacker: Unit, target: Unit, board: Board | null = nu
 }
 
 /**
+ * La politique de ciblage qui s'applique VRAIMENT à `unit`. Le Fantassin ne
+ * pose aucun statut : c'est l'unité sans rôle de ciblage ni de déplacement
+ * (ni Tour, ni Insaisissable), donc aussi toute carte sans rôle et tout token.
+ * Elle vise le Tank adverse en priorité (`tank_prioritaire`).
+ */
+export function policyOf(unit: Unit): TargetPolicy {
+  if (unit.target_policy === 'plus_proche' && unit.move_policy === 'normal'
+    && !unit.is_immobile && !unit.is_elusive) return 'tank_prioritaire';
+  return unit.target_policy;
+}
+
+/**
+ * La proie de PRÉDILECTION d'une politique, lue sur le rôle de la cible :
+ * le Lancier vise l'Archer, l'Assassin le Soutien, le Fantassin le Tank.
+ * Les rôles se dérivent du catalogue commun, donc identiques sur les deux
+ * clients d'un duel.
+ */
+function isFavouredPrey(policy: TargetPolicy, u: Unit): boolean {
+  switch (policy) {
+    case 'pv_max_haut': return u.target_policy === 'plus_proche_a_portee';
+    case 'pv_bas': return u.move_policy === 'garde';
+    case 'tank_prioritaire': return u.move_policy === 'tank';
+    default: return false;
+  }
+}
+
+/**
  * Find the best attack target for `unit` among `enemies`, under `policy`.
  *
  * `plus_proche` (the default) is the historical rule, unchanged to the bit:
  * prefer targets with line of sight, then the closest in Manhattan, first of the
  * array on a tie. Changing it would move every combat (sim goldens, PvP net).
+ * `tank_prioritaire` without any Tank in the pool IS that rule.
  *
- * The three keyword policies (Tireur d'élite, Chasseur, Briseur) first look at
- * the ATTACKABLE candidates (range + line of sight) and pick the best of them by
- * the policy — so an attack is never lost because the preferred target is out
- * of reach. With nothing attackable, `plus_loin_a_portee` falls back to the
- * default, while the two GLOBAL policies pick their prey in the whole pool
- * (line of sight first, like the default): that is the unit phase 3 walks to.
+ * The other policies first look at the ATTACKABLE candidates (range + line of
+ * sight) and pick the best of them by the policy — so an attack is never lost
+ * because the preferred target is out of reach. With nothing attackable,
+ * `plus_proche_a_portee` falls back to the default, while the GLOBAL policies
+ * pick their prey in the whole pool (line of sight first, like the default):
+ * that is the unit phase 3 walks to.
  *
  * Returns { unit, distance } or null.
  */
 export function findAttackTarget(unit: Unit, enemies: Unit[], board: Board | null = null, policy: TargetPolicy = 'plus_proche'): { unit: Unit; distance: number } | null {
   const alive = enemies.filter(e => e.isAlive());
   const from = unit.position as Position;
-  if (policy !== 'plus_proche') {
+  if (policy !== 'plus_proche' && !(policy === 'tank_prioritaire' && !walksToPrey(policy, alive))) {
     const attackable = alive.filter(e => canAttack(unit, e, board));
-    if (attackable.length > 0 || isGlobalPolicy(policy)) {
+    if (attackable.length > 0 || walksToPrey(policy, alive)) {
       const losAlive = board ? alive.filter(e => hasLineOfSight(board, from, e.position as Position)) : alive;
       const pool = attackable.length > 0 ? attackable : (losAlive.length > 0 ? losAlive : alive);
       const best = bestByPolicy(from, pool, board, policy);
@@ -200,11 +228,21 @@ export function findAttackTarget(unit: Unit, enemies: Unit[], board: Board | nul
 }
 
 /**
- * Les politiques qui choisissent leur cible PARTOUT sur le plateau (Chasseur,
- * Briseur) : l'unité marche vers elle, au lieu de marcher vers la plus proche.
+ * Les politiques qui choisissent leur cible PARTOUT sur le plateau (Assassin,
+ * Lancier) : l'unité marche vers elle, au lieu de marcher vers la plus proche.
  */
 export function isGlobalPolicy(policy: TargetPolicy): boolean {
   return policy === 'pv_bas' || policy === 'pv_max_haut';
+}
+
+/**
+ * L'unité marche-t-elle vers la proie de sa politique dans `pool` ? Les
+ * politiques globales toujours ; le Fantassin seulement quand un Tank y est —
+ * sinon il avance vers la plus proche, comme avant.
+ */
+export function walksToPrey(policy: TargetPolicy, pool: Unit[]): boolean {
+  if (isGlobalPolicy(policy)) return true;
+  return policy === 'tank_prioritaire' && pool.some(u => u.isAlive() && isFavouredPrey(policy, u));
 }
 
 /**
@@ -235,7 +273,6 @@ export function compareTieBreak(from: Position, board: Board | null, a: Unit, b:
 /** La métrique d'une politique, plus petite = meilleure. */
 function policyMetric(policy: TargetPolicy, from: Position, u: Unit): number {
   switch (policy) {
-    case 'plus_loin_a_portee': return -manhattanDistance(from, u.position as Position);
     // `current_hp` absolu, bouclier exclu — comme POWER_HEAL et `_teleportPlan`.
     case 'pv_bas': return u.current_hp;
     case 'pv_max_haut': return -u.max_hp;
@@ -243,10 +280,14 @@ function policyMetric(policy: TargetPolicy, from: Position, u: Unit): number {
   }
 }
 
-/** `pool` trié par la politique, puis par `compareTieBreak` — une copie. */
+/**
+ * `pool` trié par la politique — proie de prédilection d'abord, puis la
+ * métrique, puis `compareTieBreak` — une copie.
+ */
 export function sortByPolicy(from: Position, pool: Unit[], board: Board | null, policy: TargetPolicy): Unit[] {
-  return [...pool].sort((a, b) =>
-    policyMetric(policy, from, a) - policyMetric(policy, from, b) || compareTieBreak(from, board, a, b));
+  const rank = (u: Unit) => (isFavouredPrey(policy, u) ? 0 : 1);
+  return [...pool].sort((a, b) => rank(a) - rank(b)
+    || policyMetric(policy, from, a) - policyMetric(policy, from, b) || compareTieBreak(from, board, a, b));
 }
 
 function bestByPolicy(from: Position, pool: Unit[], board: Board | null, policy: TargetPolicy): Unit | null {

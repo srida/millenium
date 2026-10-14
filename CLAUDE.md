@@ -1197,11 +1197,11 @@ Troisième catégorie **mécanique** après `Tiers` et `Invocation` : un mot-cl�
 
 | Rôle | Attribut | Effet | Champ de `Unit` | Règle |
 |---|---|---|---|---|
-| 🪖 Fantassin | `ARCH_113` | aucun | — | défaut : l'ennemi le plus proche |
+| 🪖 Fantassin | `ARCH_113` | aucun | — (`policyOf` → `tank_prioritaire`) | le **Tank** adverse, sinon l'ennemi le plus proche sur sa route |
 | 🛡️ Tank | `ARCH_110` | `tank` | `move_policy = 'tank'` | avance au plus proche ; **ligne du Tank** (ci-dessous) |
-| 🔱 Lancier | `ARCH_109` | `briseur` | `target_policy = 'pv_max_haut'` | `max_hp` le plus haut, où qu'il soit, et marche vers lui |
-| 🗡️ Assassin | `ARCH_108` | `chasseur` | `target_policy = 'pv_bas'` | `current_hp` le plus bas (bouclier exclu), où qu'il soit, et marche vers lui |
-| 🏹 Archer | `ARCH_107` | `tireur_elite` | `target_policy = 'plus_loin_a_portee'` | le plus éloigné parmi les attaquables ; rien d'attaquable → défaut |
+| 🔱 Lancier | `ARCH_109` | `briseur` | `target_policy = 'pv_max_haut'` | l'**Archer** adverse, sinon `max_hp` le plus haut, où qu'il soit, et marche vers lui |
+| 🗡️ Assassin | `ARCH_108` | `chasseur` | `target_policy = 'pv_bas'` | le **Soutien** adverse, sinon `current_hp` le plus bas (bouclier exclu), où qu'il soit, et marche vers lui |
+| 🏹 Archer | `ARCH_107` | `tireur_elite` | `target_policy = 'plus_proche_a_portee'` | le plus proche parmi les attaquables ; rien d'attaquable → défaut |
 | ✚ Soutien | `ARCH_111` | `garde_du_corps` | `move_policy = 'garde'` | marche vers l'allié aux PV les plus bas et s'arrête au contact |
 | 🗼 Tour | `ARCH_097` | `stat_bonus range` + `immobile` | `is_immobile` | cf. « Les mots-clés » |
 | 🐇 Insaisissable | `ARCH_106` | `insaisissable` | `is_elusive` | cf. « Les mots-clés » |
@@ -1223,6 +1223,9 @@ Troisième catégorie **mécanique** après `Tiers` et `Invocation` : un mot-cl�
 **L'Archer n'a pas de ligne** : hors de portée, il marche vers sa cible et s'arrête au premier pas qui la met à portée (donc à sa portée maximale), même devant ses alliés. Verrouillé par `role-tank.test.ts`.
 
 **Règles communes aux politiques** :
+
+- **Proie de prédilection** (`PathFinder.isFavouredPrey`, premier critère de `sortByPolicy`) : lue sur le rôle de la CIBLE (`target_policy`/`move_policy`, dérivés du catalogue, donc identiques en PvP). Archer = `plus_proche_a_portee`, Soutien = `garde`, Tank = `tank` ; une Tour n'est pas un Archer.
+- ⚠️ **Le Fantassin ne pose rien** : `policyOf(u)` rend `tank_prioritaire` pour toute unité sans politique de ciblage ni de déplacement, ni Tour ni Insaisissable (donc aussi carte sans rôle et token). **Sans Tank en face, c'est le code historique `plus_proche` au bit près** (goldens inchangés).
 
 - ⚠️ **`plus_proche` reste le code historique au bit près** (`PathFinder.findAttackTarget`) : le modifier ferait bouger les goldens de `sim.test.ts` et le filet PvP.
 - ⚠️ Chasseur et Briseur frappent le meilleur **attaquable** selon leur politique quand leur proie est hors d'atteinte, et continuent de marcher vers elle (phase 3 triée par `sortByPolicy` au lieu de Chebyshev).

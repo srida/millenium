@@ -17,7 +17,7 @@ import type { GuaranteedDraw } from '../logic/types.js';
 export { MOT_CLE_CATEGORY, ROLE_CATEGORY };
 
 /** La phrase du rôle sans effet (Fantassin) : le comportement par défaut du moteur. */
-export const DEFAULT_ROLE_TEXT = 'Va vers l\'ennemi le plus proche et le frappe';
+export const DEFAULT_ROLE_TEXT = 'Va vers le Tank adverse, sinon frappe l\'ennemi le plus proche sur sa route';
 
 /** La forme minimale d'un attribut que ce module lit — jamais `data/`. */
 export interface KeywordAttribute {

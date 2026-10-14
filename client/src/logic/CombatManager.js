@@ -1,4 +1,4 @@
-import { referenceCellRank, chebyshevDistance, manhattanDistance, findClosestEnemy, findAttackTarget, isInAttackRange, canAttack, hasLineOfSight, stepToward, stepTowardOrNearest, stepAway, isGlobalPolicy, sortByPolicy, compareTieBreak } from './PathFinder.js';
+import { referenceCellRank, chebyshevDistance, manhattanDistance, findClosestEnemy, findAttackTarget, isInAttackRange, canAttack, hasLineOfSight, stepToward, stepTowardOrNearest, stepAway, walksToPrey, policyOf, sortByPolicy, compareTieBreak } from './PathFinder.js';
 import { Unit } from './Unit.js';
 // L'échelle vit à la racine (cf. l'en-tête de `speed-scale.mjs`) : une seule
 // fenêtre de ticks pour les rythmes ET les durées.
@@ -323,11 +323,12 @@ export class CombatManager {
       if (candidates.length === 0) { u.combat_target_uid = null; continue; }
 
       // Try candidates closest-first; if primary target is blocked, fall back to next reachable one.
-      // ⚠️ Chasseur et Briseur marchent vers LEUR proie : même boucle, seul
+      // ⚠️ Assassin, Lancier et Fantassin (face à un Tank) marchent vers LEUR proie : même boucle, seul
       // l'ordre change. Le reste (s'arrêter si `canAttack`, candidat suivant,
       // repli `stepTowardOrNearest`) est commun.
-      const sorted = isGlobalPolicy(u.target_policy)
-        ? sortByPolicy(u.position, candidates, this.board, u.target_policy)
+      const policy = policyOf(u);
+      const sorted = walksToPrey(policy, candidates)
+        ? sortByPolicy(u.position, candidates, this.board, policy)
         : [...candidates].sort(
           (a, b) => chebyshevDistance(u.position, a.position) - chebyshevDistance(u.position, b.position)
         );
@@ -367,7 +368,7 @@ export class CombatManager {
       u.attack_timer = 0;
 
       const candidates = this._targetCandidates(u, { requireLOS: true });
-      const target = candidates.length > 0 ? findAttackTarget(u, candidates, this.board, u.target_policy).unit : null;
+      const target = candidates.length > 0 ? findAttackTarget(u, candidates, this.board, policyOf(u)).unit : null;
       // Out of range or without line of sight there is nothing to hit — but the
       // rangeless powers never needed that target in the first place, so they
       // are offered a null one rather than being skipped with the attack.
@@ -545,7 +546,7 @@ export class CombatManager {
    */
   _actOnMoveRecharge(u, events) {
     const candidates = this._targetCandidates(u, { requireLOS: true });
-    const target = candidates.length > 0 ? findAttackTarget(u, candidates, this.board, u.target_policy).unit : null;
+    const target = candidates.length > 0 ? findAttackTarget(u, candidates, this.board, policyOf(u)).unit : null;
     const reachable = target !== null && canAttack(u, target, this.board);
     u.combat_target_uid = target ? target.uid : null;
     // ⚠️ Le pouvoir prime sur l'attaque simple dans cette fenêtre aussi : sinon un

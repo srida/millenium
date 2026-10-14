@@ -138,9 +138,9 @@ export function boardEffectLabel(
     case 'insaisissable':     return 'Fuit l\'adversaire ; n\'attaque que lorsque son point de mouvement se recharge';
     // Familles 1 et 2 : chaque phrase dit la règle ENTIÈRE, y compris ce qui se
     // passe quand la cible voulue n'est pas atteignable.
-    case 'tireur_elite':      return 'Vise l\'ennemi le plus éloigné à sa portée';
-    case 'chasseur':          return 'Vise l\'ennemi aux PV les plus bas, où qu\'il soit, et marche vers lui ; frappe ce qui est à sa portée en chemin';
-    case 'briseur':           return 'Vise l\'ennemi aux PV max les plus hauts et marche vers lui ; frappe ce qui est à sa portée en chemin';
+    case 'tireur_elite':      return 'Vise l\'ennemi le plus proche à sa portée';
+    case 'chasseur':          return 'Vise les Soutiens adverses, sinon l\'ennemi aux PV les plus bas, où qu\'il soit, et marche vers lui ; frappe ce qui est à sa portée en chemin';
+    case 'briseur':           return 'Vise les Archers adverses, sinon l\'ennemi aux PV max les plus hauts, et marche vers lui ; frappe ce qui est à sa portée en chemin';
     case 'embusque':          return 'Reste en place jusqu\'à ce qu\'un ennemi entre à sa portée ou le frappe, puis avance normalement';
     case 'garde_du_corps':    return 'Reste au contact de l\'allié aux PV les plus bas et frappe ce qui passe à sa portée';
     case 'tank':              return 'Avance vers l\'ennemi le plus proche ; ses alliés ne dépassent pas sa ligne tant qu\'il n\'a ni attaqué ni été attaqué';
