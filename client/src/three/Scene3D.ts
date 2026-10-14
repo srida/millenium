@@ -2403,7 +2403,10 @@ export class Scene3D {
       forward: entry.forward,
       dom: { wrap: entry.wrap, card: entry.el, flash: entry.el.querySelector<HTMLDivElement>('.unit-fx-flash') },
       entry,
-      setOpacity: (a: number) => { entry.wrap.style.opacity = String(a); },
+      // Plafonnée par `_visibilityFor` : une animation d'apparition jouée hors
+      // combat (unité adverse réanimée, que `killUnitObj` avait emportée et que
+      // `refresh()` recrée) finissait à 1 et rendait opaque un fantôme.
+      setOpacity: (a: number) => { entry.wrap.style.opacity = String(a * this._visibilityFor(entry.unit)); },
     } as SceneActor;
     Object.defineProperties(actor, {
       home: { get: () => this.tilePosition(entry.pos) },
