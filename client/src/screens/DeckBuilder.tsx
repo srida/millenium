@@ -3,7 +3,8 @@
 // invocation / recherche) + lanes par tier. Règles : max/tier = min(8, pool),
 // total ≥ 20 et nom requis pour enregistrer (validation bloquante continue).
 // Mode édition via params.deckName. Source de vérité des decks : DeckRepository.
-import { useEffect, useMemo, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { createPortal } from 'react-dom';
 import * as CardDatabase from '../data/CardDatabase.js';
 import * as AttributeDatabase from '../data/AttributeDatabase.js';
 import * as DeckRepository from '../data/DeckRepository.js';
@@ -594,20 +595,84 @@ function CardBackButton({ active, onTap, ariaLabel, title, children }: {
   );
 }
 
-// Bouton skin (🎨), FRÈRE de la vignette qu'il habille (cf. commentaire à
-// l'appel) — le `stopPropagation` doit donc survivre au partage du hook.
-function SkinButton({ card, skinned, onTap }: { card: Card; skinned: boolean; onTap: () => void }) {
+// Menu ouvert au tap sur une vignette du deck : « Personnaliser » (si la
+// carte a au moins un cosmétique débloqué) et « Retirer du deck ». Rendu en
+// portail, en `fixed` : le panneau défile (`overflow-y-auto`) et le couperait.
+// Le voile transparent capte le tap de fermeture, qui ne fait rien d'autre.
+const MENU_W = 208;
+const MENU_GAP = 8;
+
+interface MenuTarget { card: Card; tier: number; idx: number; rect: DOMRect; customizable: boolean }
+
+function CardActionMenu({ target, limitBottom, onClose, onCustomize, onRemove }: {
+  target: MenuTarget; limitBottom: number;
+  onClose: () => void; onCustomize: () => void; onRemove: () => void;
+}) {
+  const { rect, customizable, card } = target;
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [onClose]);
+
+  // Hauteur connue d'avance (entrées de hauteur fixe) : le côté se décide
+  // sans mesurer, donc sans un rendu de plus.
+  const height = 8 + 24 + 44 + (customizable ? 1 + 44 : 0);
+  const above = rect.bottom + MENU_GAP + height > limitBottom;
+  const alignRight = rect.left + MENU_W > window.innerWidth - 12;
+  const pos: React.CSSProperties = {
+    width: MENU_W,
+    ...(above ? { bottom: window.innerHeight - rect.top + MENU_GAP } : { top: rect.bottom + MENU_GAP }),
+    ...(alignRight ? { right: window.innerWidth - rect.right } : { left: rect.left }),
+  };
+  const arrow: React.CSSProperties = {
+    ...(alignRight ? { right: 26 } : { left: 26 }),
+    ...(above ? { bottom: -6 } : { top: -6 }),
+  };
+  return createPortal(
+    <>
+      <div className="fixed inset-0 z-40" onPointerDown={(e) => { e.stopPropagation(); onClose(); }} />
+      <div
+        role="menu" aria-label={`Actions pour ${card.name}`}
+        className="fixed z-50 rounded-xl border border-gold/40 bg-surface/97 p-1 shadow-[0_10px_24px_rgba(0,0,0,.6)]"
+        style={pos}
+        onPointerDown={(e) => e.stopPropagation()}
+      >
+        <span
+          aria-hidden
+          className={`absolute h-2.5 w-2.5 rotate-45 bg-surface border-gold/40 ${above ? 'border-b border-r' : 'border-l border-t'}`}
+          style={arrow}
+        />
+        <div className="relative truncate px-2.5 pt-1.5 pb-1 text-[11px] text-white/45">{card.name}</div>
+        {customizable && (
+          <>
+            <MenuEntry tone="gold" onTap={onCustomize} icon={<UiIcon id="UI_PAINT" className="h-[18px] w-[18px]" />}>
+              Personnaliser
+            </MenuEntry>
+            <div className="mx-2 h-px bg-line" />
+          </>
+        )}
+        <MenuEntry tone="danger" onTap={onRemove} icon={<span aria-hidden className="w-[18px] text-center text-lg leading-none">−</span>}>
+          Retirer du deck
+        </MenuEntry>
+      </div>
+    </>,
+    document.body,
+  );
+}
+
+function MenuEntry({ tone, icon, onTap, children }: {
+  tone: 'gold' | 'danger'; icon: ReactNode; onTap: () => void; children: ReactNode;
+}) {
   const { handlers } = usePressSquash<HTMLButtonElement>(onTap, false);
+  const color = tone === 'gold' ? 'text-gold hover:bg-gold/10' : 'text-danger hover:bg-danger/10';
   return (
     <button
-      type="button"
-      title="Illustration et effets"
-      aria-label={`Illustration de ${card.name}`}
-      className={`absolute -bottom-1 -right-1 flex h-6 w-6 items-center justify-center rounded-full border bg-surface/90 text-[11px] ${skinned ? 'border-gold' : 'border-line'}`}
+      type="button" role="menuitem"
+      className={`relative flex min-h-tap w-full items-center gap-2.5 rounded-lg px-2.5 text-left text-sm font-semibold ${color}`}
       {...handlers}
-      onPointerDown={(e) => { e.stopPropagation(); handlers.onPointerDown(e); }}
     >
-      <UiIcon id="UI_PAINT" className="h-3.5 w-3.5" />
+      {icon}{children}
     </button>
   );
 }
@@ -704,8 +769,16 @@ function DeckPanel({
   const clearHandlers = usePressSquash<HTMLButtonElement>(onClear, false).handlers;
   const web = useWebLayout();
   const classname_body = `min-h-0 flex-1 overflow-y-auto p-3${web ? ' px-22' : ''}`;
+  // Menu de la vignette tapée. Le `rect` est pris au tap : il ne vaut plus
+  // rien dès que le panneau défile, d'où la fermeture au `onScroll`.
+  const [menu, setMenu] = useState<MenuTarget | null>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
+  // Le wrapper de chaque vignette, ancre du menu (`renderCard` n'est pas un
+  // composant : pas de `useRef` par carte).
+  const anchors = useRef(new Map<string, HTMLDivElement>());
+  const closeMenu = useCallback(() => setMenu(null), []);
   return (
-    <div className={classname_body}>
+    <div ref={panelRef} className={classname_body} onScroll={menu ? closeMenu : undefined}>
       <input
         type="text" placeholder="Nom du deck" value={name} maxLength={32}
         onChange={(e) => setName(e.target.value)}
@@ -767,13 +840,20 @@ function DeckPanel({
           const finished = !!fx && ((fx.holo && !!fin.holo) || (fx.sparkle && !!fin.sparkle)
             || (!!fin.ink && fx.inks.includes(fin.ink)) || (!!fin.frame && fx.frames.includes(fin.frame)));
           const skinned = !!variants[c.id] || foiled || finished;
-          // Le bouton ouvre le même sélecteur pour tous les
-          // cosmétiques de la carte : illustration, reflet, effets.
+          // Débloqué : variante, reflet, holo, éclats, encre ou cadre —
+          // « Personnaliser » ouvre le même sélecteur pour tous.
           const customizable = skins.length > 0 || !!ownsFoil?.(c.id) || hasAnyFinish(fx);
+          const targeted = !!menu && menu.tier === t && menu.idx === idx;
           return (
-            // Une carte du deck non débloquée reste RETIRABLE : c'est
-            // la seule action qui la fait sortir du deck.
-            <div key={`${c.id}-${idx}`} className="relative">
+            // Le tap ouvre le menu de la carte, l'appui long le tooltip
+            // (`tapOn="up"` : `useCardPress` n'appelle `onTap` que si l'appui
+            // long n'a pas eu lieu — ⚠️ ne jamais ouvrir le menu ailleurs).
+            // Une carte non débloquée reste RETIRABLE par ce menu.
+            <div
+              key={`${c.id}-${idx}`}
+              ref={(el) => { if (el) anchors.current.set(`${t}-${idx}`, el); else anchors.current.delete(`${t}-${idx}`); }}
+              className={`relative transition-opacity ${menu && !targeted ? 'opacity-55' : ''}`}
+            >
               <Card3D
                 {...cardVisualProps(c, 'player', { plain: true })} size="h-auto w-full"
                 // Aperçu immédiat du choix en cours d'édition, sans
@@ -781,19 +861,37 @@ function DeckPanel({
                 illustrationId={variants[c.id] ?? c.id}
                 foil={foiled}
                 finish={visibleFinish(fin, fx)}
-                tapOn="up" onTap={() => onRemove(t, idx)}
+                tapOn="up"
+                onTap={() => {
+                  useUiStore.getState().hideTooltip();
+                  const el = anchors.current.get(`${t}-${idx}`);
+                  if (el) setMenu({ card: c, tier: t, idx, rect: el.getBoundingClientRect(), customizable });
+                }}
+                highlight={targeted ? 'selected' : 'none'}
                 locked={!owns(c.id)} dim={owns(c.id) ? 'none' : 'strong'}
               />
-              {/* Le tap retire la carte, l'appui long ouvre le tooltip :
-                  les deux gestes sont pris. Le badge est donc un FRÈRE
-                  de la vignette — un pointerdown qui l'atteint n'arme
-                  jamais le retrait (et un <button> imbriqué serait du
-                  HTML invalide). */}
-              {customizable && <SkinButton card={c} skinned={skinned} onTap={() => onSkin?.(c)} />}
+              {/* Indicateur NON interactif : vide = cosmétiques débloqués,
+                  plein = au moins un appliqué. */}
+              {customizable && (
+                <span
+                  aria-hidden
+                  className={`pointer-events-none absolute bottom-[3px] right-[3px] h-[9px] w-[9px] rounded-full border-2 border-gold shadow-[0_0_0_2px_var(--color-surface)] ${skinned ? 'bg-gold' : 'bg-surface'}`}
+                />
+              )}
             </div>
           );
         }}
       />
+
+      {menu && (
+        <CardActionMenu
+          target={menu}
+          limitBottom={panelRef.current?.getBoundingClientRect().bottom ?? window.innerHeight}
+          onClose={closeMenu}
+          onCustomize={() => { const c = menu.card; setMenu(null); onSkin?.(c); }}
+          onRemove={() => { const m = menu; setMenu(null); onRemove(m.tier, m.idx); }}
+        />
+      )}
 
       <button type="button" className="mt-4 w-full text-center text-xs text-white/40 underline" {...clearHandlers}>
         Vider le deck
