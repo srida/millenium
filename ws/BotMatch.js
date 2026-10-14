@@ -37,6 +37,14 @@ const MIN_MATCH_MS = 60_000;
 const REWARD_WINDOW_MS = 3_600_000;
 const MAX_REWARDS_PER_WINDOW = 20;
 
+/**
+ * Draft : une fuite n'est une défaite qu'une fois le duel ENGAGÉ. Pendant la
+ * présentation de l'adversaire (`MATCH_REVEAL_MS` côté client, 3 s) la partie
+ * n'a pas commencé — et c'est là que tombe un « Annuler » qui croise le
+ * `match:found` sur le fil.
+ */
+const DRAFT_FORFEIT_GRACE_MS = 3_000;
+
 const matches = new Map();     // matchId -> { userId, ws, bot, startedAt }
 const matchByUser = new Map(); // userId -> matchId
 const rewardLog = new Map();   // userId -> timestamps[]
@@ -122,7 +130,9 @@ function handleDisconnect(userId) {
   const match = matches.get(matchId);
   matches.delete(matchId);
   matchByUser.delete(userId);
-  if (match?.draft) draft.recordDuel(userId, 'loss');
+  if (match?.draft && Date.now() - match.startedAt >= DRAFT_FORFEIT_GRACE_MS) {
+    draft.recordDuel(userId, 'loss');
+  }
 }
 
 function rewardAllowed(userId, match) {
@@ -174,6 +184,6 @@ function endMatch(matchId, winnerRole, reason) {
 }
 
 module.exports = {
-  createMatch, isBotMatch, handleReportResult, handleForfeit, handleDisconnect,
+  createMatch, isBotMatch, handleReportResult, handleForfeit, handleDisconnect, DRAFT_FORFEIT_GRACE_MS,
   MIN_MATCH_MS, MAX_REWARDS_PER_WINDOW,
 };

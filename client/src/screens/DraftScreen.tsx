@@ -657,8 +657,25 @@ function DuelSearch({ run }: { run: DraftRun }) {
   const runRef = useRef(run);
   runRef.current = run;
 
-  useEffect(() => {
-    const onFound = (msg: any) => {
+  // ⚠️ L'abonnement se fait à CHAQUE recherche, jamais une seule fois au
+  // montage : « Annuler » appelle `PvpConnection.disconnect()`, qui vide TOUS
+  // les écouteurs. Abonné au montage, l'écran restait sourd après un premier
+  // Annuler — le bot était servi sans que rien ne s'affiche, et le joueur qui
+  // annulait à nouveau (ou quittait) fermait la socket d'un duel en cours, ce
+  // que le serveur compte comme une défaite.
+  const handlersRef = useRef<{ found: (msg: any) => void; error: (msg: any) => void } | null>(null);
+
+  function unsubscribe() {
+    const h = handlersRef.current;
+    if (!h) return;
+    PvpConnection.off('match:found', h.found);
+    PvpConnection.off('error', h.error);
+    handlersRef.current = null;
+  }
+
+  function subscribe() {
+    unsubscribe();
+    const found = (msg: any) => {
       if (msg?.mode !== 'draft') return;
       foundRef.current = true;
       // Un bot de Draft n'a pas d'avatar annoncé : son visage est la carte la
@@ -668,25 +685,28 @@ function DuelSearch({ run }: { run: DraftRun }) {
       setStatus('found');
       revealRef.current = setTimeout(() => navigate('game_pvp', { draft: true }), MATCH_REVEAL_MS);
     };
-    const onError = (msg: any) => {
+    const error = (msg: any) => {
       if (msg?.code !== 'draft_unavailable') return;
       setError(msg?.message ?? 'Duel impossible.');
       setStatus('error');
     };
-    PvpConnection.on('match:found', onFound);
-    PvpConnection.on('error', onError);
-    return () => {
-      PvpConnection.off('match:found', onFound);
-      PvpConnection.off('error', onError);
-      if (revealRef.current) { clearTimeout(revealRef.current); revealRef.current = null; }
-      if (!foundRef.current) { try { PvpConnection.send('queue:leave'); } catch { /* noop */ } }
-    };
-  }, [navigate]);
+    PvpConnection.on('match:found', found);
+    PvpConnection.on('error', error);
+    handlersRef.current = { found, error };
+  }
+
+  // Démontage : désabonnement, et sortie de file tant qu'aucun match n'est trouvé.
+  useEffect(() => () => {
+    unsubscribe();
+    if (revealRef.current) { clearTimeout(revealRef.current); revealRef.current = null; }
+    if (!foundRef.current) { try { PvpConnection.send('queue:leave'); } catch { /* noop */ } }
+  }, []);
 
   async function search() {
     if (status === 'connecting' || status === 'searching') return;
     setError(null);
     setStatus('connecting');
+    subscribe();
     try {
       await (PvpConnection as any).connect();
       setStatus('searching');
@@ -699,6 +719,7 @@ function DuelSearch({ run }: { run: DraftRun }) {
 
   function cancel() {
     try { (PvpConnection as any).send('queue:leave'); } catch { /* noop */ }
+    unsubscribe();
     (PvpConnection as any).disconnect();
     setStatus('idle');
   }

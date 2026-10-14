@@ -222,8 +222,10 @@ describe('repli bot', () => {
   });
 
   it('fermer l\'onglet en plein duel est une défaite', () => {
+    vi.useFakeTimers({ toFake: ['Date'] });
     const U = newUser(); setRun(U, PICKS());
     botMatch.createMatch(fakeSocket('u'), U, { draft: true });
+    vi.setSystemTime(Date.now() + botMatch.DRAFT_FORFEIT_GRACE_MS);
     botMatch.handleDisconnect(U);
     expect(runOf(U).losses).toBe(1);
 
@@ -232,5 +234,14 @@ describe('repli bot', () => {
     botMatch.createMatch(fakeSocket('v'), V);
     botMatch.handleDisconnect(V);
     expect(runOf(V).losses).toBe(0);
+  });
+
+  it('annuler pendant la présentation de l\'adversaire ne coûte rien', () => {
+    // « Annuler » qui croise le `match:found` : la socket se ferme avant que
+    // le duel n'ait commencé.
+    const U = newUser(); setRun(U, PICKS());
+    botMatch.createMatch(fakeSocket('u'), U, { draft: true });
+    botMatch.handleDisconnect(U);
+    expect(runOf(U)).toMatchObject({ wins: 0, losses: 0 });
   });
 });
