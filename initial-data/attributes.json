@@ -813,7 +813,7 @@
 		"name": "Dieu Égyptien",
 		"icon": "☀️",
 		"timing": "start_of_combat",
-		"categorie": "Type",
+		"categorie": "Archetype",
 		"thresholds": [
 			{
 				"count": 2,

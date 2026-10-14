@@ -1341,5 +1341,157 @@
 	{
 		"id": "VAR_335",
 		"card_id": "VIPER_005"
+	},
+	{
+		"id": "VAR_336",
+		"card_id": "STAPLE_269"
+	},
+	{
+		"id": "VAR_337",
+		"card_id": "CORE_091"
+	},
+	{
+		"id": "VAR_338",
+		"card_id": "CORE_076"
+	},
+	{
+		"id": "VAR_339",
+		"card_id": "STAPLE_036"
+	},
+	{
+		"id": "VAR_340",
+		"card_id": "MAKO_006"
+	},
+	{
+		"id": "VAR_341",
+		"card_id": "CORE_090"
+	},
+	{
+		"id": "VAR_342",
+		"card_id": "CORE_033"
+	},
+	{
+		"id": "VAR_343",
+		"card_id": "CORE_074"
+	},
+	{
+		"id": "VAR_344",
+		"card_id": "BAKURA_011"
+	},
+	{
+		"id": "VAR_345",
+		"card_id": "CORE_002"
+	},
+	{
+		"id": "VAR_346",
+		"card_id": "CORE_103"
+	},
+	{
+		"id": "VAR_347",
+		"card_id": "CORE_103"
+	},
+	{
+		"id": "VAR_348",
+		"card_id": "MAI_007"
+	},
+	{
+		"id": "VAR_349",
+		"card_id": "HAGA_012"
+	},
+	{
+		"id": "VAR_350",
+		"card_id": "MAI_002"
+	},
+	{
+		"id": "VAR_351",
+		"card_id": "MAI_002"
+	},
+	{
+		"id": "VAR_352",
+		"card_id": "MAI_002"
+	},
+	{
+		"id": "VAR_353",
+		"card_id": "MAI_002"
+	},
+	{
+		"id": "VAR_354",
+		"card_id": "KEITH_012"
+	},
+	{
+		"id": "VAR_355",
+		"card_id": "PEGASUS_006"
+	},
+	{
+		"id": "VAR_356",
+		"card_id": "BAKURA_008"
+	},
+	{
+		"id": "VAR_357",
+		"card_id": "CORE_110"
+	},
+	{
+		"id": "VAR_358",
+		"card_id": "CORE_110"
+	},
+	{
+		"id": "VAR_359",
+		"card_id": "CORE_066"
+	},
+	{
+		"id": "VAR_360",
+		"card_id": "STAPLE_318"
+	},
+	{
+		"id": "VAR_361",
+		"card_id": "CORE_078"
+	},
+	{
+		"id": "VAR_362",
+		"card_id": "CORE_036"
+	},
+	{
+		"id": "VAR_363",
+		"card_id": "MARIK_012"
+	},
+	{
+		"id": "VAR_364",
+		"card_id": "MARIK_011"
+	},
+	{
+		"id": "VAR_365",
+		"card_id": "MARIK_002"
+	},
+	{
+		"id": "VAR_366",
+		"card_id": "MARIK_017"
+	},
+	{
+		"id": "VAR_367",
+		"card_id": "MARIK_020"
+	},
+	{
+		"id": "VAR_368",
+		"card_id": "MARIK_020"
+	},
+	{
+		"id": "VAR_369",
+		"card_id": "KEITH_016"
+	},
+	{
+		"id": "VAR_370",
+		"card_id": "KEITH_016"
+	},
+	{
+		"id": "VAR_371",
+		"card_id": "KEITH_016"
+	},
+	{
+		"id": "VAR_372",
+		"card_id": "CORE_140"
+	},
+	{
+		"id": "VAR_373",
+		"card_id": "CORE_140"
 	}
 ]

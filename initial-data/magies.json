@@ -84,10 +84,10 @@
 		"name": "Longue vue",
 		"effect": {
 			"type": "stat_bonus",
-			"value": 2,
-			"stat": "range"
+			"stat": "range",
+			"value": 2
 		},
-		"rarity": 1
+		"rarity": 2
 	},
 	{
 		"id": "MAGIC_011",
@@ -546,6 +546,28 @@
 		"effect": {
 			"type": "grant_keyword",
 			"attribute": "ARCH_098"
+		}
+	},
+	{
+		"id": "MAGIE_059",
+		"name": "Rétrécissement",
+		"rarity": 1,
+		"effect": {
+			"type": "grant_power",
+			"power_id": "POWER_WEAKEN",
+			"power_rate": 50,
+			"value": 10,
+			"duration": 50
+		}
+	},
+	{
+		"id": "MAGIE_060",
+		"name": "Arc d’argent",
+		"rarity": 1,
+		"effect": {
+			"type": "stat_bonus",
+			"stat": "range",
+			"value": 1
 		}
 	}
 ]

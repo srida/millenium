@@ -3154,13 +3154,13 @@
 			"atk": 45,
 			"hp": 340,
 			"movement_rate": 81,
-			"attack_rate": 91,
+			"attack_rate": 87,
 			"range": 4
 		},
 		"power": {
 			"id": "POWER_AOE_ATTACK",
 			"power_rate": 63,
-			"value": 60,
+			"value": 45,
 			"zone": 2
 		},
 		"summon_conditions": [
@@ -5041,9 +5041,9 @@
 			"ARCH_056",
 			"ARCH_054",
 			"ARCH_066",
-			"ARCH_088",
 			"ARCH_094",
-			"ARCH_108"
+			"ARCH_108",
+			"ARCH_086"
 		],
 		"stats": {
 			"atk": 32,
@@ -5059,13 +5059,14 @@
 		},
 		"summon_conditions": [
 			{
-				"materials": 1,
+				"materials": 2,
 				"requires": [
-					"KEITH_010"
+					"KEITH_010",
+					"KEITH_016"
 				]
 			}
 		],
-		"material_value": 2,
+		"material_value": 3,
 		"represented_ids": [],
 		"set": "SET_010"
 	},
@@ -6627,7 +6628,7 @@
 		"stats": {
 			"atk": 10,
 			"hp": 180,
-			"movement_rate": 87,
+			"movement_rate": 80,
 			"attack_rate": 90,
 			"range": 3
 		},
@@ -6665,7 +6666,7 @@
 			"atk": 20,
 			"hp": 360,
 			"movement_rate": 81,
-			"attack_rate": 92,
+			"attack_rate": 90,
 			"range": 3
 		},
 		"power": {
@@ -8740,32 +8741,33 @@
 			"ARCH_048",
 			"ARCH_056",
 			"ARCH_066",
-			"ARCH_088",
 			"ARCH_094",
-			"ARCH_107"
+			"ARCH_107",
+			"ARCH_086"
 		],
 		"stats": {
 			"atk": 34,
 			"hp": 285,
-			"range": 2,
+			"movement_rate": 78,
 			"attack_rate": 91,
-			"movement_rate": 78
+			"range": 2
 		},
 		"power": {
 			"id": "POWER_AOE_ATTACK",
-			"value": 35,
 			"power_rate": 36,
+			"value": 35,
 			"zone": 2
 		},
 		"summon_conditions": [
 			{
-				"materials": 1,
+				"materials": 2,
 				"requires": [
-					"CORE_033"
+					"CORE_033",
+					"KEITH_016"
 				]
 			}
 		],
-		"material_value": 1,
+		"material_value": 2,
 		"represented_ids": [
 			"CORE_033"
 		],
@@ -8781,9 +8783,9 @@
 			"ARCH_054",
 			"ARCH_056",
 			"ARCH_066",
-			"ARCH_087",
 			"ARCH_092",
-			"ARCH_111"
+			"ARCH_111",
+			"ARCH_088"
 		],
 		"stats": {
 			"atk": 10,
@@ -8801,11 +8803,11 @@
 			{
 				"materials": 2,
 				"requires": [
-					"ARCH_044"
+					"KEITH_016"
 				]
 			}
 		],
-		"material_value": 2,
+		"material_value": 1,
 		"represented_ids": [],
 		"set": "SET_012"
 	},
@@ -9530,11 +9532,11 @@
 			"ARCH_113"
 		],
 		"stats": {
-			"atk": 32,
-			"hp": 430,
-			"range": 1,
-			"attack_rate": 92,
-			"movement_rate": 94
+			"atk": 27,
+			"hp": 330,
+			"movement_rate": 90,
+			"attack_rate": 91,
+			"range": 1
 		},
 		"power": {},
 		"summon_conditions": [
@@ -9547,7 +9549,8 @@
 			}
 		],
 		"material_value": 2,
-		"set": "SET_013"
+		"set": "SET_013",
+		"represented_ids": []
 	},
 	{
 		"id": "EXTRA_059",
@@ -10865,31 +10868,32 @@
 			"ARCH_048",
 			"ARCH_056",
 			"ARCH_066",
-			"ARCH_088",
 			"ARCH_093",
-			"ARCH_113"
+			"ARCH_113",
+			"ARCH_086"
 		],
 		"stats": {
 			"atk": 25,
 			"hp": 265,
-			"range": 1,
+			"movement_rate": 94,
 			"attack_rate": 91,
-			"movement_rate": 94
+			"range": 1
 		},
 		"power": {
 			"id": "POWER_BURN",
-			"value": 5,
-			"power_rate": 43
+			"power_rate": 43,
+			"value": 5
 		},
 		"summon_conditions": [
 			{
-				"materials": 1,
+				"materials": 2,
 				"requires": [
-					"CORE_039"
+					"CORE_039",
+					"KEITH_016"
 				]
 			}
 		],
-		"material_value": 1,
+		"material_value": 2,
 		"represented_ids": [
 			"CORE_039"
 		],
@@ -11407,10 +11411,10 @@
 			"ARCH_111"
 		],
 		"stats": {
-			"atk": 50,
+			"atk": 30,
 			"hp": 360,
-			"movement_rate": 94,
-			"attack_rate": 76,
+			"movement_rate": 87,
+			"attack_rate": 90,
 			"range": 3
 		},
 		"power": {
@@ -27721,9 +27725,9 @@
 			"ARCH_056",
 			"ARCH_048",
 			"ARCH_002",
-			"ARCH_088",
 			"ARCH_094",
-			"ARCH_107"
+			"ARCH_107",
+			"ARCH_086"
 		],
 		"stats": {
 			"atk": 32,
@@ -27739,13 +27743,14 @@
 		},
 		"summon_conditions": [
 			{
-				"materials": 1,
+				"materials": 2,
 				"requires": [
-					"STAPLE_319"
+					"STAPLE_319",
+					"KEITH_016"
 				]
 			}
 		],
-		"material_value": 1,
+		"material_value": 2,
 		"represented_ids": [
 			"STAPLE_319"
 		],
@@ -36299,6 +36304,408 @@
 				"materials": 1,
 				"requires": [
 					"VIPER_005"
+				]
+			}
+		],
+		"represented_ids": []
+	},
+	{
+		"id": "CORE_136",
+		"name": "Chaos Sombre",
+		"type": "monster",
+		"material_value": 3,
+		"attributes": [
+			"ARCH_095",
+			"ARCH_004",
+			"ARCH_026",
+			"ARCH_009",
+			"ARCH_007",
+			"ARCH_054",
+			"ARCH_056",
+			"ARCH_086",
+			"ARCH_109",
+			"ARCH_001",
+			"ARCH_002"
+		],
+		"stats": {
+			"atk": 40,
+			"hp": 400,
+			"movement_rate": 90,
+			"attack_rate": 94,
+			"range": 1
+		},
+		"power": {
+			"id": "POWER_BLOCK",
+			"power_rate": 50,
+			"duration": 50
+		},
+		"summon_conditions": [
+			{
+				"materials": 2,
+				"requires": [
+					"CORE_077",
+					"CORE_011"
+				]
+			}
+		],
+		"represented_ids": [
+			"CORE_077"
+		]
+	},
+	{
+		"id": "PEGASUS_035",
+		"name": "L’abandonné aux yeux cauchemardesques",
+		"type": "monster",
+		"material_value": 2,
+		"attributes": [
+			"ARCH_095",
+			"ARCH_039",
+			"ARCH_054",
+			"ARCH_087",
+			"ARCH_111",
+			"ARCH_002",
+			"ARCH_019"
+		],
+		"stats": {
+			"atk": 35,
+			"hp": 450,
+			"movement_rate": 87,
+			"attack_rate": 90,
+			"range": 3
+		},
+		"power": {
+			"id": "POWER_CONFUSION",
+			"power_rate": 77,
+			"duration": 50
+		},
+		"summon_conditions": [
+			{
+				"materials": 3,
+				"requires": [
+					"PEGASUS_006",
+					"ARCH_039"
+				]
+			}
+		],
+		"represented_ids": [
+			"PEGASUS_006"
+		]
+	},
+	{
+		"id": "STAPLE_482",
+		"name": "Dragon Sacreterion",
+		"type": "monster",
+		"material_value": 2,
+		"attributes": [
+			"ARCH_093",
+			"ARCH_054",
+			"ARCH_055",
+			"ARCH_087",
+			"ARCH_107",
+			"ARCH_003",
+			"ARCH_002"
+		],
+		"stats": {
+			"atk": 30,
+			"hp": 150,
+			"movement_rate": 76,
+			"attack_rate": 85,
+			"range": 3
+		},
+		"power": {
+			"id": "POWER_BLOCK",
+			"power_rate": 23,
+			"duration": 77
+		},
+		"summon_conditions": [
+			{
+				"materials": 2,
+				"requires": [
+					"ARCH_002",
+					"ARCH_003"
+				]
+			}
+		],
+		"represented_ids": []
+	},
+	{
+		"id": "CORE_137",
+		"name": "Magicien du temps des ténèbres",
+		"type": "monster",
+		"attributes": [
+			"ARCH_002",
+			"ARCH_018",
+			"ARCH_054",
+			"ARCH_088",
+			"ARCH_093",
+			"ARCH_008",
+			"ARCH_007",
+			"ARCH_107"
+		],
+		"stats": {
+			"atk": 24,
+			"hp": 300,
+			"movement_rate": 85,
+			"attack_rate": 87,
+			"range": 3
+		},
+		"power": {
+			"id": "POWER_TELEPORT",
+			"power_rate": 50
+		},
+		"summon_conditions": [
+			{
+				"materials": 1,
+				"requires": [
+					"CORE_037"
+				]
+			}
+		],
+		"material_value": 1,
+		"represented_ids": [
+			"CORE_037"
+		],
+		"set": "SET_010"
+	},
+	{
+		"id": "CORE_138",
+		"name": "Les combattants silencieux",
+		"type": "monster",
+		"material_value": 2,
+		"attributes": [
+			"ARCH_094",
+			"ARCH_004",
+			"ARCH_014",
+			"ARCH_055",
+			"ARCH_056",
+			"ARCH_086",
+			"ARCH_113",
+			"ARCH_001",
+			"ARCH_002"
+		],
+		"stats": {
+			"atk": 35,
+			"hp": 400,
+			"movement_rate": 90,
+			"attack_rate": 90,
+			"range": 2
+		},
+		"power": {
+			"id": "POWER_AOE_ATTACK",
+			"power_rate": 50,
+			"value": 40,
+			"zone": 2
+		},
+		"summon_conditions": [
+			{
+				"materials": 2,
+				"requires": [
+					"CORE_057",
+					"CORE_084"
+				]
+			}
+		],
+		"represented_ids": [
+			"CORE_057",
+			"CORE_084"
+		]
+	},
+	{
+		"id": "CORE_139",
+		"name": "Ultime dragon blanc aux yeux bleus empoisonné",
+		"type": "monster",
+		"material_value": 3,
+		"attributes": [
+			"ARCH_094",
+			"ARCH_005",
+			"ARCH_054",
+			"ARCH_052",
+			"ARCH_087",
+			"ARCH_086",
+			"ARCH_107",
+			"ARCH_003",
+			"ARCH_029"
+		],
+		"stats": {
+			"atk": 45,
+			"hp": 100,
+			"movement_rate": 50,
+			"attack_rate": 77,
+			"range": 3
+		},
+		"power": {
+			"id": "POWER_AOE_ATTACK",
+			"power_rate": 23,
+			"value": 30,
+			"zone": 2
+		},
+		"summon_conditions": [
+			{
+				"materials": 2,
+				"requires": [
+					"CORE_002",
+					"CORE_020"
+				]
+			},
+			{
+				"materials": 3,
+				"requires": [
+					"CORE_002",
+					"ARCH_054"
+				]
+			}
+		],
+		"represented_ids": [
+			"CORE_103"
+		]
+	},
+	{
+		"id": "MARIK_021",
+		"name": "Choc du Vyser Des",
+		"type": "monster",
+		"material_value": 1,
+		"attributes": [
+			"ARCH_093",
+			"ARCH_030",
+			"ARCH_054",
+			"ARCH_052",
+			"ARCH_056",
+			"ARCH_086",
+			"ARCH_098",
+			"ARCH_097",
+			"ARCH_025"
+		],
+		"stats": {
+			"atk": 10,
+			"hp": 100,
+			"movement_rate": 0,
+			"attack_rate": 83,
+			"range": 4
+		},
+		"power": {
+			"id": "POWER_PARALYSIS",
+			"power_rate": 50,
+			"duration": 50
+		},
+		"summon_conditions": [
+			{
+				"materials": 2,
+				"requires": [
+					"MARIK_010",
+					"MARIK_004"
+				]
+			}
+		],
+		"represented_ids": [
+			"MARIK_010",
+			"MARIK_004"
+		]
+	},
+	{
+		"id": "MARIK_022",
+		"name": "Dragon Ailé de Ra corrompu",
+		"type": "monster",
+		"attributes": [
+			"ARCH_031",
+			"ARCH_003",
+			"ARCH_030",
+			"ARCH_048",
+			"ARCH_109",
+			"ARCH_095",
+			"ARCH_087",
+			"ARCH_019"
+		],
+		"stats": {
+			"atk": 45,
+			"hp": 400,
+			"movement_rate": 85,
+			"attack_rate": 90,
+			"range": 3
+		},
+		"power": {
+			"id": "POWER_HEAL",
+			"power_rate": 50,
+			"value": 60
+		},
+		"summon_conditions": [
+			{
+				"materials": 3,
+				"requires": [
+					"MARIK_019",
+					"ARCH_030"
+				]
+			}
+		],
+		"material_value": 3,
+		"represented_ids": [
+			"MARIK_019"
+		],
+		"set": "SET_009"
+	},
+	{
+		"id": "KEITH_016",
+		"name": "Metalmorphe",
+		"type": "monster",
+		"material_value": 1,
+		"attributes": [
+			"ARCH_091",
+			"ARCH_066",
+			"ARCH_056",
+			"ARCH_090",
+			"ARCH_099",
+			"ARCH_111",
+			"ARCH_025"
+		],
+		"stats": {
+			"atk": 5,
+			"hp": 50,
+			"movement_rate": 50,
+			"attack_rate": 50,
+			"range": 1
+		},
+		"power": {},
+		"summon_conditions": [],
+		"represented_ids": [],
+		"appel": {
+			"attributes": [
+				"ARCH_066"
+			]
+		}
+	},
+	{
+		"id": "CORE_140",
+		"name": "Contrôleur d’union",
+		"type": "monster",
+		"material_value": 2,
+		"attributes": [
+			"ARCH_093",
+			"ARCH_013",
+			"ARCH_017",
+			"ARCH_052",
+			"ARCH_056",
+			"ARCH_087",
+			"ARCH_101",
+			"ARCH_111",
+			"ARCH_025"
+		],
+		"stats": {
+			"atk": 22,
+			"hp": 250,
+			"movement_rate": 77,
+			"attack_rate": 90,
+			"range": 3
+		},
+		"power": {
+			"id": "POWER_CONFUSION",
+			"power_rate": 50,
+			"duration": 50
+		},
+		"summon_conditions": [
+			{
+				"materials": 2,
+				"requires": [
+					"ARCH_013",
+					"ARCH_013"
 				]
 			}
 		],

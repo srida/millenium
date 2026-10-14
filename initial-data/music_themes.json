@@ -62,5 +62,25 @@
 	{
 		"id": "THEME_017",
 		"name": "Bleach 3"
+	},
+	{
+		"id": "THEME_018",
+		"name": "Soul eater 1"
+	},
+	{
+		"id": "THEME_019",
+		"name": "Soul eater 2"
+	},
+	{
+		"id": "THEME_020",
+		"name": "Soul eater 3"
+	},
+	{
+		"id": "THEME_021",
+		"name": "Soul eater 4"
+	},
+	{
+		"id": "THEME_022",
+		"name": "Soul eater 5"
 	}
 ]
