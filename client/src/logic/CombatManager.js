@@ -502,6 +502,10 @@ export class CombatManager {
    */
   _tryFirePower(u, target, reachable, events) {
     const powerTarget = reachable ? target : null;
+    // ⚠️ Règle générale, tous pouvoirs confondus : une cible qu'une attaque
+    // simple achève (PV + bouclier <= ATQ) ne coûte pas une jauge — l'unité
+    // frappe et GARDE son pouvoir pour la suivante.
+    if (reachable && u.atk > 0 && target.current_hp + target.shield <= u.atk) return null;
     const canFire = u.isPowerReady()
       && (reachable || RANGELESS_POWERS.has(u.power_id))
       && this._isPowerRelevant(u, powerTarget);

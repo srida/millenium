@@ -2090,55 +2090,29 @@ exports[`combat déterministe — golden events > S5 — pouvoirs avancés : BUR
       "type": "attack",
     },
     {
-      "extra": {
-        "from": {
-          "col": 1,
-          "row": 4,
-        },
-        "to": {
-          "col": 2,
-          "row": 4,
-        },
-      },
-      "power_id": "POWER_TELEPORT",
-      "step": 18,
-      "targets": [
-        "enemy:E_IMMUNE",
-      ],
-      "type": "power",
-      "unit": "player:P_TELEPORTER",
-    },
-    {
-      "from": {
-        "col": 1,
-        "row": 4,
-      },
-      "step": 18,
-      "to": {
-        "col": 2,
-        "row": 4,
-      },
-      "type": "move",
-      "unit": "player:P_TELEPORTER",
-    },
-    {
-      "attacker": "enemy:E_IMMUNE",
-      "damage": 6,
+      "attacker": "player:P_TELEPORTER",
+      "damage": 7,
       "step": 18,
       "target": "player:P_TAUNTER",
-      "type": "attack",
-    },
-    {
-      "attacker": "enemy:E_CONFUSER",
-      "damage": 5,
-      "step": 18,
-      "target": "player:P_TELEPORTER",
       "type": "attack",
     },
     {
       "step": 18,
       "type": "death",
       "unit": "player:P_TAUNTER",
+    },
+    {
+      "from": {
+        "col": 1,
+        "row": 4,
+      },
+      "step": 20,
+      "to": {
+        "col": 2,
+        "row": 4,
+      },
+      "type": "move",
+      "unit": "player:P_TELEPORTER",
     },
     {
       "attacker": "player:P_TELEPORTER",
@@ -2162,17 +2136,31 @@ exports[`combat déterministe — golden events > S5 — pouvoirs avancés : BUR
       "type": "attack",
     },
     {
-      "step": 21,
+      "attacker": "player:P_TELEPORTER",
+      "damage": 7,
+      "step": 22,
+      "target": "enemy:E_IMMUNE",
+      "type": "attack",
+    },
+    {
+      "attacker": "enemy:E_IMMUNE",
+      "damage": 6,
+      "step": 22,
+      "target": "player:P_TELEPORTER",
+      "type": "attack",
+    },
+    {
+      "step": 22,
       "type": "death",
       "unit": "player:P_TELEPORTER",
     },
     {
-      "step": 21,
+      "step": 22,
       "type": "combat_end",
       "winner": "enemy",
     },
   ],
-  "steps": 21,
+  "steps": 22,
   "winner": "enemy",
 }
 `;

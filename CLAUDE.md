@@ -1322,6 +1322,8 @@ Une unité a **zéro ou un** pouvoir. La jauge gagne `1 + _stat_bonuses.power_ch
 
 ### Pertinence vis-à-vis de la cible (`CombatManager._isPowerRelevant`)
 
+⚠️ **Règle générale, avant la pertinence** (`_tryFirePower`) : si la cible à portée meurt d'une attaque simple (`current_hp + shield <= atk`, `atk > 0`), le pouvoir ne part pas — l'unité frappe et **garde sa jauge**. Vaut pour tous les pouvoirs, sans portée compris.
+
 **Une jauge pleine ne suffit pas** : le pouvoir ne part que s'il a quelque chose à faire à la cible que `findAttackTarget` vient de désigner ; sinon l'unité **attaque normalement et garde sa jauge pleine**.
 
 ⚠️ **La règle est étroite à dessein : « est-ce que ça ne ferait RIEN ? », jamais « y a-t-il une meilleure cible ? ».** Le choix de cible reste celui de `findAttackTarget` et n'est pas réordonné — un pouvoir qui trie ses propres cibles serait une seconde politique de ciblage à tenir d'accord avec celle du déplacement, et un déterminisme PvP de plus à prouver.
