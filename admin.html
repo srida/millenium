@@ -167,6 +167,19 @@ body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', syste
 .material-item { display: flex; align-items: center; gap: 8px; background: var(--surface2); padding: 6px 10px; border-radius: 6px; border: 1px solid var(--border); }
 .material-item span { flex: 1; font-family: monospace; font-size: 12px; }
 .material-item button { background: none; border: none; color: var(--red); cursor: pointer; font-size: 16px; line-height: 1; }
+.material-item { flex-wrap: wrap; }
+.card-peek { flex-basis: 100%; display: flex; flex-direction: column; gap: 5px; padding-top: 6px; border-top: 1px solid var(--border); }
+.card-peek span { flex: none; font-family: inherit; }
+.card-peek .peek-badges, .card-peek .peek-attrs { display: flex; flex-wrap: wrap; gap: 4px; }
+.card-peek .badge { white-space: nowrap; }
+.card-peek .peek-stats { display: flex; border: 1px solid var(--border); border-radius: 6px; overflow: hidden; }
+.card-peek .peek-stat { flex: 1; display: flex; flex-direction: column; align-items: center; padding: 3px 0; font-family: inherit; border-right: 1px solid var(--border); }
+.card-peek .peek-stat:last-child { border-right: none; }
+.card-peek .peek-stat i { font-style: normal; font-size: 9px; letter-spacing: 1px; color: var(--muted); }
+.card-peek .peek-stat b { font-size: 12px; font-variant-numeric: tabular-nums; }
+.card-peek .peek-power { font-size: 11px; color: #f0a040; font-family: inherit; }
+.card-peek .peek-power span { color: var(--muted); }
+.card-peek .peek-attrs span { flex: none; font-family: inherit; font-size: 10px; background: var(--surface); border: 1px solid var(--border); border-radius: 4px; padding: 1px 6px; color: var(--text); }
 
 /* Buttons */
 .btn { padding: 8px 16px; border-radius: 6px; border: none; cursor: pointer; font-size: 13px; font-weight: 600; transition: all .15s; }
@@ -2466,6 +2479,42 @@ function getMaterialName(id) {
   if (a) return (a.icon ? a.icon + ' ' : '') + a.name;
   return id;
 }
+/** Fiche résumée d'une carte citée en matériel ou en lignée — le contenu du
+ *  tooltip du jeu (tiers, rôle, stats, pouvoir, attributs), plus sa note du
+ *  barème. Rien pour un attribut : ce n'est pas une carte. */
+const PEEK_STATS = [['atk', 'ATQ'], ['hp', 'PV'], ['attack_rate', 'VIT'], ['range', 'POR'], ['movement_rate', 'DEP']];
+function cardPeekHtml(id) {
+  const c = cards.find(x => x.id === id);
+  if (!c) return '';
+  const st = c.stats || {};
+  const stats = PEEK_STATS.map(([k, l]) => {
+    const v = st[k];
+    return `<span class="peek-stat"><i>${l}</i><b>${Number.isFinite(v) ? v : '—'}</b></span>`;
+  }).join('');
+  const pw = c.power && c.power.id ? c.power : null;
+  const pwDetails = pw ? [
+    Number.isFinite(pw.power_rate) ? `vitesse ${pw.power_rate}` : 'vitesse —',
+    pw.value ? `valeur ${pw.value}` : '',
+    pw.duration ? `durée ${pw.duration}` : '',
+    Number.isFinite(pw.zone) ? `zone ${pw.zone}` : '',
+  ].filter(Boolean).join(' · ') : '';
+  const role = EFX?.ROLE_CATEGORY || 'Role';
+  const attrs = (c.attributes || []).map(aid => attributes.find(a => a.id === aid))
+    .filter(a => a && a.categorie !== 'Tiers' && a.categorie !== role);
+  const cost = summonCostOf(c);
+  return `
+    <div class="card-peek">
+      <div class="peek-badges">
+        ${tierBadges(c)}${roleBadge(c)}
+        <span class="badge" style="background:var(--surface2);color:${costColor(c)};font-size:10px">${cost > 0 ? `coût ◈${cost}` : 'Direct'}</span>
+        <span class="badge" style="background:var(--surface2);color:#78c8a8;font-size:10px">vaut ◈${cardMaterialValue(c)}</span>
+        ${noteBadge(c)}
+      </div>
+      <div class="peek-stats">${stats}</div>
+      ${pw ? `<div class="peek-power">${esc(getPowerName(pw.id))}${pwDetails ? ` <span>${esc(pwDetails)}</span>` : ''}</div>` : ''}
+      ${attrs.length ? `<div class="peek-attrs">${attrs.map(a => `<span>${esc(getAttrName(a.id))}</span>`).join('')}</div>` : ''}
+    </div>`;
+}
 function isMaterialAttribute(id) {
   return !cards.find(x => x.id === id) && !!attributes.find(x => x.id === id);
 }
@@ -2594,6 +2643,7 @@ function renderCardDetail() {
             <span style="font-size:10px;color:var(--muted);font-family:monospace">${rid}</span>
           </span>
           <button onclick="removeRepresented(${ridx})">×</button>
+          ${cardPeekHtml(rid)}
         </div>`).join('')}
     </div>
     <div style="position:relative;margin-top:8px;margin-bottom:20px" id="represented-search-wrap">
@@ -2894,6 +2944,7 @@ function conditionRowHtml(cd, idx) {
               <span style="font-size:10px;color:var(--muted);font-family:monospace">${mid}</span>
             </span>
             <button onclick="removeConditionRequire(${idx}, ${ridx})">×</button>
+            ${isAttr ? '' : cardPeekHtml(mid)}
           </div>`;
         }).join('')}
       </div>
