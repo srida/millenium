@@ -34,7 +34,7 @@ export const TIERS_CATEGORY = 'Tiers';
 export const STAT_COSTS = [
   { key: 'atk', label: 'ATQ', unit: 'par point' },
   { key: 'hp', label: 'PV', unit: 'par point' },
-  { key: 'range', label: 'Portée', unit: 'par case' },
+  { key: 'range', label: 'Portée', unit: 'par case au-delà de 1' },
   { key: 'attack_rate', label: "Vitesse d'attaque", unit: 'par point de compteur' },
   { key: 'movement_rate', label: 'Vitesse de déplacement', unit: 'par point de compteur' },
   { key: 'material_value', label: 'Valeur de matériau', unit: 'par slot au-delà de 1' },
@@ -91,7 +91,7 @@ export function scoreCard(card, attrIndex, bareme, names = {}) {
 
   add('ATQ', num(st.atk) * num(s.atk));
   add('PV', num(st.hp) * num(s.hp));
-  add('Portée', num(st.range) * num(s.range));
+  add('Portée', Math.max(0, num(st.range) - 1) * num(s.range));
   add("Vitesse d'attaque", num(st.attack_rate) * num(s.attack_rate));
   add('Vitesse de déplacement', num(st.movement_rate) * num(s.movement_rate));
   const mv = num(card.material_value) || 1;

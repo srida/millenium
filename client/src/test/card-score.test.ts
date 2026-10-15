@@ -60,6 +60,12 @@ describe('card-score — la formule', () => {
     expect(note({ power: {} }).score).toBe(30);
   });
 
+  it('la portée 1 est gratuite : seules les cases au-delà se paient', () => {
+    const b = { ...B, stats: { ...B.stats, atk: 0, range: 2 } };
+    const portee = (range: number) => scoreCard(card({ stats: { range } }), attributeIndex(ATTRS), b).score;
+    expect([1, 2, 3, 4].map(portee)).toEqual([0, 2, 4, 6]);
+  });
+
   it('le verdict suit la tolérance', () => {
     expect(note({ stats: { atk: 36 } }).verdict).toBe('dessus');
     expect(note({ stats: { atk: 35 } }).verdict).toBe('dans');
