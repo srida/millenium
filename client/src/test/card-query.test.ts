@@ -397,3 +397,18 @@ describe('sur le catalogue livré', () => {
     expect(ids(CARDS, 'tier:3 ET tier:4')).toEqual([...t3].filter(id => t4.has(id)));
   });
 });
+
+describe('tier : résolveur injecté', () => {
+  // L'admin retire `_tiers` d'une carte qu'il enregistre (drapeau calculé) :
+  // sans résolveur dérivé des attributs, elle sortait du filtre `tier:5`.
+  it('lit les tiers par deps.tiersOf, pas par `_tiers`', () => {
+    const tierOf: Record<string, number> = { ARCH_095: 5 };
+    const s = Q.cardQuerySchema({
+      summonCost,
+      tiersOf: (c: any) => (c.attributes ?? []).map((a: string) => tierOf[a]).filter(Boolean),
+    });
+    const saved = { id: 'CORE_067', name: 'x', attributes: ['ARCH_095'], stats: {}, power: {} };
+    const r = Q.filterByQuery([saved], 'tier:5', s);
+    expect(r.items.map((c: any) => c.id)).toEqual(['CORE_067']);
+  });
+});

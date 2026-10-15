@@ -1088,6 +1088,7 @@ function buildQuerySchemas() {
   // n'existent pas des deux côtés à l'identique lui sont injectés.
   QUERY_SCHEMAS.card = CQ.cardQuerySchema({
     summonCost: summonCostOf,
+    tiersOf: cardTiers,
     attributeName: id => (attributes.find(a => a.id === id)?.name ?? id),
     powerName: id => (powers.find(p => p.id === id)?.name ?? id),
     attributeOptions: opts(attributes, a => a.id, a => `${a.icon || ''} ${a.name}`.trim()),

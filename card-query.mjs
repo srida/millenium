@@ -749,8 +749,13 @@ export function applySuggestion(src, { start, end }, value) {
 // @param {Function} deps.summonCost      (card) => nombre de matériels
 // @param {Function} [deps.attributeName] (id) => nom lisible
 // @param {Function} [deps.powerName]     (id) => nom lisible
+// @param {Function} [deps.tiersOf]       (card) => tiers ; défaut `_tiers`.
+//   ⚠️ L'admin le DÉRIVE des attributs : une carte qu'il vient d'enregistrer
+//   n'a plus de `_tiers` (drapeau calculé, retiré à l'écriture) et disparaissait
+//   du filtre `tier:` jusqu'au rechargement.
 export function cardQuerySchema(deps = {}) {
   const summonCost = deps.summonCost ?? (() => 0);
+  const tiersOf = deps.tiersOf ?? (c => c._tiers ?? []);
   const attributeName = deps.attributeName ?? (id => id);
   const powerName = deps.powerName ?? (id => id);
   const stat = key => card => card?.stats?.[key];
@@ -764,7 +769,7 @@ export function cardQuerySchema(deps = {}) {
     fields: [
       { key: 'id', label: 'Identifiant', type: 'text', get: c => c.id },
       { key: 'nom', aliases: ['name'], label: 'Nom', type: 'text', get: c => c.name },
-      { key: 'tier', aliases: ['t'], label: 'Tier (1–5)', type: 'number', get: c => c._tiers ?? [], options: deps.tierOptions },
+      { key: 'tier', aliases: ['t'], label: 'Tier (1–5)', type: 'number', get: c => tiersOf(c), options: deps.tierOptions },
       { key: 'atk', aliases: ['attaque'], label: 'Attaque', type: 'number', get: stat('atk') },
       { key: 'pv', aliases: ['hp', 'vie'], label: 'Points de vie', type: 'number', get: stat('hp') },
       // ⚠️ Les deux rythmes sont des COMPTEURS 0–100 (plus haut = plus vite),
