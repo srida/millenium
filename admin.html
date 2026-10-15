@@ -1840,7 +1840,7 @@ function renderScoringSummary() {
   const roles = [...new Set(rated.map(x => roleName(x.c)))].sort((a, b) => a.localeCompare(b, 'fr'));
   const cell = list => {
     if (!list.length) return '<td style="color:var(--muted)">·</td>';
-    const m = list.reduce((t, x) => t + x.n.ecart, 0) / list.length;
+    const m = Math.round(list.reduce((t, x) => t + x.n.ecart, 0) / list.length * 10) / 10;
     const tol = scoringDraft?.tolerance ?? 0;
     const cls = m > tol ? 'note-dessus' : m < -tol ? 'note-dessous' : '';
     return `<td><span class="${cls}" style="font-weight:700">${fmtEcart(m)}</span> <span class="stat-range">${list.length}</span></td>`;

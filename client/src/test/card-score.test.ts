@@ -65,6 +65,14 @@ describe('card-score — la formule', () => {
     expect(note({ stats: { atk: 35 } }).verdict).toBe('dans');
     expect(note({ stats: { atk: 24 } }).verdict).toBe('dessous');
   });
+
+  it('±tolérance est INCLUSE, à la précision affichée (le dixième)', () => {
+    expect(note({ stats: { atk: 25 } }).verdict).toBe('dans');
+    // 35,04 s'affiche « 35 » : il doit être jugé comme 35, donc vert.
+    expect(note({ stats: { atk: 35.04 } })).toMatchObject({ score: 35, ecart: 5, verdict: 'dans' });
+    expect(note({ stats: { atk: 24.96 } }).verdict).toBe('dans');
+    expect(note({ stats: { atk: 35.1 } }).verdict).toBe('dessus');
+  });
 });
 
 describe('card-score — le barème livré', () => {

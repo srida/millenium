@@ -124,14 +124,16 @@ export function scoreCard(card, attrIndex, bareme, names = {}) {
   if (mat) add(`${mat} matériau${mat > 1 ? 'x' : ''}`, mat * num(bareme?.material));
   if (invocation) add(invocation.label, invocation.value);
 
-  const score = parts.reduce((t, p) => t + p.value, 0);
+  // ⚠️ Arrondi au DIXIÈME, la précision affichée : un 65,04 s'affiche « 65 »
+  // et doit être jugé comme tel (±tolérance incluse), sinon il sort rouge.
+  const score = round1(parts.reduce((t, p) => t + p.value, 0));
   const tiers = cardTiers(card, attrIndex);
   const tier = tiers.length ? tiers[0] : null;
   if (card.balance_excluded || tier === null) {
     return { score, budget: null, ecart: null, verdict: 'libre', tier, tiers, parts };
   }
   const budget = num(bareme?.budget?.[tier] ?? bareme?.budget?.[String(tier)]);
-  const ecart = score - budget;
+  const ecart = round1(score - budget);
   const tol = num(bareme?.tolerance);
   const verdict = ecart > tol ? 'dessus' : ecart < -tol ? 'dessous' : 'dans';
   return { score, budget, ecart, verdict, tier, tiers, parts };
@@ -141,6 +143,8 @@ export function scoreCard(card, attrIndex, bareme, names = {}) {
  * Les notes de tout un catalogue, indexées par id de carte.
  * `names.power(id)` sert à nommer un pouvoir dans le détail du score.
  */
+function round1(v) { return Math.round(v * 10) / 10; }
+
 export function scoreCatalog(cards, attributes, bareme, names = {}) {
   const idx = attributeIndex(attributes);
   const out = new Map();

@@ -2294,6 +2294,7 @@ Une **note** par carte : stats, pouvoir, mots-clés et synergies moins le coût 
 - Carte multi-tier → budget du tier **le plus bas**. Carte `balance_excluded` → score sans budget, verdict `libre`.
 - Attributs : coûts **sommés**, sauf catégorie `Invocation` (seule la voie la **moins négative** compte). Un attribut Archetype/Type/Élément sans coût propre vaut `stats.synergy`. Matériaux : recette la **moins chère**. Vitesse de pouvoir : `(power_rate − 50) × stats.power_rate`, seulement avec un pouvoir.
 - Coûts **par id** (attribut, pouvoir), jamais par nom.
+- ⚠️ Note et écart **arrondis au dixième** (la précision affichée), tolérance **incluse** : un 65,04 affiché « 65 » doit sortir dans le budget d'un T5.
 - Admin : badge `📐 note/budget` dans la liste, section « Note du barème » sur la fiche (carte **enregistrée**), champs de requête `note`, `budget`, `ecart`, `verdict:dans|dessus|dessous|libre`, triables. La note se calcule à la lecture, jamais mise en cache (les cartes sont mutées en place).
 - ⚠️ Pouvoir : seuls le type et la vitesse comptent — `value`, `duration` et `zone` ne sont pas chiffrés.
 
