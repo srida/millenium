@@ -1811,7 +1811,7 @@ function renderScoring() {
         ${row('tolerance', 'Tolérance', '± points autour du budget', 0.5)}
       </div>
       <div class="stat-panel"><h3>Invocation (points négatifs)</h3>
-        ${row('material', 'Matériau exigé', 'par matériau, recette la moins chère')}
+        ${row('material', 'Matériau exigé', 'par matériau, carte sans voie d\'invocation (sinon matériaux × coût de la voie)')}
         ${invAttrs.map(a => row(`attributes.${a.id}`, a.name, 'voie : une carte à plusieurs voies paie la plus facile')).join('')}
       </div>
       <div class="stat-panel"><h3>Stats</h3>

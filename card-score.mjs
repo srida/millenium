@@ -19,7 +19,8 @@
 //     à plusieurs voies ne paie que la plus facile (la moins négative) ;
 //   • un attribut sans coût propre vaut `stats.synergy` s'il est de catégorie
 //     Archetype, Type ou Élément, zéro sinon ;
-//   • le matériau exigé se compte sur la recette la MOINS chère ;
+//   • le malus d'invocation vaut MATÉRIAUX × COÛT DE LA VOIE, sur la recette
+//     la moins chère ; sans voie, chaque matériau coûte `material` ;
 //   • la vitesse de pouvoir ne compte qu'au-delà (ou en deçà) de 50, et
 //     seulement quand la carte a un pouvoir.
 
@@ -120,9 +121,14 @@ export function scoreCard(card, attrIndex, bareme, names = {}) {
   }
   if (synergies) add(`Synergies ×${synergies}`, synergies * num(s.synergy));
 
+  // Le malus d'invocation = matériaux × coût de la voie. Sans voie, le tarif
+  // par défaut `material` ; sans matériau, rien (une voie seule ne coûte rien).
   const mat = cheapestMaterials(card);
-  if (mat) add(`${mat} matériau${mat > 1 ? 'x' : ''}`, mat * num(bareme?.material));
-  if (invocation) add(invocation.label, invocation.value);
+  if (mat) {
+    const per = invocation ? invocation.value : num(bareme?.material);
+    const label = invocation ? invocation.label : `matériau${mat > 1 ? 'x' : ''}`;
+    add(`${mat} × ${label}`, mat * per);
+  }
 
   // ⚠️ Arrondi au DIXIÈME, la précision affichée : un 65,04 s'affiche « 65 »
   // et doit être jugé comme tel (±tolérance incluse), sinon il sort rouge.

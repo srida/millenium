@@ -44,7 +44,12 @@ describe('card-score — la formule', () => {
   });
 
   it('plusieurs voies d\'invocation : seule la plus facile compte', () => {
-    expect(note({ attributes: ['T1', 'FUS', 'SAC'] }).score).toBe(29.5);
+    expect(note({ attributes: ['T1', 'FUS', 'SAC'], summon_conditions: [{ materials: 2 }] }).score).toBe(29);
+  });
+
+  it('malus d\'invocation = matériaux × coût de la voie, rien sans matériau', () => {
+    expect(note({ attributes: ['T1', 'FUS'], summon_conditions: [{ materials: 2 }] }).score).toBe(30 - 6);
+    expect(note({ attributes: ['T1', 'FUS'] }).score).toBe(30);
   });
 
   it('mots-clés au coût propre, synergies au tarif, matériaux sur la recette la moins chère', () => {
