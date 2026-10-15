@@ -385,6 +385,28 @@ select.filter:focus { border-color: var(--accent); }
 .ai-attempt.refused { color: var(--muted); }
 .ai-reason { color: #d29922; }
 
+/* Barème des cartes (card-score.mjs) — la note d'une carte et l'onglet 📐. */
+.note-badge { font-size: 10px; background: var(--surface2); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.note-dans { color: var(--green); }
+.note-dessus { color: var(--red); }
+.note-dessous { color: #5aa2ff; }
+.note-libre { color: var(--muted); }
+.note-parts { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 12px; color: var(--muted); }
+.note-parts b { color: var(--text); font-variant-numeric: tabular-nums; }
+.note-parts .neg b { color: #5aa2ff; }
+.scoring-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 16px; }
+.scoring-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 4px 0; border-bottom: 1px solid var(--border); font-size: 13px; }
+.scoring-row:last-child { border-bottom: none; }
+.scoring-row small { display: block; font-size: 10px; color: var(--muted); }
+.scoring-row input { width: 86px; text-align: right; font-variant-numeric: tabular-nums; }
+.scoring-row input.changed { border-color: var(--accent); }
+.scoring-tiles { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 16px; }
+.scoring-tile { flex: 1 1 140px; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 10px 14px; cursor: pointer; }
+.scoring-tile b { display: block; font-size: 22px; }
+.scoring-tile span { font-size: 11px; color: var(--muted); }
+.scoring-heat td { text-align: center; font-variant-numeric: tabular-nums; }
+.scoring-heat td:first-child { text-align: left; }
+
 /* ⚠️ CE BLOC DOIT RESTER LE DERNIER DE LA FEUILLE.
    Il vivait auparavant au milieu du fichier, AVANT les sections « Stats tab » et
    « DB explorer » : à spécificité égale, la dernière règle gagne, et une douzaine
@@ -419,6 +441,7 @@ select.filter:focus { border-color: var(--accent); }
 
   /* Stats, DB & Équilibrage — pas de sidebar, toujours visibles */
   #tab-stats .content,
+  #tab-scoring .content,
   #tab-db .content,
   #tab-sim .content {
     transform: none !important; position: relative !important;
@@ -465,7 +488,8 @@ select.filter:focus { border-color: var(--accent); }
   .illustration-box .illus-overlay .btn { width: 100%; }
 
   /* Stats */
-  #tab-stats .content { padding: 12px !important; }
+  #tab-stats .content,
+  #tab-scoring .content { padding: 12px !important; }
   .stat-panel { padding: 12px 10px; }
   .tier-overview-table { font-size: 11px; }
   .tier-overview-table th, .tier-overview-table td { padding: 5px 6px; }
@@ -563,6 +587,11 @@ select.filter:focus { border-color: var(--accent); }
            pour les cartes (card.set), en plus simple (aucun asset propre). -->
       <option value="musicthemes">🎨 Thèmes de partie</option>
       <option value="stats">📊 Stats</option>
+      <!-- Barème des cartes : les coûts qui donnent une note à chaque carte
+           (card-score.mjs, data/scoring.json). La note s'affiche aussi dans la
+           liste des cartes, et se filtre / se trie par la barre (note:, ecart:,
+           verdict:). -->
+      <option value="scoring">📐 Barème</option>
       <option value="db">🗄️ Base SQL</option>
       <!-- Le rapport d'équilibrage est un onglet ordinaire : son panneau porte une
            iframe sur /admin/sim, chargée au premier clic. La page reste servie en
@@ -922,6 +951,12 @@ select.filter:focus { border-color: var(--accent); }
     </div>
   </div>
 
+  <div id="tab-scoring" class="main hidden">
+    <div class="content" id="scoring-content" style="padding:24px;overflow-y:auto;width:100%">
+      <div class="empty"><span>Chargement...</span></div>
+    </div>
+  </div>
+
   <div id="tab-db" class="main hidden">
     <div class="content" id="db-content" style="padding:20px;overflow:auto;width:100%">
       <div class="empty"><span>Chargement...</span></div>
@@ -1020,6 +1055,12 @@ let EFX = null;
 // client — et un ajouté d'un seul côté resterait invisible ou injouable.
 let SOUND = null;
 
+// LE BARÈME DES CARTES (`card-score.mjs`, racine) — la formule de la note,
+// même route et même raison que les modules au-dessus. Les VALEURS vivent dans
+// `data/scoring.json` (une entrée, `BAREME`), éditées dans l'onglet 📐.
+let SCORE = null;
+let scoring = [];
+
 /** Le schéma de l'onglet courant, ou celui qu'on nomme. */
 const QUERY_SCHEMAS = {};
 
@@ -1048,6 +1089,14 @@ function buildQuerySchemas() {
     fields: [...QUERY_SCHEMAS.card.fields, {
       key: 'exclue', aliases: ['hors_equilibrage'], label: 'Exclue des stats d’équilibrage',
       type: 'bool', get: c => !!c.balance_excluded,
+    },
+    // La note du barème (📐). `verdict:dessus` = trop forte pour son tier.
+    { key: 'note', aliases: ['score'], label: 'Note du barème', type: 'number', get: c => cardNote(c)?.score },
+    { key: 'budget', label: 'Budget du tier (le plus bas)', type: 'number', get: c => cardNote(c)?.budget ?? undefined },
+    { key: 'ecart', aliases: ['écart'], label: 'Écart au budget (note − budget)', type: 'number', get: c => cardNote(c)?.ecart ?? undefined },
+    {
+      key: 'verdict', label: 'Verdict du barème', type: 'enum', get: c => cardNote(c)?.verdict,
+      options: () => Object.entries(SCORE?.VERDICTS || {}).map(([value, label]) => ({ value, label })),
     }],
   };
 
@@ -1483,11 +1532,13 @@ async function init() {
     import('/admin/speed-scale.js'),
     import('/admin/effect-schema.js'),
     import('/admin/sound-schema.js'),
+    import('/admin/card-score.js'),
   ]);
   CQ = modules[0];
   SPEED = modules[1];
   EFX = modules[2];
   SOUND = modules[3];
+  SCORE = modules[4];
 
   [cards, attributes, powers, boards, magies, publicDecks, packs, missions, variants, gifts, cardBacks, tokens, sfx, music, musicThemes] = await Promise.all([
     apiFetch('/api/cards'),
@@ -1506,6 +1557,9 @@ async function init() {
     apiFetch('/api/music'),
     apiFetch('/api/music-themes'),
   ]);
+  // Hors du tableau ci-dessus : un serveur pas encore redéployé répond par le
+  // fallback SPA, et l'admin doit s'ouvrir quand même (sans note).
+  try { const sc = await apiFetch('/api/scoring'); scoring = Array.isArray(sc) ? sc : []; } catch { scoring = []; }
   // Les anciennes pistes `game_early` / `game_mid` / `game_late` s'affichent
   // (et s'enregistrent) dans la forme neuve `game` + `rounds`.
   if (Array.isArray(music) && SOUND?.normalizeMusic) music = music.map(m => SOUND.normalizeMusic(m));
@@ -1605,6 +1659,7 @@ function switchTab(tab) {
   document.getElementById('fab').classList.toggle('hidden', NO_FAB_TABS.has(tab));
 
   if (tab === 'stats') renderStats();
+  if (tab === 'scoring') renderScoring();
   if (tab === 'db') renderDbTables();
   // Chargement paresseux : sans ça, chaque ouverture de l'admin irait chercher le
   // rapport d'équilibrage, qui pèse ~200 Ko et ne concerne qu'un onglet sur quatorze.
@@ -1618,7 +1673,7 @@ function switchTab(tab) {
 }
 
 // Onglets sans sidebar : le FAB (« + ») n'y a rien à ouvrir.
-const NO_FAB_TABS = new Set(['stats', 'db', 'sim', 'pvplogs', 'ailogs']);
+const NO_FAB_TABS = new Set(['stats', 'scoring', 'db', 'sim', 'pvplogs', 'ailogs']);
 
 // Délégation pour la feuille mobile : le `<select>` desktop passe par son propre
 // `onchange` (ci-dessus dans le balisage), pas par cette délégation de clic.
@@ -1628,6 +1683,190 @@ document.addEventListener('click', (e) => {
   switchTab(el.dataset.tab);
   closeTabSheet();
 });
+
+// ================== BARÈME DES CARTES ==================
+//
+// La FORMULE vit dans `card-score.mjs` (partagé avec les tests), les VALEURS
+// dans `data/scoring.json`. Ce bloc ne fait que les relire : la note d'une
+// carte, son badge, le détail de son score, et l'onglet 📐 qui édite le barème.
+//
+// ⚠️ La note se calcule À LA LECTURE, jamais mémorisée : les cartes sont
+// mutées en place à l'enregistrement, un cache garderait la note d'avant.
+// 1 100 cartes se notent en une milliseconde.
+
+function activeScoring() { return scoring[0] || null; }
+
+let _scoreIdx = null, _scoreIdxOf = null, _scoreIdxLen = -1;
+function scoreAttrIndex() {
+  if (_scoreIdxOf !== attributes || _scoreIdxLen !== attributes.length) {
+    _scoreIdx = SCORE.attributeIndex(attributes); _scoreIdxOf = attributes; _scoreIdxLen = attributes.length;
+  }
+  return _scoreIdx;
+}
+function cardNote(c, bareme = activeScoring()) {
+  if (!SCORE || !bareme || !c) return null;
+  return SCORE.scoreCard(c, scoreAttrIndex(), bareme, { power: getPowerName });
+}
+const fmtNote = v => (Math.round(v * 10) / 10).toLocaleString('fr-FR', { maximumFractionDigits: 1 });
+const fmtEcart = v => (v > 0 ? '+' : v < 0 ? '−' : '') + fmtNote(Math.abs(v));
+
+function noteBadge(c) {
+  const n = cardNote(c);
+  if (!n) return '';
+  const title = n.verdict === 'libre' ? 'Score libre (exclue des statistiques)' : `${SCORE.VERDICTS[n.verdict]} — budget ${fmtNote(n.budget)} (tier ${n.tier})`;
+  const txt = n.verdict === 'libre' ? `📐 ${fmtNote(n.score)} · libre` : `📐 ${fmtNote(n.score)}/${fmtNote(n.budget)}`;
+  return `<span class="badge note-badge note-${n.verdict}" title="${esc(title)}">${txt}</span>`;
+}
+
+function noteSectionHtml(c) {
+  if (isNewCard) return '';
+  const n = cardNote(c);
+  if (!n) return '';
+  const parts = n.parts.map(p => `<span class="${p.value < 0 ? 'neg' : ''}">${esc(p.label)} <b>${fmtEcart(p.value)}</b></span>`).join('');
+  const verdict = n.verdict === 'libre'
+    ? 'carte exclue des statistiques : score libre'
+    : `budget ${fmtNote(n.budget)} (tier ${n.tier}${n.tiers.length > 1 ? `, le plus bas de ${n.tiers.join(', ')}` : ''}) · écart <b class="note-${n.verdict}">${fmtEcart(n.ecart)}</b> · ${SCORE.VERDICTS[n.verdict]}`;
+  return `
+    <div class="section-title">Note du barème <span style="text-transform:none;font-weight:400;letter-spacing:0">— <a href="#" onclick="switchTab('scoring');return false" style="color:var(--accent)">régler le barème</a></span></div>
+    <div style="font-size:13px;margin-bottom:8px"><b class="note-${n.verdict}" style="font-size:18px">${fmtNote(n.score)}</b> <span style="color:var(--muted)">${verdict}</span></div>
+    <div class="note-parts">${parts}</div>
+    <div style="font-size:11px;color:var(--muted);margin-top:6px">Note de la carte <b>enregistrée</b> : enregistre la fiche pour voir l'effet d'une modification.</div>`;
+}
+
+// --- Onglet 📐 : un BROUILLON édité champ par champ, la liste et le récapitulatif
+// se recalculent à chaque frappe ; rien n'est écrit tant qu'on n'a pas
+// enregistré.
+let scoringDraft = null;
+
+function _scoringClone() { return JSON.parse(JSON.stringify(activeScoring() || {})); }
+
+function _scoringRow(path, label, sub, value, saved, step) {
+  const changed = Math.abs((value ?? 0) - (saved ?? 0)) > 1e-9;
+  return `<div class="scoring-row"><span>${esc(label)}${sub ? `<small>${esc(sub)}</small>` : ''}</span>
+    <input type="number" step="${step}" value="${value ?? 0}" class="${changed ? 'changed' : ''}" data-path="${esc(path)}" oninput="onScoringInput(this)"></div>`;
+}
+function _getPath(o, path) { return path.split('.').reduce((x, k) => (x == null ? undefined : x[k]), o); }
+function _setPath(o, path, v) {
+  const ks = path.split('.'); let x = o;
+  for (const k of ks.slice(0, -1)) { if (!x[k] || typeof x[k] !== 'object') x[k] = {}; x = x[k]; }
+  x[ks[ks.length - 1]] = v;
+}
+
+function onScoringInput(inp) {
+  const v = parseFloat(inp.value);
+  if (Number.isNaN(v)) return;
+  _setPath(scoringDraft, inp.dataset.path, v);
+  inp.classList.toggle('changed', Math.abs(v - (_getPath(activeScoring(), inp.dataset.path) ?? 0)) > 1e-9);
+  renderScoringSummary();
+}
+
+function renderScoring() {
+  const el = document.getElementById('scoring-content');
+  if (!SCORE) { el.innerHTML = '<div class="empty"><span>Module de barème indisponible.</span></div>'; return; }
+  if (!activeScoring()) {
+    el.innerHTML = `<div class="empty"><span>Aucun barème sur ce serveur (data/scoring.json). Redémarrer le serveur le recopie depuis initial-data/.</span></div>`;
+    return;
+  }
+  if (!scoringDraft) scoringDraft = _scoringClone();
+  const d = scoringDraft, saved = activeScoring();
+  const row = (path, label, sub, step = 0.5) => _scoringRow(path, label, sub, _getPath(d, path), _getPath(saved, path), step);
+  const tiers = tierAttrDefs().map(a => a.tier);
+  const invAttrs = attributes.filter(a => a.categorie === SCORE.INVOCATION_CATEGORY);
+  const kwCat = EFX?.MOT_CLE_CATEGORY || 'MotCle';
+  const kwAttrs = attributes.filter(a => a.categorie === kwCat);
+  // Les autres attributs ayant un coût PROPRE (posé à la main dans la donnée) :
+  // ils restent éditables ici plutôt que de disparaître de l'écran.
+  const shown = new Set([...invAttrs, ...kwAttrs].map(a => a.id));
+  const otherAttrs = Object.keys(d.attributes || {}).filter(id => !shown.has(id)).map(id => attributes.find(a => a.id === id) || { id, name: id });
+
+  el.innerHTML = `
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap;margin-bottom:14px">
+      <div style="max-width:720px">
+        <h2 style="font-size:18px;margin-bottom:6px">📐 Barème des cartes</h2>
+        <div style="font-size:12px;color:var(--muted);line-height:1.5">Chaque carte a une <b>note</b> : ce qu'elle coûte (stats, pouvoir, mots-clés, synergies) moins ce que son invocation lui fait payer. Elle est dans le budget quand sa note reste à ± tolérance du budget de son tier — le <b>plus bas</b> de ses tiers pour une carte multi-tier. Une carte exclue des statistiques a un score libre. Dans l'onglet Cartes, la barre comprend <code>note:</code>, <code>ecart:</code>, <code>budget:</code> et <code>verdict:dessus|dessous|dans|libre</code>, et le tri propose les trois premiers.</div>
+      </div>
+      <div style="display:flex;gap:8px">
+        <button class="btn btn-secondary" onclick="resetScoringDraft()">Annuler les modifications</button>
+        <button class="btn btn-primary" onclick="saveScoring()">Enregistrer le barème</button>
+      </div>
+    </div>
+    <div id="scoring-summary"></div>
+    <div class="scoring-grid">
+      <div class="stat-panel"><h3>Budget par tier</h3>
+        ${tiers.map(t => row(`budget.${t}`, `Tier ${t}`, '', 1)).join('')}
+        ${row('tolerance', 'Tolérance', '± points autour du budget', 0.5)}
+      </div>
+      <div class="stat-panel"><h3>Invocation (points négatifs)</h3>
+        ${row('material', 'Matériau exigé', 'par matériau, recette la moins chère')}
+        ${invAttrs.map(a => row(`attributes.${a.id}`, a.name, 'voie : une carte à plusieurs voies paie la plus facile')).join('')}
+      </div>
+      <div class="stat-panel"><h3>Stats</h3>
+        ${SCORE.STAT_COSTS.map(sc => row(`stats.${sc.key}`, sc.label, sc.unit, sc.key === 'hp' || sc.key === 'movement_rate' ? 0.005 : 0.01)).join('')}
+      </div>
+      <div class="stat-panel"><h3>Pouvoirs</h3>
+        <div style="font-size:11px;color:var(--muted);margin-bottom:6px">Coût du pouvoir à vitesse 50 ; la vitesse de pouvoir (Stats) ajuste au-dessus ou en dessous.</div>
+        ${powers.map(p => row(`powers.${p.id}`, p.name || p.id, p.id)).join('')}
+      </div>
+      <div class="stat-panel"><h3>Mots-clés</h3>
+        ${kwAttrs.map(a => row(`attributes.${a.id}`, a.name, a.id)).join('')}
+        ${otherAttrs.length ? `<h3 style="margin-top:14px">Autres attributs à coût propre</h3>${otherAttrs.map(a => row(`attributes.${a.id}`, a.name, a.id)).join('')}` : ''}
+      </div>
+    </div>`;
+  renderScoringSummary();
+}
+
+function renderScoringSummary() {
+  const el = document.getElementById('scoring-summary');
+  if (!el) return;
+  const notes = cards.map(c => ({ c, n: cardNote(c, scoringDraft) })).filter(x => x.n);
+  const count = v => notes.filter(x => x.n.verdict === v).length;
+  const rated = notes.filter(x => x.n.verdict !== 'libre');
+  const tiers = tierAttrDefs().map(a => a.tier);
+  const roleName = c => { const r = cardRoles(c); return r.length === 1 ? r[0].name : r.length ? 'Plusieurs rôles' : 'Sans rôle'; };
+  const roles = [...new Set(rated.map(x => roleName(x.c)))].sort((a, b) => a.localeCompare(b, 'fr'));
+  const cell = list => {
+    if (!list.length) return '<td style="color:var(--muted)">·</td>';
+    const m = list.reduce((t, x) => t + x.n.ecart, 0) / list.length;
+    const tol = scoringDraft?.tolerance ?? 0;
+    const cls = m > tol ? 'note-dessus' : m < -tol ? 'note-dessous' : '';
+    return `<td><span class="${cls}" style="font-weight:700">${fmtEcart(m)}</span> <span class="stat-range">${list.length}</span></td>`;
+  };
+  const rowsHtml = [...roles, null].map(r => {
+    const rl = r === null ? rated : rated.filter(x => roleName(x.c) === r);
+    return `<tr><td style="font-weight:${r === null ? 700 : 600}">${r === null ? 'Tous' : esc(r)}</td>${tiers.map(t => cell(rl.filter(x => x.n.tier === t))).join('')}${cell(rl)}</tr>`;
+  }).join('');
+  const tile = (v, label) => `<div class="scoring-tile" onclick="showCardsByVerdict('${v}')" title="Voir ces cartes dans l'onglet Cartes"><b class="note-${v}">${count(v)}</b><span>${label}</span></div>`;
+  el.innerHTML = `
+    <div class="scoring-tiles">
+      ${tile('dans', 'dans le budget')}${tile('dessus', 'au-dessus (trop fortes)')}${tile('dessous', 'en dessous (trop faibles)')}${tile('libre', 'score libre (exclues)')}
+    </div>
+    <div class="stat-panel" style="margin-bottom:16px">
+      <h3>Écart moyen au budget, par rôle et tier <span style="font-size:11px;font-weight:400;color:var(--muted);text-transform:none;letter-spacing:0">(rouge : au-dessus, bleu : en dessous ; en gris le nombre de cartes)</span></h3>
+      <div style="overflow-x:auto"><table class="tier-overview-table scoring-heat">
+        <thead><tr><th>Rôle</th>${tiers.map(t => `<th style="text-align:center;color:${TIER_COLORS[t] || 'inherit'}">T${t}</th>`).join('')}<th style="text-align:center">Tous</th></tr></thead>
+        <tbody>${rowsHtml}</tbody>
+      </table></div>
+    </div>`;
+}
+
+function showCardsByVerdict(v) {
+  switchTab('cards');
+  setQueryText('card', `verdict:${v}`);
+}
+
+function resetScoringDraft() { scoringDraft = null; renderScoring(); }
+
+async function saveScoring() {
+  const cur = activeScoring();
+  if (!cur || !scoringDraft) return;
+  const res = await apiFetch(`/api/scoring/${encodeURIComponent(cur.id)}`, { method: 'PUT', body: scoringDraft });
+  if (res.error) return toast(res.error, 'err');
+  scoring[0] = JSON.parse(JSON.stringify(scoringDraft));
+  scoringDraft = null;
+  renderScoring();
+  filterCards();
+  toast('Barème enregistré');
+}
 
 // ================== DB EXPLORER (read-only) ==================
 let dbCurrentTable = null;
@@ -2159,11 +2398,12 @@ function renderCardList(list = cards) {
         ${selectionMode ? check : thumb}
         <div style="flex:1;min-width:0">
           <span class="item-name" style="display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${c.name}</span>
-          <div style="display:flex;gap:4px;margin-top:3px">
+          <div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:3px">
             ${tierBadges(c)}
             <span class="badge" style="background:var(--surface2);color:#78c8a8;font-size:10px">◈${cardMaterialValue(c)}</span>
             ${hasMultipleConditions(c) ? `<span class="badge" style="background:var(--surface2);color:#e07be0;font-size:10px">🔀 ${cardConditions(c).length}</span>` : ''}
             ${roleBadge(c)}
+            ${noteBadge(c)}
           </div>
         </div>
       </div>`;
@@ -2295,6 +2535,8 @@ function renderCardDetail() {
         <span style="font-size:11px;color:var(--muted);margin-top:4px">Pour une carte utilitaire (matériau, pièce d'un ensemble) qu'on ne veut pas comparer aux combattants : écartée de l'onglet Stats, des agrégats de la simulation et de <code>scripts/rebalance-ranges.js</code>. Elle reste jouée et mesurée carte par carte.</span>
       </div>
     </div>
+
+    ${noteSectionHtml(c)}
 
     <div class="section-title">Stats</div>
     <div class="stats-grid">

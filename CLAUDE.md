@@ -127,6 +127,7 @@ BOARD_BG_DIR = process.env.BOARD_BG_DIR || path.join(ASSETS_ROOT, 'board_backgro
 | `GET /admin/card-query.js` | Site admin | Le langage de requête (`card-query.mjs`), partagé avec le client |
 | `GET /admin/speed-scale.js` | Site admin | L'échelle de vitesse (`speed-scale.mjs`), partagée avec le client |
 | `GET /admin/effect-schema.js` | Site admin | Le vocabulaire d'effets (`effect-schema.mjs`), partagé avec le client |
+| `GET /admin/card-score.js` | Site admin | La formule de la note des cartes (`card-score.mjs`) |
 | `GET /api/version` | Public | Version du build |
 | `GET /api/{cards,attributes,powers,boards,magies,missions,decks,sets,variants,gifts,card-backs}` | Public | Les catalogues, avec leurs drapeaux calculés |
 | `POST/PUT/DELETE /api/<entité>[/:id]` | Site admin | CRUD (`routes/crud-json.js` : ne valide que l'unicité de l'id) |
@@ -194,6 +195,7 @@ Toutes les mutations renvoient **l'instantané complet + la progression à jour*
 | `card-contract.js` | Les catégories d'attributs qu'une carte doit porter (pur, partagé avec l'audit) |
 | `card-query.mjs` | Le langage de requête des barres de recherche (pur, partagé `admin.html` ↔ client) |
 | `effect-schema.mjs` | Le vocabulaire d'effets : quel type, sur quel porteur, quels champs, quel moment (pur, partagé `admin.html` ↔ client) |
+| `card-score.mjs` | La note d'une carte rapportée au budget de son tier (pur, `admin.html` ↔ tests) |
 
 **Règle anti-cycle** — elle n'est écrite nulle part ailleurs que ici :
 - **Feuilles** (ne requièrent que `db` / `json-cache`, personne ne les requiert en retour) : `sets.js`, `variants.js`, `decks.js`, `pvplog.js`, `ailog.js`, `asset-dirs.js`, `tiers.js`, `card-contract.js`, `deck-book.js`.
@@ -2282,6 +2284,17 @@ Le seul critère que le **client seul** peut porter : il ne se lit ni sur la car
 - `card_id` départage : les cinq cartes d'un booster partagent leur horodatage, et un ordre instable ferait sautiller la grille.
 - ⚠️ **Un admin (et un invité) n'a pas d'historique** : sa collection est *calculée* du catalogue, l'ordre y retombe. Dégradation honnête — l'écran trie ce qu'il reçoit, il n'invente pas une date.
 - Trajet : `progression.unlockedCardIdsByDate` → `GET /api/me/progression` (`unlocked_cards`) → `collectionStore.ownedRank` / `rankOf` (les cartes gagnées en séance s'ajoutent **à la fin**). Verrouillé par `collection-order.test.ts`.
+
+## Barème des cartes (`card-score.mjs`, onglet 📐)
+
+Une **note** par carte : stats, pouvoir, mots-clés et synergies moins le coût d'invocation, comparée au budget de son tier (± `tolerance`). Outil d'admin, **aucun effet en jeu**.
+
+- La **formule** vit dans `card-score.mjs` (pur, sans import) ; les **valeurs** dans `data/scoring.json` (une entrée `BAREME`, CRUD `/api/scoring`, synchro et export comme un catalogue). `PUT` refuse en **400** toute valeur non numérique.
+- Carte multi-tier → budget du tier **le plus bas**. Carte `balance_excluded` → score sans budget, verdict `libre`.
+- Attributs : coûts **sommés**, sauf catégorie `Invocation` (seule la voie la **moins négative** compte). Un attribut Archetype/Type/Élément sans coût propre vaut `stats.synergy`. Matériaux : recette la **moins chère**. Vitesse de pouvoir : `(power_rate − 50) × stats.power_rate`, seulement avec un pouvoir.
+- Coûts **par id** (attribut, pouvoir), jamais par nom.
+- Admin : badge `📐 note/budget` dans la liste, section « Note du barème » sur la fiche (carte **enregistrée**), champs de requête `note`, `budget`, `ecart`, `verdict:dans|dessus|dessous|libre`, triables. La note se calcule à la lecture, jamais mise en cache (les cartes sont mutées en place).
+- ⚠️ Pouvoir : seuls le type et la vitesse comptent — `value`, `duration` et `zone` ne sont pas chiffrés.
 
 ## Simulation d'équilibrage (`client/src/sim/`)
 

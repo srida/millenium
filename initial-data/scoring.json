@@ -1,0 +1,56 @@
+[
+	{
+		"id": "BAREME",
+		"name": "Barème des cartes",
+		"budget": {
+			"1": 30,
+			"2": 40,
+			"3": 45,
+			"4": 50,
+			"5": 60
+		},
+		"tolerance": 5,
+		"stats": {
+			"atk": 0.5,
+			"hp": 0.05,
+			"range": 2,
+			"attack_rate": 0.2,
+			"movement_rate": 0.01,
+			"material_value": 0.5,
+			"synergy": 0.5,
+			"power_rate": 0.1
+		},
+		"material": -3,
+		"attributes": {
+			"ARCH_086": -3,
+			"ARCH_087": -1,
+			"ARCH_088": -2,
+			"ARCH_089": -0.5,
+			"ARCH_090": 0,
+			"ARCH_096": 1.5,
+			"ARCH_098": 3,
+			"ARCH_099": 1,
+			"ARCH_100": 0,
+			"ARCH_101": 1,
+			"ARCH_102": 2
+		},
+		"powers": {
+			"POWER_AOE_ATTACK": 5,
+			"POWER_BLOCK": 5,
+			"POWER_BURN": 4,
+			"POWER_CONFUSION": 6,
+			"POWER_DEBUFF": 5,
+			"POWER_FREEZE": 5,
+			"POWER_HEAL": 4,
+			"POWER_PARALYSIS": 3,
+			"POWER_POISON": 5,
+			"POWER_PUSH": 4,
+			"POWER_SHIELD": 5,
+			"POWER_SUMMON_TOKEN": 6.0,
+			"POWER_SUPER_ATTACK": 5,
+			"POWER_TAUNT": 5,
+			"POWER_TELEPORT": 4,
+			"POWER_WEAKEN": 5.0
+		}
+	}
+]

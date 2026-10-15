@@ -200,6 +200,11 @@ const MUSIC_FILE = path.join(DATA_DIR, 'music.json');
 // range des cartes (`card.set`). Un match en tire un au hasard et n'en joue
 // que les pistes pour toute sa durée.
 const MUSIC_THEMES_FILE = path.join(DATA_DIR, 'music_themes.json');
+// Barème des cartes — les coûts qui donnent une NOTE à chaque carte, rapportée
+// au budget de son tier (`card-score.mjs`). Outil d'équilibrage de l'admin,
+// aucun effet en jeu. Une seule entrée (`BAREME`) ; liste pour suivre le patron
+// des catalogues (CRUD, import, synchro, export sans une ligne de plus).
+const SCORING_FILE = path.join(DATA_DIR, 'scoring.json');
 
 // --- Bootstrap: copy initial data to volume on first run ---
 function bootstrap() {
@@ -210,7 +215,7 @@ function bootstrap() {
   fs.mkdirSync(BOARD_BG_DIR, { recursive: true });
   fs.mkdirSync(BOARD_3D_DIR, { recursive: true });
   fs.mkdirSync(AUDIO_DIR, { recursive: true });
-  for (const f of ['cards.json', 'attributes.json', 'powers.json', 'boards.json', 'magies.json', 'decks.json', 'missions.json', 'sets.json', 'variants.json', 'gifts.json', 'card_backs.json', 'tokens.json', 'sfx.json', 'music.json', 'music_themes.json']) {
+  for (const f of ['cards.json', 'attributes.json', 'powers.json', 'boards.json', 'magies.json', 'decks.json', 'missions.json', 'sets.json', 'variants.json', 'gifts.json', 'card_backs.json', 'tokens.json', 'sfx.json', 'music.json', 'music_themes.json', 'scoring.json']) {
     const dest = path.join(DATA_DIR, f);
     const src  = path.join(INITIAL_DIR, f);
     if (!fs.existsSync(dest) && fs.existsSync(src)) {
@@ -484,6 +489,13 @@ app.get('/admin/effect-schema.js', requireSiteAdmin, (req, res) => {
 // de musique existent. Même montage, même piège de MIME que les trois
 // au-dessus : `admin.html` le charge par `import()`, le client l'a dans son
 // bundle, un déclencheur n'existe donc qu'à un seul endroit.
+// LE BARÈME DES CARTES (`card-score.mjs`) — la formule de la note. Même
+// montage et même piège de MIME que les modules au-dessus.
+app.get('/admin/card-score.js', requireSiteAdmin, (req, res) => {
+  res.type('text/javascript');
+  res.sendFile(path.join(__dirname, 'card-score.mjs'));
+});
+
 app.get('/admin/sound-schema.js', requireSiteAdmin, (req, res) => {
   res.type('text/javascript');
   res.sendFile(path.join(__dirname, 'sound-schema.mjs'));
@@ -964,6 +976,26 @@ app.use('/api/music', crud({
 app.use('/api/music-themes', crud({
   file: MUSIC_THEMES_FILE,
   guard: requireSiteAdmin,
+}));
+
+// Barème des cartes — GET public comme tout GET sous /api (rien de sensible :
+// des coûts d'équilibrage), écriture site-admin. Les valeurs doivent être des
+// nombres : un coût illisible noterait toutes les cartes à NaN.
+function validateScoring(b) {
+  const bad = [];
+  const nums = (obj, name) => {
+    if (obj === undefined) return;
+    if (!obj || typeof obj !== 'object' || Array.isArray(obj)) { bad.push(name); return; }
+    for (const [k, v] of Object.entries(obj)) if (typeof v !== 'number' || !Number.isFinite(v)) bad.push(`${name}.${k}`);
+  };
+  nums(b.budget, 'budget'); nums(b.stats, 'stats'); nums(b.attributes, 'attributes'); nums(b.powers, 'powers');
+  for (const k of ['tolerance', 'material']) if (b[k] !== undefined && (typeof b[k] !== 'number' || !Number.isFinite(b[k]))) bad.push(k);
+  return bad.length ? { status: 400, body: { error: `Valeurs non numériques : ${bad.join(', ')}` } } : null;
+}
+app.use('/api/scoring', crud({
+  file: SCORING_FILE,
+  guard: requireSiteAdmin,
+  validate: validateScoring,
 }));
 
 // --- Audio (upload / suppression) : même triptyque que les illustrations,
@@ -1868,8 +1900,9 @@ app.get('/api/export', (req, res) => {
     const sfxList = readJson(SFX_FILE);
     const musicList = readJson(MUSIC_FILE);
     const musicThemeList = readJson(MUSIC_THEMES_FILE);
+    const scoringList = readJson(SCORING_FILE);
     const audio = listAudioChecksums(AUDIO_DIR);
-    res.json({ cards, attributes, powers, boards, magies, publicDecks, sets, variants: variantList, gifts: giftList, cardBacks, tokens, sfx: sfxList, music: musicList, musicThemes: musicThemeList, illustrations, avatars, packPosters, boardBackgrounds, boardModels, audio });
+    res.json({ cards, attributes, powers, boards, magies, publicDecks, sets, variants: variantList, gifts: giftList, cardBacks, tokens, sfx: sfxList, music: musicList, musicThemes: musicThemeList, scoring: scoringList, illustrations, avatars, packPosters, boardBackgrounds, boardModels, audio });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
