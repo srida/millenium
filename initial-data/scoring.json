@@ -21,6 +21,15 @@
 			"power_rate": 0.1
 		},
 		"material": -3,
+		"invocation_tier": {
+			"ARCH_090": {
+				"1": 0,
+				"2": -1,
+				"3": -2,
+				"4": -3,
+				"5": -4
+			}
+		},
 		"attributes": {
 			"ARCH_086": -3,
 			"ARCH_087": -1,

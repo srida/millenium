@@ -17,6 +17,7 @@ const ATTRS = [
   { id: 'T3', categorie: 'Tiers', tier: 3, name: 'Tier 3' },
   { id: 'FUS', categorie: 'Invocation', name: 'Fusion' },
   { id: 'SAC', categorie: 'Invocation', name: 'Sacrifice' },
+  { id: 'NOR', categorie: 'Invocation', name: 'Normal' },
   { id: 'DRAGON', categorie: 'Archetype', name: 'Dragon' },
   { id: 'BOOM', categorie: 'MotCle', name: 'Explosif' },
 ];
@@ -50,6 +51,18 @@ describe('card-score — la formule', () => {
   it('malus d\'invocation = matériaux × coût de la voie, rien sans matériau', () => {
     expect(note({ attributes: ['T1', 'FUS'], summon_conditions: [{ materials: 2 }] }).score).toBe(30 - 6);
     expect(note({ attributes: ['T1', 'FUS'] }).score).toBe(30);
+  });
+
+  it('supplément de la voie par tier : Normal gratuite en T1, payante ensuite (tier le plus bas)', () => {
+    const b = { ...B, budget: { 1: 30, 3: 45 }, attributes: { ...B.attributes, NOR: 0 },
+      invocation_tier: { NOR: { 1: 0, 2: -1, 3: -2, 4: -3, 5: -4 } } };
+    const n = (attributes: string[]) => scoreCard(card({ attributes }), attributeIndex(ATTRS), b);
+    expect(n(['T1', 'NOR']).score).toBe(30);
+    expect(n(['T3', 'NOR']).score).toBe(28);
+    expect(n(['T3', 'NOR']).parts).toContainEqual({ label: 'Normal T3', value: -2 });
+    expect(n(['T3', 'T1', 'NOR']).score).toBe(30);
+    // Une voie sans supplément ne paie rien de plus.
+    expect(n(['T3', 'SAC']).score).toBe(30);
   });
 
   it('mots-clés au coût propre, synergies au tarif, matériaux sur la recette la moins chère', () => {

@@ -413,6 +413,8 @@ select.filter:focus { border-color: var(--accent); }
 .scoring-row small { display: block; font-size: 10px; color: var(--muted); }
 .scoring-row input { width: 86px; text-align: right; font-variant-numeric: tabular-nums; }
 .scoring-row input.changed { border-color: var(--accent); }
+.scoring-tier-costs input { width: 56px; text-align: right; font-variant-numeric: tabular-nums; }
+.scoring-tier-costs input.changed { border-color: var(--accent); }
 .scoring-tiles { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 16px; }
 .scoring-tile { flex: 1 1 140px; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 10px 14px; cursor: pointer; }
 .scoring-tile b { display: block; font-size: 22px; }
@@ -1813,6 +1815,16 @@ function renderScoring() {
       <div class="stat-panel"><h3>Invocation (points négatifs)</h3>
         ${row('material', 'Matériau exigé', 'par matériau, carte sans voie d\'invocation (sinon matériaux × coût de la voie)')}
         ${invAttrs.map(a => row(`attributes.${a.id}`, a.name, 'voie : une carte à plusieurs voies paie la plus facile')).join('')}
+        <h3 style="margin-top:14px">Supplément de la voie par tier</h3>
+        <div style="font-size:11px;color:var(--muted);margin-bottom:6px">S'ajoute à la note selon le tier le plus bas de la carte (ex. Normal gratuite en T1, payante ensuite).</div>
+        <div style="overflow-x:auto"><table class="tier-overview-table scoring-tier-costs">
+          <thead><tr><th>Voie</th>${tiers.map(t => `<th style="text-align:center;color:${TIER_COLORS[t] || 'inherit'}">T${t}</th>`).join('')}</tr></thead>
+          <tbody>${invAttrs.map(a => `<tr><td>${esc(a.name)}</td>${tiers.map(t => {
+            const path = `invocation_tier.${a.id}.${t}`, v = _getPath(d, path) ?? 0;
+            const changed = Math.abs(v - (_getPath(saved, path) ?? 0)) > 1e-9;
+            return `<td><input type="number" step="0.5" value="${v}" class="${changed ? 'changed' : ''}" data-path="${esc(path)}" oninput="onScoringInput(this)"></td>`;
+          }).join('')}</tr>`).join('')}</tbody>
+        </table></div>
       </div>
       <div class="stat-panel"><h3>Stats</h3>
         ${SCORE.STAT_COSTS.map(sc => row(`stats.${sc.key}`, sc.label, sc.unit, sc.key === 'hp' || sc.key === 'movement_rate' ? 0.005 : 0.01)).join('')}

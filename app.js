@@ -989,6 +989,10 @@ function validateScoring(b) {
     for (const [k, v] of Object.entries(obj)) if (typeof v !== 'number' || !Number.isFinite(v)) bad.push(`${name}.${k}`);
   };
   nums(b.budget, 'budget'); nums(b.stats, 'stats'); nums(b.attributes, 'attributes'); nums(b.powers, 'powers');
+  if (b.invocation_tier !== undefined) {
+    if (!b.invocation_tier || typeof b.invocation_tier !== 'object') bad.push('invocation_tier');
+    else for (const [id, m] of Object.entries(b.invocation_tier)) nums(m, `invocation_tier.${id}`);
+  }
   for (const k of ['tolerance', 'material']) if (b[k] !== undefined && (typeof b[k] !== 'number' || !Number.isFinite(b[k]))) bad.push(k);
   return bad.length ? { status: 400, body: { error: `Valeurs non numériques : ${bad.join(', ')}` } } : null;
 }

@@ -21,6 +21,9 @@
 //     Archetype, Type ou Élément, zéro sinon ;
 //   • le malus d'invocation vaut MATÉRIAUX × COÛT DE LA VOIE, sur la recette
 //     la moins chère ; sans voie, chaque matériau coûte `material` ;
+//   • la voie retenue paie EN PLUS son supplément par tier
+//     (`invocation_tier[voie][tier]`, tier le plus bas) — l'invocation Normale
+//     est gratuite en T1 et coûte ensuite ;
 //   • la vitesse de pouvoir ne compte qu'au-delà (ou en deçà) de 50, et
 //     seulement quand la carte a un pouvoir.
 
@@ -112,8 +115,8 @@ export function scoreCard(card, attrIndex, bareme, names = {}) {
     const own = costs[id];
     if (a.categorie === INVOCATION_CATEGORY) {
       const v = num(own);
-      if (!invocation || v > invocation.value) invocation = { label: a.name, value: v };
-      else if (v === invocation.value) invocation.label += ` / ${a.name}`;
+      if (!invocation || v > invocation.value) invocation = { label: a.name, value: v, ids: [id] };
+      else if (v === invocation.value) { invocation.label += ` / ${a.name}`; invocation.ids.push(id); }
       continue;
     }
     if (typeof own === 'number') add(a.name, own);
@@ -130,11 +133,18 @@ export function scoreCard(card, attrIndex, bareme, names = {}) {
     add(`${mat} × ${label}`, mat * per);
   }
 
+  const tiers = cardTiers(card, attrIndex);
+  const tier = tiers.length ? tiers[0] : null;
+  // Supplément de la voie selon le tier (le plus bas). Plusieurs voies à
+  // égalité : la moins chère, comme pour le coût de la voie.
+  if (invocation && tier !== null) {
+    const byTier = invocation.ids.map(id => num(bareme?.invocation_tier?.[id]?.[tier] ?? bareme?.invocation_tier?.[id]?.[String(tier)]));
+    add(`${invocation.label} T${tier}`, Math.max(...byTier));
+  }
+
   // ⚠️ Arrondi au DIXIÈME, la précision affichée : un 65,04 s'affiche « 65 »
   // et doit être jugé comme tel (±tolérance incluse), sinon il sort rouge.
   const score = round1(parts.reduce((t, p) => t + p.value, 0));
-  const tiers = cardTiers(card, attrIndex);
-  const tier = tiers.length ? tiers[0] : null;
   if (card.balance_excluded || tier === null) {
     return { score, budget: null, ecart: null, verdict: 'libre', tier, tiers, parts };
   }
