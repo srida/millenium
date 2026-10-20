@@ -73,6 +73,14 @@ describe('card-score — la formule', () => {
     expect(n.score).toBe(30 + 2 + 0.5 - 3);
   });
 
+  it('chaque recette au-delà de la première vaut extra_recipe', () => {
+    const b = { ...B, extra_recipe: 1 };
+    const r = (k: number) => scoreCard(card({ summon_conditions: Array.from({ length: k }, () => ({ materials: 1 })) }), attributeIndex(ATTRS), b);
+    expect(r(1).score).toBe(30 - 3);
+    expect(r(3).score).toBe(30 - 3 + 2);
+    expect(r(3).parts).toContainEqual({ label: 'Recettes supplémentaires ×2', value: 2 });
+  });
+
   it('la vitesse de pouvoir ne compte qu\'avec un pouvoir, autour de 50', () => {
     expect(note({ power: { id: 'POWER_HEAL', power_rate: 70 } }).score).toBe(30 + 4 + 2);
     expect(note({ power: {} }).score).toBe(30);

@@ -24,6 +24,8 @@
 //   • la voie retenue paie EN PLUS son supplément par tier
 //     (`invocation_tier[voie][tier]`, tier le plus bas) — l'invocation Normale
 //     est gratuite en T1 et coûte ensuite ;
+//   • chaque recette au-delà de la première vaut `extra_recipe` (positif :
+//     plus de recettes, plus de façons d'invoquer la carte) ;
 //   • la vitesse de pouvoir ne compte qu'au-delà (ou en deçà) de 50, et
 //     seulement quand la carte a un pouvoir.
 
@@ -132,6 +134,8 @@ export function scoreCard(card, attrIndex, bareme, names = {}) {
     const label = invocation ? invocation.label : `matériau${mat > 1 ? 'x' : ''}`;
     add(`${mat} × ${label}`, mat * per);
   }
+  const recipes = (card.summon_conditions || []).length;
+  if (recipes > 1) add(`Recettes supplémentaires ×${recipes - 1}`, (recipes - 1) * num(bareme?.extra_recipe));
 
   const tiers = cardTiers(card, attrIndex);
   const tier = tiers.length ? tiers[0] : null;

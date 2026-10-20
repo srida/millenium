@@ -993,7 +993,7 @@ function validateScoring(b) {
     if (!b.invocation_tier || typeof b.invocation_tier !== 'object') bad.push('invocation_tier');
     else for (const [id, m] of Object.entries(b.invocation_tier)) nums(m, `invocation_tier.${id}`);
   }
-  for (const k of ['tolerance', 'material']) if (b[k] !== undefined && (typeof b[k] !== 'number' || !Number.isFinite(b[k]))) bad.push(k);
+  for (const k of ['tolerance', 'material', 'extra_recipe']) if (b[k] !== undefined && (typeof b[k] !== 'number' || !Number.isFinite(b[k]))) bad.push(k);
   return bad.length ? { status: 400, body: { error: `Valeurs non numériques : ${bad.join(', ')}` } } : null;
 }
 app.use('/api/scoring', crud({

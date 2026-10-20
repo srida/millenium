@@ -1815,6 +1815,7 @@ function renderScoring() {
       <div class="stat-panel"><h3>Invocation (points négatifs)</h3>
         ${row('material', 'Matériau exigé', 'par matériau, carte sans voie d\'invocation (sinon matériaux × coût de la voie)')}
         ${invAttrs.map(a => row(`attributes.${a.id}`, a.name, 'voie : une carte à plusieurs voies paie la plus facile')).join('')}
+        ${row('extra_recipe', 'Recette supplémentaire', 'par recette au-delà de la première (positif : la carte est plus facile à invoquer)', 0.5)}
         <h3 style="margin-top:14px">Supplément de la voie par tier</h3>
         <div style="font-size:11px;color:var(--muted);margin-bottom:6px">S'ajoute à la note selon le tier le plus bas de la carte (ex. Normal gratuite en T1, payante ensuite).</div>
         <div style="overflow-x:auto"><table class="tier-overview-table scoring-tier-costs">

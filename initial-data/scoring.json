@@ -21,6 +21,7 @@
 			"power_rate": 0.1
 		},
 		"material": -3,
+		"extra_recipe": 1,
 		"invocation_tier": {
 			"ARCH_090": {
 				"1": 0,
