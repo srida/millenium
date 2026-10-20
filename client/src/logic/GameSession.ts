@@ -42,7 +42,7 @@ import {
 } from './InvocationManager.js';
 import { tiersForRound, drawHand, resolveGuaranteedDraws, poolForRound } from './Draw.js';
 import { tiersOf } from './Tiers.js';
-import { budgetForRound, energyCost, boardEnergy } from './SummonBudget.js';
+import { budgetForRound, energyCost, boardEnergy, pendingEnergy } from './SummonBudget.js';
 import { indexeMotsCles, porteMotCle, catalogueDeclare } from './Keywords.js';
 import type { IndexMotsCles, AttributMotCle } from './Keywords.js';
 import { indexPlacementKeywords, placementKeyword } from './KeywordPlacement.js';
@@ -721,8 +721,20 @@ export class GameSession {
    *  comprises. Structurel — « Tout annuler » et le mulligan n'ont rien à rendre. */
   energyUsed(): number { return boardEnergy(this.getPlayerUnits()); }
 
-  /** Ce qu'il reste de place dans le budget. */
+  /** Ce qu'il reste de place dans le budget. L'énergie grise en fait PARTIE :
+   *  une autre carte peut encore s'y poser. */
   energyLeft(): number { return Math.max(0, this.energyBudget() - this.energyUsed()); }
+
+  /**
+   * L'énergie GRISE : ce que les cartes multi-tiers du plateau réclament pour
+   * atteindre leur plus haut tier, dans la limite de ce qui reste du budget.
+   *
+   * ⚠️ Elle CÈDE : une invocation peut s'y poser (`energyLeft` la compte), et la
+   * réclamation se contente de ce qui reste. C'est à la fin de la préparation
+   * (`startCombat`) qu'elle est comptée comme consommée — elle ne part pas en
+   * réserve. Structurelle, comme `energyUsed` : rien à rendre à l'annulation.
+   */
+  energyPending(): number { return Math.min(this.energyLeft(), pendingEnergy(this.getPlayerUnits())); }
 
   /** Ce que coûte l'invocation de cette carte (son tier). */
   energyCost(card: Card): number { return energyCost(card); }
@@ -1044,7 +1056,8 @@ export class GameSession {
     // et pendant que la phase dit encore PRÉPARATION.
     this._reserveBanked = 0;
     if (this.gameState.phase === Phase.PREPARATION) {
-      this._reserveBanked = this.energyLeft();
+      // ⚠️ L'énergie grise des cartes multi-tiers est CONSOMMÉE, pas banquée.
+      this._reserveBanked = this.energyLeft() - this.energyPending();
       this.gameState.player_energy_reserve += this._reserveBanked;
     }
     // L'IA joue en dernier : son placement consomme encore le cimetière ennemi

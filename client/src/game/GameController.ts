@@ -1464,6 +1464,7 @@ export class GameController {
       energyReserve: this.session.energyReserve(),
       energyBudget: this.session.energyBudget(),
       energyLeft: this.session.energyLeft(),
+      energyPending: this.session.energyPending(),
       hand,
       graveyard,
       synergies,

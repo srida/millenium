@@ -1,5 +1,6 @@
-// Jauge d'énergie du tour : ce que le plateau occupe (cases éteintes), ce qui
-// reste à poser (cases dorées) et, après un séparateur, la RÉSERVE (hachurée),
+// Jauge d'énergie du tour : ce que le plateau occupe (cases éteintes), ce que
+// les cartes multi-tiers réclament jusqu'à leur plus haut tier (cases grises),
+// ce qui reste à poser (cases dorées) et, après un séparateur, la RÉSERVE (hachurée),
 // qui paie reroll et boutique. Préparation seulement.
 //
 // Deux orientations : horizontale sous la manche (paysage, tablette portrait),
@@ -13,6 +14,7 @@ import { gaugeModel } from './energyGauge.js';
 // valeurs arbitraires portent des virgules, et Tailwind ne les extrait plus
 // dès qu'un `${}` apparaît dans le même littéral (cf. `classname_header`).
 const CELL_USED = 'rounded-[2px] bg-white/[0.07] shadow-[inset_0_0_0_1px_var(--color-line)]';
+const CELL_PENDING = 'rounded-[2px] bg-white/45';
 const CELL_FREE = 'rounded-[2px] bg-gold shadow-[0_0_6px_rgba(212,175,97,.55)]';
 const CELL_RESERVE = 'rounded-[2px] bg-[repeating-linear-gradient(135deg,var(--color-gold)_0_2px,#7a6236_2px_4px)]';
 
@@ -25,12 +27,14 @@ export default function EnergyGauge({ orientation, compact = false, className = 
   const energyLeft = useGameStore(s => s.energyLeft);
   const energyBudget = useGameStore(s => s.energyBudget);
   const energyReserve = useGameStore(s => s.energyReserve);
+  const energyPending = useGameStore(s => s.energyPending);
   const combatActive = useGameStore(s => s.combatActive);
   if (combatActive) return null;
 
-  const m = gaugeModel(energyLeft, energyBudget, energyReserve);
+  const m = gaugeModel(energyLeft, energyBudget, energyReserve, energyPending);
   const vertical = orientation === 'vertical';
-  const label = `Énergie : ${energyLeft} sur ${energyBudget}, réserve ${energyReserve}. Chaque unité posée occupe son tier ; ce qui reste part en réserve.`;
+  const grey = m.pending > 0 ? `, dont ${m.pending} réclamée par les cartes multi-tiers` : '';
+  const label = `Énergie : ${energyLeft} sur ${energyBudget}${grey}, réserve ${energyReserve}. Chaque unité posée occupe son plus bas tier ; une carte multi-tiers réclame en gris l'énergie jusqu'à son plus haut tier, consommée à la fin de la préparation ; ce qui reste part en réserve.`;
   const leftColor = m.empty ? 'text-white/40' : 'text-gold';
   const reserveColor = m.reserve > 0 ? 'text-gold/85' : 'text-white/35';
 
@@ -40,6 +44,7 @@ export default function EnergyGauge({ orientation, compact = false, className = 
   const cell = vertical ? 'min-h-[2px] flex-[0_1_14px] ' : 'flex-1 ';
   const cells = [
     ...Array.from({ length: m.used }, (_, i) => <span key={'u' + i} className={cell + CELL_USED} />),
+    ...Array.from({ length: m.pending }, (_, i) => <span key={'p' + i} className={cell + CELL_PENDING} />),
     ...Array.from({ length: m.free }, (_, i) => <span key={'f' + i} className={cell + CELL_FREE} />),
   ];
   if (m.reserve > 0) {

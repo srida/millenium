@@ -33,6 +33,17 @@ export function energyCost(card: Card | null | undefined): number {
   return t.length ? Math.min(...t) : DEFAULT_TIER;
 }
 
+/**
+ * Le PLAFOND d'une carte multi-tiers : le plus HAUT de ses tiers. Elle se pose
+ * au prix de son plus bas tier, puis « remplit » le budget jusqu'à celui-ci —
+ * l'énergie grise (`pendingEnergy`). Égal à `energyCost` pour une carte à un
+ * seul tier.
+ */
+export function energyCeiling(card: Card | null | undefined): number {
+  const t = tiersOf(card);
+  return t.length ? Math.max(...t) : DEFAULT_TIER;
+}
+
 /** Ce qu'une unité occupe du budget : le coût de sa carte. Un token ne coûte
  *  rien — il n'est posé par aucune invocation et quitte le plateau en fin de
  *  combat. */
@@ -44,5 +55,23 @@ export function unitEnergy(u: { energy_cost?: number; is_token?: boolean }): num
 export function boardEnergy(units: readonly { energy_cost?: number; is_token?: boolean }[]): number {
   let total = 0;
   for (const u of units) total += unitEnergy(u);
+  return total;
+}
+
+/**
+ * L'énergie GRISE que ces unités réclament : pour chaque carte multi-tiers,
+ * l'écart entre son plus haut tier et son plus bas (ce qu'elle a déjà payé).
+ * Un token ne réclame rien.
+ *
+ * ⚠️ Une réclamation, pas une dépense : en préparation l'énergie grise reste
+ * posable par d'autres cartes (elle cède), et seul ce qu'il en reste à la fin
+ * de la préparation est consommé (`GameSession.energyPending`).
+ */
+export function pendingEnergy(units: readonly { energy_cost?: number; energy_ceiling?: number; is_token?: boolean }[]): number {
+  let total = 0;
+  for (const u of units) {
+    if (u.is_token) continue;
+    total += Math.max(0, (u.energy_ceiling ?? u.energy_cost ?? 0) - (u.energy_cost ?? 0));
+  }
   return total;
 }

@@ -217,6 +217,9 @@ export interface GameSnapshot {
    *  reste. Une carte coûte son tier. */
   energyBudget: number;
   energyLeft: number;
+  /** La part de `energyLeft` que les cartes multi-tiers réclament (cases
+   *  grises) : encore posable, consommée à la fin de la préparation. */
+  energyPending: number;
   hand: HandEntry[];
   graveyard: GraveyardEntry[];
   synergies: SynergyEntry[];
@@ -274,7 +277,7 @@ export const EMPTY_SNAPSHOT: GameSnapshot = {
   playerMultiplier: 1, enemyMultiplier: 1,
   playerJoker: null, playerJokerUsed: false, enemyJoker: null, enemyJokerUsed: false,
   roundJokerFactor: 1, canPlayJoker: false, placedCount: 0, canUndo: false,
-  canMulligan: false, mulliganCost: MULLIGAN_CARD_PENALTY, energyReserve: 0, energyBudget: 3, energyLeft: 3,
+  canMulligan: false, mulliganCost: MULLIGAN_CARD_PENALTY, energyReserve: 0, energyBudget: 3, energyLeft: 3, energyPending: 0,
   hand: [], graveyard: [], synergies: [], invocationBanner: null, orderBanner: null, errorFlash: null,
   boardTerrain: null, terrainAlert: null, roundIntro: null, drawPopup: null,
   combatActive: false, combatOutro: null, phaseWipe: null, combatRemaining: 60, speed: 2, showGrid: false, paused: false,

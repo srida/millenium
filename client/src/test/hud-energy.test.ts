@@ -9,7 +9,14 @@ import type { SynergyEntry } from '../stores/gameStore.js';
 
 describe('gaugeModel', () => {
   it('sépare occupé, libre et réserve', () => {
-    expect(gaugeModel(3, 8, 4)).toEqual({ used: 5, free: 3, reserveCells: 4, reserveMerged: false, reserve: 4, empty: false });
+    expect(gaugeModel(3, 8, 4)).toEqual({ used: 5, pending: 0, free: 3, reserveCells: 4, reserveMerged: false, reserve: 4, empty: false });
+  });
+
+  // Mutation : `pending` ignoré (free = left) → ROUGE.
+  it('les cases grises sont prises sur le reste, bornées par lui', () => {
+    expect(gaugeModel(2, 3, 0, 2)).toMatchObject({ used: 1, pending: 2, free: 0, empty: true });
+    expect(gaugeModel(1, 3, 0, 4)).toMatchObject({ used: 2, pending: 1, free: 0 });
+    expect(gaugeModel(5, 8, 0, 1)).toMatchObject({ used: 3, pending: 1, free: 4, empty: false });
   });
 
   // Mutation : seuil de fusion retiré → ROUGE.

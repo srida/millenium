@@ -7,7 +7,7 @@ import { GameSession } from '../logic/GameSession.js';
 import type { GameSessionDeps } from '../logic/GameSession.js';
 import { EnemyAI } from '../logic/EnemyAI.js';
 import { Board } from '../logic/Board.js';
-import { SUMMON_BUDGET, budgetForRound, energyCost } from '../logic/SummonBudget.js';
+import { SUMMON_BUDGET, budgetForRound, energyCost, energyCeiling } from '../logic/SummonBudget.js';
 import { makeCard, spawn } from './helpers.js';
 
 function makeSession(cards: any[] = []): GameSession {
@@ -31,6 +31,57 @@ describe('SummonBudget', () => {
   it('une carte coûte son tier, le plus bas pour une carte multi-tiers', () => {
     expect(energyCost(makeCard({ id: 'T3', tier: 3 }) as any)).toBe(3);
     expect(energyCost({ ...makeCard({ id: 'M' }), _tiers: [2, 4] } as any)).toBe(2);
+  });
+
+  it('le plafond d\'une carte multi-tiers est son plus haut tier', () => {
+    expect(energyCeiling({ ...makeCard({ id: 'M' }), _tiers: [1, 2, 3] } as any)).toBe(3);
+    expect(energyCeiling(makeCard({ id: 'T2', tier: 2 }) as any)).toBe(2);
+  });
+});
+
+// L'exemple de Samy : tour 1 (3 ⚡), un Tier 1 et une carte Tier 1·2·3.
+describe('GameSession — énergie grise des cartes multi-tiers', () => {
+  const t1 = makeCard({ id: 'T1', tier: 1 });
+  const multi = { ...makeCard({ id: 'MULTI' }), _tiers: [1, 2, 3] };
+
+  // Mutation : `energyPending` rendu à 0 → ROUGE.
+  it('réclame en gris jusqu\'au plus haut tier, dans la limite du reste', () => {
+    const session = makeSession([t1, multi]);
+    session.hand = [{ ...t1 }, { ...multi }] as any;
+    session.startPreparation();
+    session.place(session.hand[0], { col: 0, row: 0 }, [], 0);
+    session.place(session.hand[0], { col: 1, row: 0 }, [], 0);
+    expect(session.energyUsed()).toBe(2);
+    expect(session.energyLeft()).toBe(1);
+    // Elle réclame 2 de plus pour atteindre son Tier 3, il n'en reste qu'1.
+    expect(session.energyPending()).toBe(1);
+  });
+
+  // Mutation : banquer `energyLeft()` entier → ROUGE.
+  it('l\'énergie grise est consommée à la fin de la préparation, pas banquée', () => {
+    const session = makeSession([multi]);
+    session.hand = [{ ...multi }] as any;
+    session.gameState.round = 2;
+    session.startPreparation();
+    session.place(session.hand[0], { col: 0, row: 0 }, [], 0);
+    // Budget 5, occupé 1, gris 2 → 2 en réserve.
+    expect(session.energyPending()).toBe(2);
+    const before = session.gameState.player_energy_reserve;
+    session.startCombat(null);
+    expect(session.gameState.player_energy_reserve - before).toBe(2);
+  });
+
+  // Mutation : réclamation qui bloque les invocations → ROUGE.
+  it('l\'énergie grise cède : une autre carte peut s\'y poser', () => {
+    const t2 = makeCard({ id: 'T2', tier: 2 });
+    const session = makeSession([multi, t2]);
+    session.hand = [{ ...multi }, { ...t2 }] as any;
+    session.startPreparation();
+    session.place(session.hand[0], { col: 0, row: 0 }, [], 0);
+    expect(session.energyPending()).toBe(2);
+    expect(session.place(session.hand[0], { col: 1, row: 0 }, [], 0)).not.toBeNull();
+    expect(session.energyLeft()).toBe(0);
+    expect(session.energyPending()).toBe(0);
   });
 });
 
