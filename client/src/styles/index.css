@@ -69,6 +69,21 @@ input, textarea, select, [contenteditable="true"] {
   -webkit-touch-callout: default;
 }
 
+/* La bande que la barre d'état d'iOS échantillonne (élément posé dans
+   index.html). En `apple-mobile-web-app-status-bar-style: default`, iOS teinte
+   la barre d'après la `background-color` d'un élément FIXE tout en haut — un
+   pseudo-élément lui est invisible, d'où un vrai <div>. Teinte du header
+   (`bg-surface`, AppHeader) : la barre s'y fond au lieu de faire une bande.
+   1 px, au-dessus de tout, sans aucune interaction. */
+.status-bar-sampler {
+  position: fixed;
+  inset: 0 0 auto 0;
+  height: 1px;
+  z-index: 100;
+  background-color: var(--color-surface);
+  pointer-events: none;
+}
+
 /* Supprime le délai de double-tap sur les commandes. Le canvas WebGL garde son
    propre `touch-action: none` (Scene3D) — il gère le drag d'unité lui-même. */
 button, a, label, [role="button"] { touch-action: manipulation; }

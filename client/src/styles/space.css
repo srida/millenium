@@ -44,6 +44,10 @@
    Gardé derrière `display-mode: standalone` : en navigateur mobile le viewport
    est juste, et prolonger le décor y ferait descendre le bord du vignettage
    sous la zone visible — l'encadrement du bas s'en trouverait affaibli.
+   Depuis le passage en `default` (index.html), une appli fraîchement
+   installée réserve la barre d'état : l'inset vaut 0 et la règle ne fait plus
+   rien. Elle ne sert plus qu'aux applis installées AVANT, restées en
+   `black-translucent` (la meta est figée à l'installation).
    `bottom: auto` parce que `inset: 0` pose déjà `bottom` : les trois valeurs
    ensemble sont sur-contraintes, et on veut que ce soit la hauteur qui gagne. */
 .space-bg {
