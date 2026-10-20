@@ -6693,6 +6693,15 @@ function renderSfxDetail() {
     </div>
 
     <div class="field">
+      <label>Ou lien YouTube</label>
+      <div style="display:flex;gap:8px">
+        <input id="sfx-youtube-url" type="url" inputmode="url" placeholder="https://youtu.be/…" style="flex:1;min-width:0">
+        <button class="btn btn-sm" id="sfx-youtube-btn" onclick="importAudioFromYoutube('sfx')">Importer</button>
+      </div>
+      <span style="font-size:11px;color:var(--muted);margin-top:4px">Le serveur récupère la piste audio (m4a). YouTube bloque parfois les serveurs : en cas d'échec, uploade le fichier.</span>
+    </div>
+
+    <div class="field">
       <label>ID</label>
       ${isNewSfx ? idPickerHtml('sfx', s.id) : idFieldHtmlFor('sfx', s.id, { readonly: true })}
       <span style="font-size:11px;color:var(--muted);margin-top:4px">Le fichier est nommé par cet id — il ne se renomme donc pas après coup.</span>
@@ -6935,6 +6944,15 @@ function renderMusicDetail() {
     </div>
 
     <div class="field">
+      <label>Ou lien YouTube</label>
+      <div style="display:flex;gap:8px">
+        <input id="music-youtube-url" type="url" inputmode="url" placeholder="https://youtu.be/…" style="flex:1;min-width:0">
+        <button class="btn btn-sm" id="music-youtube-btn" onclick="importAudioFromYoutube('music')">Importer</button>
+      </div>
+      <span style="font-size:11px;color:var(--muted);margin-top:4px">Le serveur récupère la piste audio (m4a). YouTube bloque parfois les serveurs : en cas d'échec, uploade le fichier.</span>
+    </div>
+
+    <div class="field">
       <label>ID</label>
       ${isNewMusic ? idPickerHtml('music', m.id) : idFieldHtmlFor('music', m.id, { readonly: true })}
       <span style="font-size:11px;color:var(--muted);margin-top:4px">Le fichier est nommé par cet id — il ne se renomme donc pas après coup.</span>
@@ -7103,6 +7121,25 @@ async function importMusicAudioFromFile() {
   if (res.error) return toast(res.error, 'err');
   _setMusicAudioFlag(true, ext);
   toast('Musique importée');
+}
+
+// Import par lien YouTube (`POST /api/<music|sfx>/:id/audio/youtube`) : le
+// serveur extrait la piste m4a avec yt-dlp. Partagé par les deux onglets.
+async function importAudioFromYoutube(entity) {
+  const input = document.getElementById(`${entity}-youtube-url`);
+  const btn = document.getElementById(`${entity}-youtube-btn`);
+  const url = input?.value.trim();
+  if (!url) return toast('Colle un lien YouTube', 'err');
+  const item = entity === 'music' ? selectedMusic : selectedSfx;
+  if (btn) { btn.disabled = true; btn.textContent = 'Import…'; }
+  toast('Récupération sur YouTube, ça peut prendre une minute...', 'ok');
+  let res;
+  try { res = await apiFetch(`/api/${entity}/${item.id}/audio/youtube`, { method: 'POST', body: { url } }); }
+  catch { res = { error: 'pas de réponse du serveur' }; }
+  if (btn) { btn.disabled = false; btn.textContent = 'Importer'; }
+  if (res.error) return toast(`YouTube : ${res.error}`, 'err');
+  if (entity === 'music') _setMusicAudioFlag(true, res.ext); else _setSfxAudioFlag(true, res.ext);
+  toast(res.title ? `Importé : ${res.title}` : 'Musique importée');
 }
 
 async function deleteMusicAudio() {

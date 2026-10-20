@@ -156,6 +156,7 @@ const {
 // que `card-contract.js` / `speed-scale.mjs` : app.js est CommonJS, il ne peut
 // pas `require()` un module ESM synchrone.
 const AUDIO_EXTENSIONS = ['mp3', 'ogg', 'wav', 'm4a'];
+const { isYoutubeUrl, fetchYoutubeAudio } = require('./youtube-audio');
 const INITIAL_DIR    = path.join(__dirname, 'initial-data');
 
 // Avatar servi quand un deck n'a pas le sien : aucun écran ne doit afficher de
@@ -1003,8 +1004,7 @@ app.use('/api/scoring', crud({
 }));
 
 // --- Audio (upload / suppression) : même triptyque que les illustrations,
-// sans l'import par URL (un effet sonore ou une piste musicale s'uploade
-// depuis l'appareil, il n'y a pas de "banque d'images" équivalente à côté).
+// sans l'import par URL d'image ; à la place, un import par lien YouTube.
 // `ext` vient du fichier choisi côté admin et doit appartenir à la liste
 // fermée `AUDIO_EXTENSIONS` — jamais recopié tel quel dans un nom de fichier.
 function mountAudioUpload(entity) {
@@ -1019,6 +1019,21 @@ function mountAudioUpload(entity) {
       saveAudio(AUDIO_DIR, id, safeExt, Buffer.from(data, 'base64'));
       res.json({ ok: true });
     } catch (e) { res.status(500).json({ error: e.message }); }
+  });
+
+  // Import depuis un lien YouTube (`youtube-audio.js`) : le serveur extrait
+  // la piste m4a lui-même. YouTube bloque souvent les IP de datacenter —
+  // l'erreur remonte telle quelle, l'upload de fichier reste le repli.
+  app.post(`/api/${entity}/:id/audio/youtube`, async (req, res) => {
+    const id = safeAssetId(req.params.id);
+    if (!id) return badAssetId(res);
+    const { url } = req.body || {};
+    if (!isYoutubeUrl(url)) return res.status(400).json({ error: 'lien YouTube invalide' });
+    try {
+      const { buffer, ext, title } = await fetchYoutubeAudio(url, DATA_DIR);
+      saveAudio(AUDIO_DIR, id, ext, buffer);
+      res.json({ ok: true, ext, title });
+    } catch (e) { res.status(e.status || 502).json({ error: e.message }); }
   });
 
   app.delete(`/api/${entity}/:id/audio`, (req, res) => {

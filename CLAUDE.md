@@ -133,6 +133,7 @@ BOARD_BG_DIR = process.env.BOARD_BG_DIR || path.join(ASSETS_ROOT, 'board_backgro
 | `POST/PUT/DELETE /api/<entité>[/:id]` | Site admin | CRUD (`routes/crud-json.js` : ne valide que l'unicité de l'id) |
 | `POST /api/<entité>/import` | Site admin | Import en masse, mode `skip`/`replace` |
 | `POST/PUT/DELETE /api/<entité>/:id/illustration` | Site admin | Art (URL / base64 / suppression) |
+| `POST /api/{music,sfx}/:id/audio/youtube` | Site admin | Import audio par lien YouTube (`youtube-audio.js`) : binaire autonome yt-dlp téléchargé dans `DATA_DIR/bin`, rafraîchi tous les 3 j, piste **m4a seule** (pas de ffmpeg). ⚠️ YouTube bloque souvent les IP de datacenter : l'erreur remonte à l'admin, l'upload reste le repli |
 | `POST/PUT/DELETE /api/decks/:id/avatar`, `/api/sets/:id/poster`, `/api/boards/:id/background` | Site admin | Les trois autres familles d'images |
 | `GET /illustrations/:id`, `/avatars/:id`, `/pack-posters/:id`, `/board-backgrounds/:id` | Public | Les assets (gardés par `safeAssetId`) |
 | `GET /api/export` | Auth | Export complet + checksums des quatre familles |
